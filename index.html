@@ -2343,11 +2343,11 @@ function saveAiConfig(){
 function aiTabHtml(){
   const pv = AI_CFG.provider === 'openai' ? 'openai' : 'gemini';
   const prov = AI_PROVIDERS[pv];
-  return '<p class="sec-desc">카드사 앱·웹의 <b>사용내역 · 결제예정금액</b> 화면을 캡쳐해 올리면, 이 브러우저가 AI에 직접 물어 내역을 뽑고 자동 분류해 가계부에 넣습니다. 이미지는 분석 때만 AI 제공자에게 전송되고, API 키는 <b>이 브러우저(localStorage)에만</b> 저장됩니다 — 가계부 백업·동기화 파일에는 들어가지 않습니다.</p>'+
+  return '<p class="sec-desc">카드사 앱·웹의 <b>사용내역 · 결제예정금액</b> 화면을 캡쳐해 올리면, 이 브라우저가 AI에 직접 물어 내역을 뽑고 자동 분류해 가계부에 넣습니다. 이미지는 분석 때만 AI 제공자에게 전송되고, API 키는 <b>이 브라우저(localStorage)에만</b> 저장됩니다 — 가계부 백업·동기화 파일에는 들어가지 않습니다.</p>'+
     '<div class="field"><label>AI 제공자</label><select class="txt" id="aiProvider2">'+
       '<option value="gemini"'+(pv==='gemini'?' selected':'')+'>Google Gemini (추천 · 무료 티어 가능)</option>'+
       '<option value="openai"'+(pv==='openai'?' selected':'')+'>OpenAI (GPT)</option>'+
-    '</select><p class="tiny">Gemini는 무료 티어로도 쓸 수 있어 추천합니다. OpenAI는 결제(크레딧)가 등록된 키가 필요합니다.</p></div>'+
+    '</select><p class="tiny">Gemini는 무료 티어로도 쓸 수 있어 추천합니다. OpenAI는 결제(크레딧)가 등록된 키가 필요하고, OpenAI가 브라우저에서의 직접 호출(CORS)을 막는 경우에는 동작하지 않습니다. 그럴 때는 Gemini를 쓰세요.</p></div>'
     '<div class="field"><label>API 키</label>'+
       '<div class="capkeyrow" style="margin-top:0">'+
         '<input class="txt" type="password" id="aiKey2" value="'+esc(AI_CFG.key)+'" placeholder="'+esc(prov.keyHint)+' API 키" autocomplete="off" spellcheck="false">'+
@@ -2384,9 +2384,9 @@ function bindAiTab(){
     AI_CFG.key = keyEl.value.trim();
     AI_CFG.model = modelEl.value.trim();
     if (!AI_CFG.key){ toast('API 키를 입력하세요'); keyEl.focus(); return; }
-    if (!saveAiConfig()){ toast('브러우저 저장이 막혀 있어 키를 저장하지 못했습니다'); return; }
+    if (!saveAiConfig()){ toast('브라우저 저장이 막혀 있어 키를 저장하지 못했습니다'); return; }
     const st = $('#aiState2');
-    if (st){ st.className = 'syncstate ok'; st.textContent = '키를 저장했습니다. 이 브러우저에만 보관됩니다.'; }
+    if (st){ st.className = 'syncstate ok'; st.textContent = '키를 저장했습니다. 이 브라우저에만 보관됩니다.'; }
     toast('AI 설정을 저장했습니다');
   });
   $('#aiClear').addEventListener('click', ()=>{
@@ -2886,7 +2886,7 @@ $('#syncSetupBtn').addEventListener('click', ()=> openModal('sync'));
 $('#btnSync').addEventListener('click', refreshNow);
 
 /* ============================================================
-   AI 캐처 분석 — 캐처 이미지에서 카드 내역을 뽑아 바로 추가
+   AI 캡처 분석 — 캡처 이미지에서 카드 내역을 뽑아 바로 추가
    · 이미지는 AI 제공자에게 직접 전송 (API 키는 로컬저장소에만)
    · 같은 달짜·가맹점·금액이 이미 가계부에 있으면 자동 제외
    ============================================================ */
@@ -3051,7 +3051,7 @@ async function capCallOpenAI(imgs){
         ]
       })
     });
-  } catch(e){ throw new Error('네트워크 오류로 AI에 연결하지 못했습니다. 인터넷 연결이나 광고 차단 앱을 확인해 주세요.'); }
+  } catch(e){ throw new Error('AI에 연결하지 못했습니다. 네트워크를 확인하고, 그대로면 OpenAI가 브라우저 직접 호출(CORS)을 막은 경우이니 ⚙ 설정 → AI 캡처에서 Gemini로 바꿔 주세요.'); }
   if (!res.ok) throw capApiError(res.status, await capReadError(res));
   const j = await res.json();
   const ch = (j.choices || [])[0];
@@ -3104,7 +3104,7 @@ function capBodyHtml(){
     const pv = AI_CFG.provider === 'openai' ? 'openai' : 'gemini';
     h += '<div class="capkeybox">'+
       '<div class="kt">🔑 AI API 키를 먼저 넣어 주세요</div>'+
-      '<p class="tiny">캐처 이미지는 <b>이 브러우저에서 AI로 직접</b> 전송됩니다. 키는 이 브러우저(localStorage)에만 저장되고 가계부 파일·동기화에는 들어가지 않습니다.</p>'+
+      '<p class="tiny">캡처 이미지는 <b>이 브라우저에서 AI로 직접</b> 전송됩니다. 키는 이 브라우저(localStorage)에만 저장되고 가계부 파일·동기화에는 들어가지 않습니다.</p>'+
       '<div class="capkeyrow">'+
         '<select class="txt" id="capProviderSel">'+
           '<option value="gemini"'+(pv==='gemini'?' selected':'')+'>Google Gemini (추천 · 무료 티어 가능)</option>'+
@@ -3241,8 +3241,8 @@ function capSaveInlineKey(){
   AI_CFG.provider = prov.value === 'openai' ? 'openai' : 'gemini';
   AI_CFG.key = v;
   AI_CFG.model = '';
-  if (!saveAiConfig()){ toast('브러우저 저장이 막혀 있어 키를 저장하지 못했습니다'); return; }
-  toast('AI 키를 저장했습니다 (이 브러우저에만)');
+  if (!saveAiConfig()){ toast('브라우저 저장이 막혀 있어 키를 저장하지 못했습니다'); return; }
+  toast('AI 키를 저장했습니다 (이 브라우저에만)');
   CAP.error = '';
   capRender();
 }
@@ -3259,7 +3259,7 @@ function capSetField(i, f, v, el){
 async function capRun(){
   if (CAP.busy) return;
   if (!AI_CFG.key){ CAP.error = 'AI API 키가 없습니다. 위 입력칸에 키를 넣고 [저장]을 눌러 주세요.'; capRender(); return; }
-  if (!CAP.files.length){ CAP.error = '분석할 캐처 이미지를 먼저 골라 주세요.'; capRender(); return; }
+  if (!CAP.files.length){ CAP.error = '분석할 캡처 이미지를 먼저 골라 주세요.'; capRender(); return; }
   CAP.busy = true; CAP.error = ''; CAP.results = []; CAP.ms = 0; CAP.status = '이미지를 준비하는 중…';
   capRender();
   try {
@@ -3269,7 +3269,7 @@ async function capRun(){
       capStatusOnly();
       imgs.push(await capPrepImage(CAP.files[i].file));
     }
-    CAP.status = 'AI가 캐처를 읽는 중… (' + imgs.length + '장)';
+    CAP.status = 'AI가 캡처를 읽는 중… (' + imgs.length + '장)';
     capStatusOnly();
     const t0 = Date.now();
     const res = AI_CFG.provider === 'openai' ? await capCallOpenAI(imgs) : await capCallGemini(imgs);
@@ -3313,7 +3313,7 @@ function capAddSelected(){
   if (tc) setTimeout(()=> tc.scrollIntoView({behavior:'smooth', block:'start'}), 120);
 }
 
-/* ---------- 캐처 모달 이벤트 ---------- */
+/* ---------- 캡처 모달 이벤트 ---------- */
 $('#btnCapture').addEventListener('click', openCapture);
 $('#btnCapture2').addEventListener('click', openCapture);
 $('#capClose').addEventListener('click', closeCapture);
