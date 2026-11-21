@@ -656,8 +656,8 @@ function renderFilters(){
   let allTotal = 0;
   S.rows.forEach(r=>{ cardTotals.set(r.card,(cardTotals.get(r.card)||0)+r.amount); allTotal += r.amount; });
   $('#cardChips').innerHTML = '<span class="lbl">카드사</span>' +
-    '<button class="chip'+(F.cards.length?'':' on')+'" data-card="" title="모든 카드사 보기">전체'+
-      '<span class="cnt">'+shortKrw(allTotal)+'</span></button>' +
+    (cards.length ? '<button class="chip'+(F.cards.length?'':' on')+'" data-card="" title="모든 카드사 보기">전체'+
+      '<span class="cnt">'+shortKrw(allTotal)+'</span></button>' : '') +
     cards.map(c=>{
       const on = F.cards.indexOf(c)>=0;
       return '<button class="chip'+(on?' on':'')+'" data-card="'+esc(c)+'" title="'+esc(c)+' 내역만 보기">'+
