@@ -66,6 +66,8 @@ input,select{font:inherit;color:inherit}
 .seg button{border:0;background:transparent;border-radius:9px;padding:6px 11px;font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap;transition:.15s}
 .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.12)}
 .seg.small button{padding:4px 9px;font-size:12.5px}
+.seg button:disabled{opacity:.3;cursor:default}
+.seg .yr{display:inline-flex;align-items:center;padding:0 2px;color:var(--ink)}
 
 /* ---------- layout ---------- */
 main{max-width:1280px;margin:0 auto;padding:16px 16px 64px;display:flex;flex-direction:column;gap:14px}
@@ -382,6 +384,15 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 
   <section class="kpis" id="kpis"></section>
 
+  <section class="card chart-card hidden" id="annualCard">
+    <div class="card-head">
+      <h2>연간 카드 사용액</h2>
+      <div class="seg small" id="yearSeg"></div>
+      <span class="hint" id="annualHint"></span>
+    </div>
+    <div class="chart-body" id="annual"></div>
+  </section>
+
   <section class="charts">
     <div class="card chart-card">
       <div class="card-head">
@@ -528,7 +539,7 @@ function blankState(keepRules){
     categories: keepRules===false ? [] : SEED.categories.map(c=>({...c})),
     rules: keepRules===false ? [] : SEED.rules.map(r=>({...r})),
     dueDates: {},
-    ui: {barMode:'amount', sortKey:'date', sortDir:'desc', limit:60}
+    ui: {barMode:'amount', sortKey:'date', sortDir:'desc', limit:60, year:null}
   };
 }
 function seedState(){
@@ -538,7 +549,7 @@ function seedState(){
     categories: SEED.categories.map(c=>({...c})),
     rules: SEED.rules.map(r=>({...r})),
     dueDates: clone(SEED.dueDates||{}),
-    ui: {barMode:'amount', sortKey:'date', sortDir:'desc', limit:60}
+    ui: {barMode:'amount', sortKey:'date', sortDir:'desc', limit:60, year:null}
   };
 }
 let S = seedState();
@@ -567,6 +578,7 @@ function loadState(){
     if(Array.isArray(p.rules)) S.rules = p.rules.map(r=>({...r}));
     if(p.dueDates && typeof p.dueDates === 'object') S.dueDates = p.dueDates;
     if(p.ui && p.ui.barMode) S.ui.barMode = p.ui.barMode;
+    if(p.ui && p.ui.year) S.ui.year = p.ui.year;
   } catch(e){ /* ignore broken storage */ }
 }
 
@@ -590,10 +602,11 @@ function availableCards(){
 function catMeta(name){
   return S.categories.find(c=>c.name===name) || {name, color:'#cbd5e1'};
 }
-function filteredRows(){
+function filteredRows(opts){
+  const o = opts || {};
   const q = F.q.trim().toLowerCase();
   return S.rows.filter(r=>{
-    if (F.month !== 'all' && r.month !== F.month) return false;
+    if (!o.ignoreMonth && F.month !== 'all' && r.month !== F.month) return false;
     if (F.cards.length && F.cards.indexOf(r.card) < 0) return false;
     if (F.categories.length && F.categories.indexOf(r.category) < 0) return false;
     if (F.date && r.date !== F.date) return false;
@@ -864,6 +877,99 @@ function renderBars(rows, sum){
 }
 
 /* ============================================================
+   ANNUAL (1~12월 막대)
+   ============================================================ */
+function annualYears(){
+  const ys = new Set();
+  S.rows.forEach(r=>{ const y = +String(r.month||'').slice(0,4); if (y) ys.add(y); });
+  ys.add(new Date().getFullYear());
+  return Array.from(ys).sort((a,b)=>a-b);
+}
+function renderAnnual(){
+  const el = $('#annual'); if (!el) return;
+  const years = annualYears();
+  let year = +S.ui.year || 0;
+  if (years.indexOf(year) < 0) year = years[years.length-1];
+  S.ui.year = year;
+  const yi = years.indexOf(year);
+  $('#yearSeg').innerHTML =
+    '<button data-year-step="-1"'+(yi<=0?' disabled':'')+' title="이전 해">‹</button>'+
+    '<span class="yr" style="min-width:58px;text-align:center;font-weight:700;font-size:13px">'+year+'년</span>'+
+    '<button data-year-step="1"'+(yi>=years.length-1?' disabled':'')+' title="다음 해">›</button>';
+
+  const rows = filteredRows({ignoreMonth:true}).filter(r=> String(r.month||'').slice(0,4) === String(year));
+  const amt = new Array(12).fill(0), cnt = new Array(12).fill(0);
+  rows.forEach(r=>{ const m = +String(r.month||'').slice(5,7); if (m>=1 && m<=12){ amt[m-1]+=r.amount; cnt[m-1]++; } });
+  const total = amt.reduce((a,b)=>a+b,0);
+  const peakVal = Math.max(...amt);
+  const peakIdx = amt.indexOf(peakVal);
+
+  const scope = (F.cards.length || F.categories.length || F.q) ? '필터 적용 · ' : '';
+  $('#annualHint').textContent = rows.length
+    ? scope + year + '년 합계 ' + fmt(total) + '원 · 최고 ' + (peakIdx+1) + '월 ' + fmt(peakVal) + '원'
+    : scope + year + '년 내역 없음';
+
+  const W = Math.max(280, el.clientWidth || 640);
+  const H = W < 460 ? 182 : 218;
+  const pad = {l: W < 460 ? 34 : 48, r: 8, t: 26, b: 24};
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const niceMax = (function(v){
+    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(1,v))));
+    const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    for (const s of steps){ if (v <= pow*s) return pow*s; }
+    return pow*10;
+  })(Math.max(1, peakVal)*1.12);
+  const bw = innerW/12;
+  const barW = Math.max(6, Math.min(34, bw*0.6));
+  const selIdx = (F.month !== 'all' && String(F.month).slice(0,4) === String(year)) ? (+String(F.month).slice(5,7)) - 1 : -1;
+  const yBase = pad.t + innerH;
+  const smallW = W < 460;
+
+  let svg = '<svg viewBox="0 0 '+W.toFixed(0)+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="연간 월별 카드 사용액" style="display:block;touch-action:pan-y">';
+  // 그리드
+  [0, .5, 1].forEach(f=>{
+    const v = niceMax*f, yy = yBase - f*innerH;
+    svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#eef0f4" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
+  });
+
+  // 달별 막대
+  for (let m=0; m<12; m++){
+    const cx = pad.l + bw*(m+0.5);
+    const on = m === selIdx;
+    const val = amt[m];
+    const h = val ? Math.max(3, val/niceMax*innerH) : 2;
+    const yy = yBase - h;
+    svg += '<g data-month="'+year+'-'+String(m+1).padStart(2,'0')+'" style="cursor:pointer">';
+    if (on) svg += '<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+pad.t+'" width="'+bw.toFixed(1)+'" height="'+innerH+'" rx="5" fill="#2f6fed" opacity=".09"/>';
+    svg += '<rect x="0" y="'+pad.t+'" width="'+W.toFixed(0)+'" height="'+(innerH+pad.b)+'" fill="transparent"/>';
+    svg += '<rect x="'+(cx-barW/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(barW>10?4:2)+'" fill="'+(val ? (on?'#1d4ed8':'#2f6fed') : '#e6eaf1')+'"'+
+      ' style="transform-box:fill-box;transform-origin:center bottom;animation:barUp .45s cubic-bezier(.2,.8,.2,1) both"/>';
+    svg += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9.5:11)+'" font-weight="'+(val?700:500)+'" fill="'+(on?'#1d4ed8': (val?'#4b5563':'#a3aab8'))+'">'+(m+1)+(smallW?'':'월')+'</text>';
+    svg += '<title>'+year+'년 '+(m+1)+'월 · '+fmt(val)+'원'+(cnt[m]?' · '+fmt(cnt[m])+'건':'')+'</title>';
+    svg += '</g>';
+  }
+
+  // 금액 라벨 (값이 있는 달만, 옆 달과 겹치지 않게 위/아래 두 줄로)
+  const laneRight = [-1e9, -1e9];
+  for (let m=0; m<12; m++){
+    const val = amt[m]; if (!val) continue;
+    const cx = pad.l + bw*(m+0.5);
+    const h = Math.max(3, val/niceMax*innerH);
+    const txt = shortKrw(val);
+    const tw = txt.length * (smallW?5.0:5.7) + 4;
+    const left = cx - tw/2, right = cx + tw/2;
+    let lane = laneRight[0] <= left ? 0 : (laneRight[1] <= left ? 1 : 0);
+    laneRight[lane] = right;
+    const baseY = yBase - h - 5 - lane*11;
+    svg += '<text x="'+cx.toFixed(1)+'" y="'+Math.max(9, baseY).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="700" fill="'+(m===selIdx?'#1d4ed8':'#111827')+'" pointer-events="none">'+txt+'</text>';
+  }
+  svg += '<style>@keyframes barUp{from{transform:scaleY(0)}to{transform:scaleY(1)}}</style>';
+  svg += '</svg>';
+  el.innerHTML = svg;
+}
+
+/* ============================================================
    TREND (SVG area + line)
    ============================================================ */
 function renderTrend(rows, sum){
@@ -1088,7 +1194,10 @@ function renderAll(){
   const sum = summarize(rows);
   const charts = document.querySelector('.charts');
   if (charts) charts.classList.toggle('hidden', S.rows.length === 0);
+  const annualCard = $('#annualCard');
+  if (annualCard) annualCard.classList.toggle('hidden', S.rows.length === 0);
   renderKpis(rows, sum);
+  renderAnnual();
   renderDonut(rows, sum);
   renderBars(rows, sum);
   renderTrend(rows, sum);
@@ -1115,13 +1224,15 @@ function updateModeUi(){
    EVENTS
    ============================================================ */
 /* ---------- empty-state actions ---------- */
-const SAMPLE_CSV = '\uFEFF이용일자,가맹점,청구금액,분류,비고\r\n'+
-  '2026-11-02,한빛마트,32000,,\r\n'+
-  '2026-11-03,새벽편의점,4500,,\r\n'+
-  '2026-11-05,교통-하이패스,3200,,\r\n'+
-  '2026-11-06,튼튼손해보험,68710,,\r\n'+
-  '2026-11-08,커피한잔,5800,,\r\n'+
-  '2026-11-10,한빛마트,52000,,\r\n';
+const SAMPLE_CSV = '\uFEFF이용일자,카드사,가맹점,청구금액,분류,비고\r\n'+
+  '2026-10-14,KB국민카드,한빛마트,41000,,\r\n'+
+  '2026-10-27,삼성카드,푸른주유소,52000,,\r\n'+
+  '2026-11-02,삼성카드,한빛마트,32000,,\r\n'+
+  '2026-11-03,삼성카드,새벽편의점,4500,,\r\n'+
+  '2026-11-05,KB국민카드,교통-하이패스,3200,,\r\n'+
+  '2026-11-06,KB국민카드,튼튼손해보험,68710,,\r\n'+
+  '2026-11-08,우리카드,커피한잔,5800,,\r\n'+
+  '2026-11-10,우리카드,한빛마트,52000,,\r\n';
 $('#kpis').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-act]'); if (!b) return;
   if (b.dataset.act === 'upload') openModal('data');
@@ -1132,6 +1243,23 @@ $('#kpis').addEventListener('click', ev=>{
 $('#monthSeg').addEventListener('click', ev=>{
   const b = ev.target.closest('button[data-month]'); if(!b) return;
   F.month = b.dataset.month; F.date = null; S.ui.limit = 60; renderAll();
+});
+$('#yearSeg').addEventListener('click', ev=>{
+  const b = ev.target.closest('button[data-year-step]'); if(!b || b.disabled) return;
+  const years = annualYears();
+  const cur = +S.ui.year || years[years.length-1];
+  const i = years.indexOf(cur) + (+b.dataset.yearStep);
+  if (i < 0 || i >= years.length) return;
+  S.ui.year = years[i];
+  if (F.month !== 'all' && String(F.month).slice(0,4) !== String(S.ui.year)) F.month = 'all';
+  saveState(); renderAll();
+});
+$('#annual').addEventListener('click', ev=>{
+  const g = ev.target.closest('[data-month]'); if(!g) return;
+  const m = g.dataset.month;
+  F.month = (F.month === m) ? 'all' : m;
+  F.date = null; S.ui.limit = 60;
+  renderAll();
 });
 $('#cardChips').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-card]'); if(!b) return;
@@ -1235,7 +1363,7 @@ window.addEventListener('resize', ()=>{
   clearTimeout(rsz);
   rsz = setTimeout(()=>{
     const rows = filteredRows(), sum = summarize(rows);
-    renderBars(rows, sum); renderTrend(rows, sum);
+    renderBars(rows, sum); renderTrend(rows, sum); renderAnnual();
   }, 160);
 });
 
