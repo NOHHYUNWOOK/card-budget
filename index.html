@@ -92,6 +92,8 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 64px;display:flex;flex-dir
 .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .chip.on .cnt{color:rgba(255,255,255,.7)}
 .chip .cnt{font-weight:600;color:var(--muted);font-size:11.5px}
+.chip.add{border-style:dashed;color:var(--muted)}
+.chip.add:hover{color:var(--ink);border-color:#b9cdf7;background:var(--accent-soft)}
 .active-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink2)}
 .active-bar .tag{background:var(--accent-soft);color:#1d4ed8;border-radius:999px;padding:4px 10px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
 .active-bar .tag b{font-weight:700}
@@ -142,7 +144,8 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 64px;display:flex;flex-dir
 .empty b{color:var(--ink2)}
 
 /* ---------- table ---------- */
-.table-card{overflow:hidden}
+.table-card{overflow:hidden;scroll-margin-top:74px;transition:box-shadow .25s}
+.table-card.flash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 1px #b9cdf7}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 thead th{
@@ -293,10 +296,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .modal{max-height:92vh}
 }
 @media (max-width:560px){
-  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px}
-  .chips::-webkit-scrollbar{display:none}
-  .chips .lbl{display:none}
-  .chip{flex:none}
+  .chips{flex-wrap:wrap;overflow:visible;gap:5px;padding-bottom:0}
+  .chips .lbl{display:inline;font-size:11px;margin-right:1px}
+  .chip{flex:0 0 auto;padding:4px 9px;font-size:12px;gap:5px}
+  .chip .cnt{font-size:11px}
   .kpis .kpi:last-child{grid-column:1 / -1}
   table{min-width:0;font-size:13px}
   thead{display:none}
@@ -631,17 +634,20 @@ function renderFilters(){
   mSeg.innerHTML = '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
     ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+monthLabel(m)+'</button>').join('');
 
-  // card chips
+  // card chips — 전체 + 카드사별 (카드를 고르면 상세내역까지 바로 필터됩니다)
   const cards = Array.from(new Set(availableCards().concat(cardsIn(S.rows))));
   const cardTotals = new Map();
-  S.rows.forEach(r=> cardTotals.set(r.card,(cardTotals.get(r.card)||0)+r.amount));
+  let allTotal = 0;
+  S.rows.forEach(r=>{ cardTotals.set(r.card,(cardTotals.get(r.card)||0)+r.amount); allTotal += r.amount; });
   $('#cardChips').innerHTML = '<span class="lbl">카드사</span>' +
-    (cards.length ? cards.map(c=>{
+    '<button class="chip'+(F.cards.length?'':' on')+'" data-card="" title="모든 카드사 보기">전체'+
+      '<span class="cnt">'+shortKrw(allTotal)+'</span></button>' +
+    cards.map(c=>{
       const on = F.cards.indexOf(c)>=0;
-      return '<button class="chip'+(on?' on':'')+'" data-card="'+esc(c)+'">'+
-        '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(c)+
+      return '<button class="chip'+(on?' on':'')+'" data-card="'+esc(c)+'" title="'+esc(c)+' 내역만 보기">'+
+        '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+
         '<span class="cnt">'+shortKrw(cardTotals.get(c)||0)+'</span></button>';
-    }).join('') : '<span class="muted" style="font-size:12.5px">내역 없음</span>');
+    }).join('');
 
   // category chips
   const catTotals = new Map();
@@ -653,10 +659,11 @@ function renderFilters(){
       const on = F.categories.indexOf(n)>=0;
       const col = catMeta(n).color;
       const amt = catTotals.get(n)||0;
-      return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'">'+
+      return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+
         '<span class="dot" style="background:'+col+'"></span>'+esc(n)+
         (amt?'<span class="cnt">'+shortKrw(amt)+'</span>':'')+'</button>';
-    }).join('');
+    }).join('') +
+    '<button class="chip add" data-addcat="1" title="새 분류 만들기 · 이름·색 수정">＋ 분류</button>';
 
   // active filters
   const tags = [];
@@ -1005,7 +1012,8 @@ function renderTable(rows, sum){
   tbody.innerHTML = view.map(r=>{
     const unknown = catNames.indexOf(r.category) < 0;
     const opts = (unknown ? [r.category].concat(catNames) : catNames).map(n=>
-      '<option value="'+esc(n)+'"'+(n===r.category?' selected':'')+'>'+esc(n)+'</option>').join('');
+      '<option value="'+esc(n)+'"'+(n===r.category?' selected':'')+'>'+esc(n)+'</option>').join('')+
+      '<option value="__new__">＋ 새 분류 직접 입력</option>';
     return '<tr data-id="'+r.id+'">'+
       '<td class="date"><span class="date-full">'+esc(r.date)+'</span><span class="date-short">'+dMD(r.date)+'</span></td>'+
       '<td><span class="cardtag"><span class="dot" style="background:'+cardColor(r.card)+'"></span>'+esc(shortCard(r.card))+'</span></td>'+
@@ -1017,7 +1025,15 @@ function renderTable(rows, sum){
   }).join('');
 
   const more = sorted.length - view.length;
-  $('#tableHint').textContent = '분류를 바꾸면 위 숫자·그래프가 즉시 다시 계산됩니다';
+  const fbits = [];
+  if (F.month !== 'all') fbits.push(monthLabel(F.month));
+  if (F.cards.length) fbits.push('카드 ' + F.cards.map(shortCard).join('·'));
+  if (F.categories.length) fbits.push('분류 ' + F.categories.join('·'));
+  if (F.date) fbits.push(dMD(F.date));
+  if (F.q) fbits.push('검색 ' + F.q);
+  $('#tableHint').textContent = fbits.length
+    ? fbits.join(' · ') + ' — ' + fmt(sorted.length) + '건 ' + fmt(sum.total) + '원'
+    : '분류를 바꾸면 위 숫자·그래프가 즉시 다시 계산됩니다';
   $('#tableFoot').innerHTML =
     '<span>표시 <b>'+fmt(view.length)+'</b> / '+fmt(sorted.length)+'건</span>'+
     '<span>합계 <b>'+fmt(sum.total)+'원</b></span>'+
@@ -1119,11 +1135,17 @@ $('#monthSeg').addEventListener('click', ev=>{
 });
 $('#cardChips').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-card]'); if(!b) return;
-  const c = b.dataset.card, i = F.cards.indexOf(c);
-  if (i>=0) F.cards.splice(i,1); else F.cards.push(c);
+  const c = b.dataset.card;
+  if (!c){ F.cards = []; }               // '전체' 칩
+  else {
+    const i = F.cards.indexOf(c);
+    if (i>=0) F.cards.splice(i,1); else F.cards.push(c);
+  }
+  S.ui.limit = 60;
   renderAll();
 });
 $('#catChips') && $('#catChips').addEventListener('click', ev=>{
+  if (ev.target.closest('[data-addcat]')){ openModal('cat'); return; }
   const b = ev.target.closest('[data-cat]'); if(!b) return;
   toggleCategory(b.dataset.cat);
 });
@@ -1158,10 +1180,22 @@ $('#donutLegend').addEventListener('click', ev=>{
 });
 $('#bars').addEventListener('click', ev=>{
   const g = ev.target.closest('[data-card]'); if(!g) return;
-  const c = g.dataset.card, i = F.cards.indexOf(c);
+  const c = g.dataset.card; if(!c) return;
+  const i = F.cards.indexOf(c);
   if (i>=0) F.cards.splice(i,1); else F.cards.push(c);
+  S.ui.limit = 60;
   renderAll();
+  if (F.cards.indexOf(c) >= 0) flashDetail();   // 막대를 누르면 그 카드사 상세내역으로 이동
 });
+function flashDetail(){
+  const el = document.querySelector('.table-card'); if (!el) return;
+  try { el.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){ el.scrollIntoView(); }
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+  clearTimeout(flashDetail._t);
+  flashDetail._t = setTimeout(()=> el.classList.remove('flash'), 1600);
+}
 $('#table').addEventListener('click', ev=>{
   const th = ev.target.closest('th[data-sort]'); if(!th) return;
   const k = th.dataset.sort;
@@ -1174,6 +1208,17 @@ $('#table').addEventListener('change', ev=>{
   const row = S.rows.find(r=>r.id === sel.dataset.id);
   if (!row) return;
   const prev = row.category;
+  if (sel.value === '__new__'){
+    askPrompt('새 분류 만들기', '분류 이름을 입력하세요. 이 거래에 바로 적용되고, 목록에도 생깁니다.', '', val=>{
+      const name = addCategory(val);
+      if (!name){ sel.value = prev; return; }
+      row.category = name;
+      row.edited = true;
+      saveState(); renderAll();
+      toast('"'+name+'" 분류로 바꿈 ('+prev+' → '+name+')');
+    }, ()=>{ sel.value = prev; });
+    return;
+  }
   row.category = sel.value;
   row.edited = true;
   saveState();
@@ -1196,18 +1241,60 @@ window.addEventListener('resize', ()=>{
 
 /* ---------- dialogs ---------- */
 let dlgOnOk = null;
+let dlgOnCancel = null;
 function askConfirm(title, body, okLabel, onOk, danger){
   $('#dlgTitle').textContent = title;
   $('#dlgBody').textContent = body;
   $('#dlgOk').textContent = okLabel || '확인';
   $('#dlgOk').className = 'btn ' + (danger===false ? 'primary' : 'danger');
-  dlgOnOk = onOk;
+  dlgOnOk = onOk; dlgOnCancel = null;
   $('#dialogBackdrop').classList.add('show');
 }
-function closeDialog(){ $('#dialogBackdrop').classList.remove('show'); dlgOnOk = null; }
-$('#dlgCancel').addEventListener('click', closeDialog);
-$('#dlgOk').addEventListener('click', ()=>{ const fn = dlgOnOk; closeDialog(); if (fn) fn(); });
-$('#dialogBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'dialogBackdrop') closeDialog(); });
+/* 글자를 직접 입력받는 대화상자 (분류 이름 등) */
+function askPrompt(title, body, value, onOk, onCancel){
+  $('#dlgTitle').textContent = title;
+  $('#dlgBody').innerHTML = '<span style="display:block;margin-bottom:8px">'+esc(body)+'</span>'+
+    '<input id="dlgInput" type="text" maxlength="18" value="'+esc(value||'')+'" autocomplete="off" '+
+      'style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;outline:none">'+
+    '<span class="tiny" style="display:block;margin-top:6px;color:var(--muted)">예: 교육비, 반려동물, 경조사 (최대 18자)</span>';
+  $('#dlgOk').textContent = '저장';
+  $('#dlgOk').className = 'btn primary';
+  dlgOnOk = ()=>{ const inp = $('#dlgInput'); onOk(inp ? inp.value : ''); };
+  dlgOnCancel = onCancel || null;
+  $('#dialogBackdrop').classList.add('show');
+  setTimeout(()=>{
+    const inp = $('#dlgInput');
+    if (!inp) return;
+    inp.focus();
+    inp.addEventListener('keydown', e=>{ if (e.key === 'Enter'){ e.preventDefault(); $('#dlgOk').click(); } });
+  }, 60);
+}
+function closeDialog(runCancel){
+  $('#dialogBackdrop').classList.remove('show');
+  const cancel = dlgOnCancel;
+  dlgOnOk = null; dlgOnCancel = null;
+  if (runCancel && cancel) cancel();
+}
+$('#dlgCancel').addEventListener('click', ()=> closeDialog(true));
+$('#dlgOk').addEventListener('click', ()=>{ const fn = dlgOnOk; closeDialog(false); if (fn) fn(); });
+$('#dialogBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'dialogBackdrop') closeDialog(true); });
+
+/* 분류를 이름으로 찾거나 없으면 새로 만듭니다 (임의 텍스트 허용) */
+const CAT_PALETTE = ['#3b82f6','#f59e0b','#94a3b8','#10b981','#06b6d4','#8b5cf6','#f43f5e','#0ea5e9','#84cc16','#ec4899','#8b5e3c','#64748b'];
+function cleanCatName(v){
+  return String(v == null ? '' : v).replace(/[\u0000-\u001f]/g,' ').replace(/\s+/g,' ').trim().slice(0,18);
+}
+function addCategory(rawName){
+  const name = cleanCatName(rawName);
+  if (!name){ toast('분류 이름을 입력하세요'); return null; }
+  const ex = S.categories.find(c=> c.name === name);
+  if (ex) return ex.name;
+  const used = new Set(S.categories.map(c=> c.color));
+  const color = CAT_PALETTE.find(c=> !used.has(c)) || CAT_PALETTE[S.categories.length % CAT_PALETTE.length];
+  S.categories.push({name, color});
+  saveState();
+  return name;
+}
 
 /* ---------- data mode ---------- */
 $('#modeSeg').addEventListener('click', ev=>{
@@ -1279,7 +1366,7 @@ let pendingImport = null;
 
 function openModal(tab){
   modalTab = tab || 'cat';
-  draft = {cats: clone(S.categories), rules: clone(S.rules), deleted: []};
+  draft = {cats: clone(S.categories).map(c=>({...c, _orig:c.name})), rules: clone(S.rules), deleted: []};
   pendingImport = null;
   $$('#modalTabs button').forEach(b=> b.classList.toggle('on', b.dataset.tab === modalTab));
   $('#modalBackdrop').classList.add('show');
@@ -1363,9 +1450,10 @@ function saveCategories(){
   const names = next.map(c=>c.name);
   if (new Set(names).size !== names.length){ toast('같은 이름의 분류가 두 번 있습니다'); return; }
   const rename = new Map();
-  S.categories.forEach((old,i)=>{
-    const target = next[i];
-    if (target && target.name !== old.name) rename.set(old.name, target.name);
+  draft.cats.forEach(c=>{
+    const orig = c._orig || c.name;
+    const nm = (c.name || '').trim();
+    if (nm && nm !== orig) rename.set(orig, nm);
   });
   const valid = new Set(names);
   let moved = 0;
@@ -1378,9 +1466,11 @@ function saveCategories(){
     if (!valid.has(rule.category)) rule.category = names[0];
   });
   S.categories = next;
+  // 지금 걸려 있는 분류 필터도 바뀐 이름을 따라갑니다 (사라진 분류는 필터에서 뺌)
+  F.categories = F.categories.map(n=> rename.get(n) || n).filter(n=> valid.has(n));
   saveState(); renderAll();
   toast('분류를 저장했습니다' + (moved ? ' (' + moved + '건 이동)' : ''));
-  draft = {cats: clone(S.categories), rules: clone(S.rules), deleted: []};
+  draft = {cats: clone(S.categories).map(c=>({...c, _orig:c.name})), rules: clone(S.rules), deleted: []};
   renderModal();
 }
 
@@ -1934,54 +2024,6 @@ async function fetchSyncSource(url){
   const j = await res.json();
   return [Array.isArray(j) ? {rows:j} : j];
 }
-/* 같은 위치의 rules.json(개인 맞춤 분류 규칙) 후보 주소를 만듭니다.
-   예) .../contents/data  → .../contents/data/rules.json
-       .../contents/data/2026-11.json → .../contents/data/rules.json */
-function rulesUrlCandidates(url){
-  const out = [];
-  const s = String(url || '');
-  if (!/^https?:\/\//i.test(s)) return out;
-  const qi = s.indexOf('?');
-  let base = (qi >= 0 ? s.slice(0, qi) : s).replace(/\/+$/, '');
-  if (/\.json$/i.test(base)) base = base.replace(/\/[^/]*$/i, '');
-  const cand = base + '/rules.json' + (qi >= 0 ? s.slice(qi) : '');
-  if (cand !== s) out.push(cand);
-  return out;
-}
-/* 개인 맞춤 규칙 파일이 있으면 읽어옵니다. 없으면(404 등) 조용히 넘어갑니다. */
-async function fetchPersonalRules(url){
-  for (const cand of rulesUrlCandidates(url)){
-    try{
-      const ps = await fetchSyncSource(cand);
-      const p = (ps || []).find(x=> x && typeof x === 'object' && (Array.isArray(x.rules) || Array.isArray(x.categories)));
-      if (p) return p;
-    }catch(e){ /* rules.json이 없는 경우가 정상이므로 무시 */ }
-  }
-  return null;
-}
-/* rules.json을 내 내역보다 먼저 적용합니다. (분류 목록을 갈아끼우는 파일이면 기본 분류를 정리) */
-function applyPersonalRules(p){
-  if (!p || typeof p !== 'object') return false;
-  let changed = false;
-  if (Array.isArray(p.rules) && p.rules.length){ S.rules = clone(p.rules); changed = true; }
-  if (Array.isArray(p.categories) && p.categories.length){
-    const keep = new Set(p.categories.filter(c=> c && c.name).map(c=> c.name));
-    if (p.replaceCategories){
-      // 기본 분류 중 이 파일에 없고 쓰이지도 않는 것만 정리합니다. 손수 만든 분류는 그대로 둡니다.
-      const used = new Set(S.rows.map(r=> r.category));
-      const builtin = new Set(SEED.categories.map(c=> c.name));
-      S.categories = S.categories.filter(c=> keep.has(c.name) || used.has(c.name) || !builtin.has(c.name));
-    }
-    p.categories.forEach(c=>{
-      if (!c || !c.name) return;
-      const ex = S.categories.find(x=> x.name === c.name);
-      if (ex){ if (c.color && ex.color !== c.color){ ex.color = c.color; changed = true; } }
-      else { S.categories.push({name:c.name, color:c.color || '#64748b'}); changed = true; }
-    });
-  }
-  return changed;
-}
-
 function rowKey(r){
   return [r.month || '', r.card || '', String(r.date||'').slice(0,10), String(r.merchant||'').trim(), Math.round(+r.amount||0)].join('|');
 }
@@ -2044,15 +2086,12 @@ async function runSync(quiet){
   syncing = true;
   setSyncState('busy', '동기화 중… (캐시 무시하고 새로 받는 중)');
   try {
-    // 개인 맞춤 규칙(rules.json)이 있으면 내역보다 먼저 적용해, 처음부터 그 규칙으로 분류되게 합니다
-    let rulesOn = false;
-    for (const u of SYNC.urls){ if (applyPersonalRules(await fetchPersonalRules(u))) rulesOn = true; }
     let payloads = [];
     for (const u of SYNC.urls) payloads = payloads.concat(await fetchSyncSource(u));
     const stats = {added:0, updated:0};
     payloads.forEach(p=> mergePayload(p, stats));
     SYNC.lastSync = new Date().toISOString();
-    SYNC.lastMsg = payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (rulesOn ? ' · 내 규칙 적용' : '');
+    SYNC.lastMsg = payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건';
     saveSyncConfig(); saveState(); renderAll(); scheduleSyncTimer();
     setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
     updateSyncLabel();
@@ -2085,7 +2124,7 @@ function syncTabHtml(){
   '<div class="field">'+
     '<label>데이터 주소 (한 줄에 하나)</label>'+
     '<textarea id="syncUrls" rows="3" placeholder="https://api.github.com/repos/USER/card-budget-data/contents/data"></textarea>'+
-    '<p class="tiny">· GitHub API 폴더 주소를 넣으면 그 안의 <code>.json</code>을 모두 읽습니다 (예: 2026-11.json, 2026-12.json).<br>· 같은 곳에 <code>rules.json</code>(내 자동 분류 규칙)이 있으면 함께 읽어 기본 규칙 대신 적용합니다. (이 파일이 있으면 앱에서 직접 고친 규칙보다 우선합니다)<br>· 공개된 JSON 주소(예: raw.githubusercontent.com)라면 토큰 없이도 됩니다.</p>'+
+    '<p class="tiny">· GitHub API 폴더 주소를 넣으면 그 안의 <code>.json</code>을 모두 읽습니다 (예: 2026-11.json, 2026-12.json).<br>· 공개된 JSON 주소(예: raw.githubusercontent.com)라면 토큰 없이도 됩니다.</p>'+
   '</div>'+
   '<div class="field">'+
     '<label>GitHub 읽기 토큰 (비공개 저장소일 때만)</label>'+
@@ -2108,7 +2147,6 @@ function syncTabHtml(){
     '<li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> 에서 새 토큰을 만들고, Repository access는 그 저장소만, Permissions → Contents: <b>Read-only</b> 로 저장합니다.</li>'+
     '<li>위 주소 칸에 <code>https://api.github.com/repos/아이디/card-budget-data/contents/data</code> 를, 토큰 칸에 방금 만든 토큰을 넣고 <b>연결 테스트</b>를 누릅니다.</li>'+
     '<li>JSON 형식은 이 앱의 <b>데이터 → JSON 백업</b> 파일 그대로입니다. (<code>{ "rows": [ … ] }</code> 또는 행 배열만 있어도 됨)</li>'+
-    '<li>내 단골 가맹점·개인 분류를 기본 규칙에 넣고 싶지 않으면, 같은 폴더에 <code>rules.json</code>을 두세요. 앱이 데이터보다 먼저 읽어 그 규칙으로 분류합니다. (<code>{ "categories": [ … ], "rules": [ { "category": "용돈", "keywords": [ "가맹점" ], "min": null, "max": 10000 } ] }</code>)</li>'+
   '</ol></details>';
 }
 function syncFootHtml(){
