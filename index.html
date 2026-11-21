@@ -3284,7 +3284,8 @@ async function capRun(){
   } finally {
     CAP.busy = false; CAP.status = '';
     capRender();
-    const box = $('#capBody'); if (box) box.scrollTop = 0;
+    const anchor = $('.caperr') || $('.capsum');
+    if (anchor) setTimeout(()=> anchor.scrollIntoView({block:'start', behavior:'smooth'}), 80);
   }
 }
 function capAddSelected(){
