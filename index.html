@@ -192,23 +192,11 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 /* ---------- table ---------- */
 .table-card{overflow:hidden;scroll-margin-top:74px;transition:box-shadow .25s}
 .table-card.flash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 1px #b9cdf7}
-/* ---------- detail panel filters (카드사 버튼 · 분류 지우기) ---------- */
+/* ---------- detail panel filters (카드사 버튼 · 분류 칩: 이름만) ---------- */
 .detail-filters{padding:0 16px 10px;display:flex;flex-direction:column;gap:7px}
 .detail-filters .chips{gap:5px}
 .detail-filters .chip{padding:4px 10px;font-size:12px}
 .detail-filters .chips .lbl{font-size:11.5px;min-width:33px}
-.catpick{display:inline-flex;align-items:stretch;border:1px solid var(--line);background:#fff;border-radius:999px;overflow:hidden;font-size:12px;font-weight:600;color:var(--ink2);transition:.15s}
-.catpick:hover{border-color:#cfd6e4;background:#fbfcfe}
-.catpick .lb{border:0;background:transparent;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:6px;padding:4px 8px 4px 10px;white-space:nowrap}
-.catpick .lb .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.catpick .cnt{font-size:11.5px;font-weight:600;color:var(--muted)}
-.catpick.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.catpick.on .cnt{color:rgba(255,255,255,.7)}
-.catpick .delx{border:0;border-left:1px solid var(--line);background:transparent;color:#b8bdc8;font-size:10.5px;line-height:1;padding:0 7px;display:inline-flex;align-items:center;transition:.15s}
-.catpick .delx:hover{color:#e11d48;background:#fff5f5}
-.catpick.on .delx{border-left-color:rgba(255,255,255,.28);color:rgba(255,255,255,.72)}
-.catpick.on .delx:hover{color:#fff;background:rgba(255,255,255,.16)}
-.detail-note{font-size:11px;color:var(--muted);font-weight:500}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 thead th{
@@ -229,12 +217,17 @@ td.amount{font-weight:700;white-space:nowrap}
 td.amount.neg{color:#0f7a42}
 .cardtag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--ink2)}
 .cardtag .dot{width:7px;height:7px;border-radius:50%}
-select.catsel{
-  appearance:none;-webkit-appearance:none;border:1px solid var(--line);background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238b93a1'/></svg>") no-repeat right 8px center;
-  border-radius:8px;padding:5px 24px 5px 9px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;max-width:140px;
+td.cat{white-space:nowrap}
+.catbtn{
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:8px;
+  padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;transition:.15s;max-width:160px;
 }
-select.catsel:hover{border-color:#cfd6e4}
-select.catsel:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.catbtn:hover{border-color:#cfd6e4;background:#fbfcfe}
+.catbtn:focus-visible{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.catbtn .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.catbtn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.catbtn .car{font-size:9px;color:#a8afbc;flex:none}
+.catbtn.none{color:var(--muted);background:#f8f9fb;border-style:dashed}
 .table-foot{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap;font-size:13px;color:var(--ink2)}
 .table-foot .spacer{margin-left:auto}
 
@@ -304,6 +297,59 @@ details.sync-help code{background:#f1f3f8;border-radius:5px;padding:1px 5px;font
 .modal-body{padding:16px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
 .modal-foot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line);background:#fcfcfe;flex-wrap:wrap}
 .modal-foot .spacer{margin-left:auto}
+
+/* ---------- 거래 한 건의 분류 선택 시트 (선택·추가·삭제) ---------- */
+.sheet-backdrop{
+  position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:140;display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(2px);
+}
+.sheet-backdrop.show{display:flex}
+.sheet{
+  background:#fff;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;
+  border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.26);overflow:hidden;
+  animation:sheetup .2s cubic-bezier(.3,1.1,.6,1);padding-bottom:env(safe-area-inset-bottom);
+}
+@keyframes sheetup{from{transform:translateY(24px);opacity:.7}to{transform:none;opacity:1}}
+.sheet-head{display:flex;align-items:flex-start;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sheet-head h2{font-size:16px}
+.sheet-head .sheet-sub{margin:3px 0 0;font-size:12px;color:var(--muted);font-weight:600;line-height:1.4}
+.sheet-body{padding:6px 16px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.catopts{display:flex;flex-direction:column;gap:6px;margin:4px 0 0}
+.catopt{display:flex;align-items:stretch;gap:6px}
+.catopt .pick{
+  flex:1;min-width:0;display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:#fff;border-radius:12px;
+  padding:11px 12px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);text-align:left;transition:.13s;min-height:46px;
+}
+.catopt .pick:hover{border-color:#cfd6e4;background:#fbfcfe}
+.catopt .pick:active{transform:scale(.99)}
+.catopt .pick .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.catopt .pick .dot.none{background:#e5e7eb;border:1px solid #d5d9e0}
+.catopt .pick .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.catopt .pick .cnt{font-size:11.5px;font-weight:600;color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.catopt .pick .chk{font-size:14px;font-weight:800;color:var(--accent);flex:none}
+.catopt.on .pick{border-color:#b9cdf7;background:var(--accent-soft)}
+.catopt.on .pick .nm{color:#1d4ed8}
+.catopt .delcat{
+  flex:none;border:1px solid var(--line);background:#fff;color:#a8646a;border-radius:12px;padding:0 11px;
+  font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.13s;
+}
+.catopt .delcat:hover{background:#fff5f5;border-color:#f0cfd3;color:#c0272d}
+.catopt .delcat:active{transform:scale(.97);background:#ffecee}
+.catadd{display:flex;gap:7px;align-items:center}
+.catadd input{
+  flex:1;min-width:0;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font:inherit;font-size:14px;background:#fafbfd;
+}
+.catadd input:focus{outline:none;border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.catadd .btn{flex:none;min-height:42px;padding:0 16px}
+.sheet .sec-title{font-size:12px;font-weight:800;color:var(--ink2);margin:14px 0 6px}
+.sheet .tiny{font-size:11.5px;color:var(--muted);margin:8px 0 0;line-height:1.55}
+/* 분류 시트가 떠 있을 때는 안내 토스트를 위쪽으로 (추가 입력칸을 가리지 않게) */
+body.catsheet-open .toast{bottom:auto;top:14px;transform:translate(-50%,-20px)}
+body.catsheet-open .toast.show{transform:translate(-50%,0)}
+@media (min-width:561px){
+  .sheet-backdrop{align-items:center;padding:16px}
+  .sheet{border-radius:20px}
+}
 .sec-title{font-size:13px;font-weight:700;color:var(--ink2);margin:4px 0 8px}
 .sec-desc{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.55}
 
@@ -368,9 +414,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .aline-all{font-size:11px;min-height:26px;padding:3px 9px}
   .detail-filters{padding:0 12px 9px;gap:6px}
   .detail-filters .chip{padding:3px 8px;font-size:11.5px}
-  .catpick{font-size:11.5px}
-  .catpick .lb{padding:3px 7px 3px 9px;gap:5px}
-  .detail-note{flex:1 0 100%;font-size:10.5px}
+  .catbtn{font-size:12px;padding:4px 8px;max-width:120px}
   .aline-readout{font-size:11.5px;gap:8px}
   .donut-wrap{gap:10px}
   .donut-box{width:116px;height:116px}
@@ -396,7 +440,8 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   td.date .date-short{display:inline}
   tbody td:nth-child(2){grid-area:k}
   td.cat{grid-area:c;text-align:right;padding-left:0}
-  select.catsel{max-width:104px;padding:4px 19px 4px 7px;font-size:12px;background-position:right 5px center}
+  .catopts{gap:5px}
+  .catopt .pick{font-size:13.5px;padding:10px 11px;min-height:44px}
   .table-foot{font-size:12.5px;padding:10px 12px}
   .table-scroll{overflow-x:visible}
 }
@@ -519,7 +564,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
             <th class="sortable" data-sort="date">이용일자</th>
             <th>카드사</th>
             <th>가맹점 / 비고</th>
-            <th>분류 <span style="font-weight:500">(바로 수정)</span></th>
+            <th>분류 <span style="font-weight:500">(눌러서 변경)</span></th>
             <th class="num sortable" data-sort="amount">금액</th>
           </tr>
         </thead>
@@ -564,6 +609,19 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <button class="btn ghost" id="dlgCancel">취소</button>
       <button class="btn danger" id="dlgOk">확인</button>
     </div>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="catSheetBackdrop">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="catSheetTitle">
+    <div class="sheet-head">
+      <div style="min-width:0">
+        <h2 id="catSheetTitle">분류 선택</h2>
+        <p class="sheet-sub" id="catSheetSub"></p>
+      </div>
+      <button class="iconbtn" id="catSheetClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="sheet-body" id="catSheetBody"></div>
   </div>
 </div>
 
@@ -720,8 +778,9 @@ function summarize(rows){
 /* ============================================================
    FILTERS UI
    ============================================================ */
-/* 카드사 칩 — 위 필터 카드와 상세 내역 패널이 같은 F.cards 상태를 씁니다 */
-function cardChipsHtml(withCount){
+/* 카드사 칩 — 위 필터 카드와 상세 내역 패널이 같은 F.cards 상태를 씁니다.
+   상세 내역 패널(ordered=true)은 건수 숫자 없이 이름만, 늘 같은 순서로 보여 줍니다. */
+function cardChipsHtml(withCount, ordered){
   const cards = Array.from(new Set(availableCards().concat(cardsIn(S.rows))));
   if (!cards.length) return '';
   const baseRows = withCount ? filteredRows({ignoreCards:true}) : null;
@@ -729,7 +788,7 @@ function cardChipsHtml(withCount){
   if (baseRows) baseRows.forEach(r=> counts.set(r.card, (counts.get(r.card)||0) + 1));
   const cnt = c => (withCount ? '<span class="cnt">'+fmt(c === null ? baseRows.length : (counts.get(c)||0))+'</span>' : '');
   // 상세 내역 패널은 카드사를 늘 같은 순서로 (삼성·KB국민·현대·우리 → 나머지)
-  const list = withCount ? (function(){
+  const list = ordered ? (function(){
     const PREF = ['삼성카드','KB국민카드','현대카드','우리카드'];
     const rank = c => { const i = PREF.indexOf(c); return i < 0 ? 99 : i; };
     return cards.slice().sort((a,b)=> rank(a) - rank(b));
@@ -742,29 +801,16 @@ function cardChipsHtml(withCount){
         '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+cnt(c)+'</button>';
     }).join('');
 }
-/* 상세 내역 패널의 분류 칩 — 누르면 필터, ✕ 는 그 분류 지우기 */
+/* 상세 내역 패널의 분류 칩 — 누르면 필터, 이름만 (건수·✕ 없음) */
 function catChipsDetailHtml(){
   if (!S.rows.length) return '';
   const catNames = S.categories.map(c=>c.name);
   S.rows.forEach(r=>{ if(catNames.indexOf(r.category)<0) catNames.push(r.category); });
-  const counts = new Map();
-  filteredRows({ignoreCats:true}).forEach(r=> counts.set(r.category, (counts.get(r.category)||0) + 1));
-  const registered = n => S.categories.some(c=> c.name === n);
-  const canDelete = S.categories.length > 1;
-  const chips = catNames.map(n=>{
+  return '<span class="lbl">분류</span>' + catNames.map(n=>{
     const on = F.categories.indexOf(n)>=0;
-    const cnt = '<span class="cnt">'+fmt(counts.get(n)||0)+'</span>';
-    const dot = '<span class="dot" style="background:'+catMeta(n).color+'"></span>';
-    if (!canDelete || !registered(n)){
-      return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+dot+esc(n)+cnt+'</button>';
-    }
-    return '<span class="catpick'+(on?' on':'')+'">'+
-      '<button type="button" class="lb" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+dot+esc(n)+cnt+'</button>'+
-      '<button type="button" class="delx" data-cat-del="'+esc(n)+'" title="'+esc(n)+' 분류 지우기" aria-label="'+esc(n)+' 분류 지우기">✕</button>'+
-    '</span>';
+    return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+
+      '<span class="dot" style="background:'+catMeta(n).color+'"></span>'+esc(n)+'</button>';
   }).join('');
-  return '<span class="lbl">분류</span>' + chips +
-    (canDelete ? '<span class="detail-note">✕ 를 누르면 그 분류를 지울 수 있습니다</span>' : '');
 }
 function renderFilters(){
   // month
@@ -779,9 +825,9 @@ function renderFilters(){
     ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+mLab(m)+'</button>').join('');
 
   // card chips — 전체 + 카드사별 (위 필터 카드·상세 내역 패널 두 곳에 같은 상태로)
-  $('#cardChips').innerHTML = cardChipsHtml(false);
+  $('#cardChips').innerHTML = cardChipsHtml(false, false);
   const detailCards = $('#cardChipsDetail');
-  if (detailCards) detailCards.innerHTML = cardChipsHtml(true);
+  if (detailCards) detailCards.innerHTML = cardChipsHtml(false, true);
 
   // category chips
   const catNames = S.categories.map(c=>c.name);
@@ -795,7 +841,7 @@ function renderFilters(){
     }).join('') +
     '<button class="chip add" data-addcat="1" title="새 분류 만들기 · 이름·색 수정">＋ 분류</button>';
 
-  // 상세 내역 패널: 카드사 버튼 + 분류 칩(✕ 로 지우기)
+  // 상세 내역 패널: 카드사 버튼 + 분류 칩(이름만)
   const detailCats = $('#catChipsDetail');
   if (detailCats) detailCats.innerHTML = catChipsDetailHtml();
   const detailBox = $('#detailFilters');
@@ -1339,20 +1385,18 @@ function renderTable(rows, sum){
   const sorted = sortRows(rows);
   const limit = S.ui.limit;
   const view = sorted.slice(0, limit);
-  const catNames = S.categories.map(c=>c.name).filter(n=> n !== '미분류');
   tbody.innerHTML = view.map(r=>{
     const none = !r.category || r.category === '미분류';
-    const extra = (!none && catNames.indexOf(r.category) < 0) ? [r.category] : [];
-    const opts = extra.concat(catNames).map(n=>
-      '<option value="'+esc(n)+'"'+(n===r.category?' selected':'')+'>'+esc(n)+'</option>').join('')+
-      '<option value="미분류"'+(none?' selected':'')+'>미분류 (제거)</option>'+
-      '<option value="__new__">＋ 새 분류 직접 입력</option>';
+    const catName = none ? '미분류' : r.category;
     return '<tr data-id="'+r.id+'">'+
       '<td class="date"><span class="date-full">'+esc(r.date)+'</span><span class="date-short">'+dMD(r.date)+'</span></td>'+
       '<td><span class="cardtag"><span class="dot" style="background:'+cardColor(r.card)+'"></span>'+esc(shortCard(r.card))+'</span></td>'+
       '<td class="merchant"><span class="nm" title="'+esc(r.merchant)+'">'+esc(r.merchant)+'</span>'+
         (r.memo? '<span class="memo" title="'+esc(r.memo)+'">'+esc(r.memo)+'</span>':'')+'</td>'+
-      '<td><select class="catsel" data-id="'+r.id+'" aria-label="분류 수정">'+opts+'</select></td>'+
+      '<td class="cat"><button type="button" class="catbtn'+(none?' none':'')+'" data-catedit="'+r.id+'" '+
+        'title="분류 선택 · 추가 · 삭제" aria-label="'+esc(catName)+' — 분류 변경">'+
+        (none ? '' : '<span class="dot" style="background:'+catMeta(r.category).color+'"></span>')+
+        '<span class="nm">'+esc(catName)+'</span><span class="car">▾</span></button></td>'+
       '<td class="num amount'+(r.amount<0?' neg':'')+'">'+fmt(r.amount)+'원</td>'+
     '</tr>';
   }).join('');
@@ -1520,14 +1564,12 @@ function toggleCategory(c){
   if (i>=0) F.categories.splice(i,1); else F.categories.push(c);
   renderAll();
 }
-/* 상세 내역 패널의 분류 칩: 몸통=필터, ✕=그 분류 지우기 */
+/* 상세 내역 패널의 분류 칩: 누르면 필터 */
 $('#catChipsDetail') && $('#catChipsDetail').addEventListener('click', ev=>{
-  const d = ev.target.closest('[data-cat-del]');
-  if (d){ ev.preventDefault(); askDeleteCategory(d.dataset.catDel); return; }
   const b = ev.target.closest('[data-cat]'); if(!b) return;
   toggleCategory(b.dataset.cat);
 });
-function askDeleteCategory(name){
+function askDeleteCategory(name, after){
   if (!name) return;
   if (S.categories.length <= 1){ toast('분류는 최소 1개가 필요합니다'); return; }
   if (!S.categories.some(c=> c.name === name)){
@@ -1537,10 +1579,10 @@ function askDeleteCategory(name){
   const rest = S.categories.filter(c=> c.name !== name);
   const target = (rest.find(c=> c.name === '기타') || rest[0]).name;
   askConfirm('「' + name + '」 분류를 지울까요?',
-    (used ? '이 분류를 쓰는 내역 ' + fmt(used) + '건은 「' + target + '」(으)로 옮깁니다. '
+    (used ? '이 분류를 쓰는 내역 ' + fmt(used) + '건은 「' + target + '」로 옮깁니다. '
           : '지금 이 분류를 쓰는 내역은 없습니다. ') +
-    '지운 분류는 분류 칩·그래프·표 선택지에서 바로 사라지고, 이 브라우저에 저장됩니다.',
-    '분류 지우기', ()=> deleteCategory(name, target));
+    '지운 분류는 분류 목록·그래프·표의 분류 버튼에서 바로 사라지고, 이 브라우저에 저장됩니다.',
+    '분류 지우기', ()=>{ deleteCategory(name, target); if (after) after(); });
 }
 function deleteCategory(name, target){
   let moved = 0;
@@ -1590,40 +1632,119 @@ function flashDetail(){
   flashDetail._t = setTimeout(()=> el.classList.remove('flash'), 1600);
 }
 $('#table').addEventListener('click', ev=>{
-  const th = ev.target.closest('th[data-sort]'); if(!th) return;
-  const k = th.dataset.sort;
-  if (S.ui.sortKey === k) S.ui.sortDir = S.ui.sortDir === 'asc' ? 'desc' : 'asc';
-  else { S.ui.sortKey = k; S.ui.sortDir = 'desc'; }
-  renderAll();
+  const th = ev.target.closest('th[data-sort]');
+  if (th){
+    const k = th.dataset.sort;
+    if (S.ui.sortKey === k) S.ui.sortDir = S.ui.sortDir === 'asc' ? 'desc' : 'asc';
+    else { S.ui.sortKey = k; S.ui.sortDir = 'desc'; }
+    renderAll();
+    return;
+  }
+  const b = ev.target.closest('[data-catedit]');
+  if (b){ openCatSheet(b.dataset.catedit); return; }
 });
-$('#table').addEventListener('change', ev=>{
-  const sel = ev.target.closest('select.catsel'); if(!sel) return;
-  const row = S.rows.find(r=>r.id === sel.dataset.id);
+
+/* ---------- 거래 한 건의 분류 선택 시트 (선택 · 추가 · 삭제) ---------- */
+let catSheetId = null;
+function catSheetRow(){
+  return catSheetId ? S.rows.find(r=> r.id === catSheetId) : null;
+}
+function openCatSheet(id){
+  const row = S.rows.find(r=> r.id === id);
+  if (!row) return;
+  catSheetId = id;
+  renderCatSheet();
+  $('#catSheetBackdrop').classList.add('show');
+  document.body.classList.add('catsheet-open');
+  setTimeout(()=>{ const inp = $('#catSheetName'); if (inp) inp.value = ''; }, 0);
+}
+function closeCatSheet(){
+  $('#catSheetBackdrop').classList.remove('show');
+  document.body.classList.remove('catsheet-open');
+  catSheetId = null;
+}
+function renderCatSheet(){
+  const row = catSheetRow();
+  if (!row){ closeCatSheet(); return; }
+  const counts = new Map();
+  S.rows.forEach(r=> counts.set(r.category, (counts.get(r.category)||0) + 1));
+  const cur = (!row.category || row.category === '미분류') ? '미분류' : row.category;
+  const list = S.categories.map(c=> c.name);
+  if (cur !== '미분류' && list.indexOf(cur) < 0) list.unshift(cur);   // 목록에 없는 분류도 현재 값으로 보이게
+  const canDel = S.categories.length > 1;
+  $('#catSheetSub').textContent = row.merchant + ' · ' + fmt(row.amount) + '원 · ' + dMD(row.date);
+  const opts = list.map(n=>{
+    const on = n === cur;
+    const reg = S.categories.some(c=> c.name === n);
+    return '<div class="catopt'+(on?' on':'')+'">'+
+      '<button type="button" class="pick" data-pick="'+esc(n)+'" title="'+esc(n)+'(으)로 바꾸기">'+
+        '<span class="dot" style="background:'+catMeta(n).color+'"></span>'+
+        '<span class="nm">'+esc(n)+'</span>'+
+        '<span class="cnt">'+fmt(counts.get(n)||0)+'건</span>'+
+        (on ? '<span class="chk" aria-label="지금 분류">✓</span>' : '')+
+      '</button>'+
+      (canDel && reg ? '<button type="button" class="delcat" data-delcat="'+esc(n)+'" '+
+        'aria-label="'+esc(n)+' 분류 삭제">삭제</button>' : '')+
+    '</div>';
+  }).join('');
+  const noneOn = cur === '미분류';
+  const noneRow = '<div class="catopt'+(noneOn?' on':'')+'">'+
+      '<button type="button" class="pick" data-pick="미분류" title="이 거래의 분류를 비우기">'+
+        '<span class="dot none"></span><span class="nm">미분류 (제거)</span>'+
+        (noneOn ? '<span class="chk" aria-label="지금 분류">✓</span>' : '')+
+      '</button></div>';
+
+  $('#catSheetBody').innerHTML =
+    '<div class="sec-title" style="margin-top:8px">분류 고르기</div>'+
+    '<div class="catopts">'+ opts + noneRow +'</div>'+
+    (canDel ? '' : '<p class="tiny">분류는 최소 1개가 필요해 지금은 지울 수 없습니다.</p>')+
+    '<div class="sec-title">새 분류 추가</div>'+
+    '<div class="catadd">'+
+      '<input type="text" id="catSheetName" maxlength="18" placeholder="새 분류 이름 (예: 교육비)" autocomplete="off" enterkeyhint="done">'+
+      '<button type="button" class="btn primary" id="catSheetAdd">추가</button>'+
+    '</div>'+
+    '<p class="tiny">분류 오른쪽 <b>삭제</b>를 누르면 그 분류가 목록에서 없어집니다. 그 분류를 쓰던 내역은 「기타」로 옮겨지고, 이 브라우저에 저장됩니다.</p>';
+}
+function assignCatToSheetRow(name){
+  const row = catSheetRow();
   if (!row) return;
   const prev = row.category;
-  if (sel.value === '미분류'){
-    row.category = '미분류';
-    row.edited = true;
-    saveState(); renderAll();
-    toast(prev && prev !== '미분류' ? prev + ' → 미분류 (분류를 비웠습니다)' : '분류를 비웠습니다 — 미분류로 표시');
-    return;
-  }
-  if (sel.value === '__new__'){
-    askPrompt('새 분류 만들기', '분류 이름을 입력하세요. 이 거래에 바로 적용되고, 목록에도 생깁니다.', '', val=>{
-      const name = addCategory(val);
-      if (!name){ sel.value = prev; return; }
-      row.category = name;
-      row.edited = true;
-      saveState(); renderAll();
-      toast('"'+name+'" 분류로 바꿈 ('+prev+' → '+name+')');
-    }, ()=>{ sel.value = prev; });
-    return;
-  }
-  row.category = sel.value;
+  row.category = name;
   row.edited = true;
   saveState();
   renderAll();
-  toast(prev + ' → ' + sel.value + ' 로 바꿨습니다');
+  closeCatSheet();
+  if (name === '미분류'){
+    toast(prev && prev !== '미분류' ? prev + ' → 미분류 (분류를 비웠습니다)' : '분류를 비웠습니다 — 미분류로 표시');
+  } else {
+    toast((prev || '미분류') + ' → ' + name + ' 로 바꿨습니다');
+  }
+}
+$('#catSheetBody').addEventListener('click', ev=>{
+  if (ev.target.closest('#catSheetAdd')){
+    const inp = $('#catSheetName');
+    const name = addCategory(inp ? inp.value : '');
+    if (!name) return;
+    assignCatToSheetRow(name);
+    toast('「'+name+'」 분류를 만들고 이 거래에 적용했습니다');
+    return;
+  }
+  const d = ev.target.closest('[data-delcat]');
+  if (d){ askDeleteCategory(d.dataset.delcat, ()=> renderCatSheet()); return; }
+  const p = ev.target.closest('[data-pick]');
+  if (!p) return;
+  assignCatToSheetRow(p.dataset.pick);
+});
+$('#catSheetBody').addEventListener('keydown', ev=>{
+  if (ev.target.id === 'catSheetName' && ev.key === 'Enter'){
+    ev.preventDefault();
+    const b = $('#catSheetAdd'); if (b) b.click();
+  }
+});
+$('#catSheetClose').addEventListener('click', closeCatSheet);
+$('#catSheetBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'catSheetBackdrop') closeCatSheet(); });
+document.addEventListener('keydown', ev=>{
+  if (ev.key === 'Escape' && $('#catSheetBackdrop').classList.contains('show')) closeCatSheet();
 });
 $('#tableFoot').addEventListener('click', ev=>{
   if (ev.target.id === 'btnMore'){ S.ui.limit += 20; renderAll(); }
