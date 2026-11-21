@@ -387,6 +387,70 @@ body.catsheet-open .toast.show{transform:translate(-50%,0)}
 .import-box p{margin:0 0 10px;font-size:13px;color:var(--ink2);line-height:1.5}
 .import-box .acts{display:flex;gap:8px;flex-wrap:wrap}
 
+/* ---------- AI 캡처 (캡처 이미지 → 내역) ---------- */
+.capmodal{max-width:720px}
+.capaibar{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);font-weight:600;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:10px;flex-wrap:wrap}
+.capaibar .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.capaibar .linkbtn{margin-left:auto;border:0;background:transparent;color:var(--accent);font-weight:700;font-size:12px;text-decoration:underline;padding:0}
+.capkeybox{border:1px solid #d9e4f8;background:#f6f9ff;border-radius:12px;padding:11px 12px;margin-bottom:12px}
+.capkeybox .kt{font-size:12.8px;font-weight:800;color:#26406e;margin-bottom:2px}
+.capkeybox .tiny{margin:3px 0 0}
+.capkeyrow{display:flex;gap:6px;align-items:center;margin-top:7px;flex-wrap:wrap}
+.capkeyrow select{flex:0 0 auto;max-width:100%}
+.capkeyrow input{flex:1;min-width:130px}
+.capdrop{border:1.5px dashed #cbd6e6;border-radius:14px;background:#fbfcfe;padding:14px 12px;text-align:center;transition:.15s}
+.capdrop.over{border-color:var(--accent);background:#f2f7ff}
+.capdrop .ic{font-size:24px;line-height:1}
+.capdrop p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.55}
+.capdrop p b{color:var(--ink2)}
+.capthumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;margin-top:10px}
+.capthumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;height:104px}
+.capthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.capthumb .x{position:absolute;top:3px;right:3px;width:21px;height:21px;border:0;border-radius:50%;background:rgba(17,24,39,.62);color:#fff;font-size:11px;line-height:1;display:grid;place-items:center;padding:0}
+.capthumb .nm{position:absolute;left:0;right:0;bottom:0;background:rgba(17,24,39,.55);color:#fff;font-size:9.5px;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.capopts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.capopts .field{margin:0}
+.capruns{display:flex;align-items:center;gap:9px;margin-top:12px;flex-wrap:wrap}
+.capruns .hint{font-size:11.5px;color:var(--muted)}
+.capstatus{font-size:12.5px;color:var(--ink2);font-weight:600;margin-top:10px;display:flex;align-items:center;gap:7px}
+.capstatus .sp{width:13px;height:13px;border-radius:50%;border:2px solid #cfd8e6;border-top-color:var(--accent);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.caperr{border:1px solid #f3c9cb;background:#fff7f7;color:#c0272d;border-radius:11px;padding:10px 12px;font-size:12.8px;line-height:1.55;margin-top:10px}
+.capsum{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin:14px 0 4px;padding-top:12px;border-top:1px solid var(--line)}
+.capsum b{font-size:14px;color:var(--ink)}
+.capbadge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;background:#fff4e6;color:#a15c00;border:1px solid #ffe0b8;white-space:nowrap}
+.capbadge.new{background:#eaf7ef;color:#0f7a42;border-color:#c9ecd7}
+.caprows{border:1px solid var(--line);border-radius:12px;margin-top:8px;max-height:min(46vh,420px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.caprow{display:flex;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line2);align-items:flex-start;background:#fff}
+.caprow:last-child{border-bottom:0}
+.caprow.off{background:#fafbfc}
+.caprow.off .mer{color:var(--muted)}
+.caprow input[type=checkbox]{width:17px;height:17px;margin:9px 0 0;flex:none;accent-color:var(--accent)}
+.caprow .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.caprow .l1{display:flex;align-items:center;gap:6px;min-width:0}
+.caprow .mer{flex:1;min-width:0;border:1px solid transparent;border-radius:7px;padding:3px 6px;font-size:13.5px;font-weight:700;background:transparent}
+.caprow .mer:hover,.caprow .mer:focus{border-color:var(--line);background:#fafbfd;outline:none}
+.caprow .l2{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.caprow .l2 input,.caprow .l2 select{border:1px solid var(--line);border-radius:8px;padding:4px 7px;font-size:12px;background:#fafbfd;min-width:0;max-width:100%}
+.caprow .l2 input[type=date]{width:132px}
+.caprow .l2 input[type=number]{width:98px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.caprow .l2 .memo{flex:1;min-width:90px}
+.caprow .neg{color:#0f7a42}
+.capdupbox{border:1px dashed #e6d3b4;background:#fffdf8;border-radius:12px;margin-top:8px;padding:0 11px}
+.capdupbox summary{cursor:pointer;font-size:12px;font-weight:700;color:#8a5a00;padding:9px 0;list-style:none}
+.capdupbox summary::-webkit-details-marker{display:none}
+.capdupbox summary::after{content:'▾';float:right;color:#b9a179}
+.capdupbox[open] summary::after{content:'▴'}
+.capdupbox .caprows{margin:0 0 10px;border-color:#f0e5d2}
+.capdupbox p.tiny{margin:0 0 7px;color:#8a6b33}
+@media (max-width:560px){
+  .capopts{grid-template-columns:1fr}
+  .capmodal .modal-body{padding:12px 13px}
+  .caprow{padding:8px 9px}
+  .caprow .l2 input[type=date]{width:118px}
+  .caprow .l2 input[type=number]{width:88px}
+}
+
 footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--muted);line-height:1.6;text-align:center}
 
 @media (max-width:860px){
@@ -475,6 +539,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       </div>
     </div>
     <div class="top-actions">
+      <button class="btn" id="btnCapture" title="카드 사용내역 캡처 이미지로 내역 추가" aria-label="캡처로 내역 추가">📸 <span class="syncbtn-txt">캡처</span></button>
       <div class="seg" id="modeSeg" title="데이터 모드 전환">
         <button data-mode="mine">내 데이터</button>
         <button data-mode="empty">빈 가계부</button>
@@ -552,6 +617,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
     <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
       <span class="hint" id="tableHint"></span>
+      <button class="btn" id="btnCapture2" style="padding:5px 10px;font-size:12.5px" title="카드 사용내역 캡처 이미지로 내역 추가">📸 캡처로 추가</button>
     </div>
     <div class="detail-filters" id="detailFilters">
       <div class="chips" id="cardChipsDetail"></div>
@@ -577,6 +643,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 
 <footer class="pagefoot">
   모든 자료는 이 브라우저(localStorage)에만 저장됩니다. 서버로 전송되지 않습니다.<br>
+  다만 <b>📸 캡처로 추가</b>를 쓸 때는 올린 캡처 이미지가 설정한 AI 제공자(Gemini·OpenAI)에게만 전송됩니다. API 키도 이 브라우저에만 저장되고 가계부 파일에는 들어가지 않습니다.<br>
   다른 사람에게 파일을 건넬 때는 <b>빈 가계부</b>로 바꾼 뒤 전달하세요.
 </footer>
 
@@ -592,6 +659,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
     <div class="tabs" id="modalTabs">
       <button data-tab="cat" class="on">분류 · 색상</button>
       <button data-tab="rule">자동 분류 규칙</button>
+      <button data-tab="ai">AI 캡처</button>
       <button data-tab="sync">동기화</button>
       <button data-tab="data">데이터</button>
     </div>
@@ -622,6 +690,17 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <button class="iconbtn" id="catSheetClose" aria-label="닫기">✕</button>
     </div>
     <div class="sheet-body" id="catSheetBody"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="capBackdrop">
+  <div class="modal capmodal" role="dialog" aria-modal="true" aria-labelledby="capTitle">
+    <div class="modal-head">
+      <h2 id="capTitle">📸 캡처로 내역 추가</h2>
+      <button class="iconbtn" id="capClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="capBody"></div>
+    <div class="modal-foot" id="capFoot"></div>
   </div>
 </div>
 
@@ -1908,6 +1987,7 @@ function renderModal(){
   const body = $('#modalBody'), foot = $('#modalFoot');
   if (modalTab === 'cat'){ body.innerHTML = catTabHtml(); foot.innerHTML = catFootHtml(); bindCatTab(); }
   else if (modalTab === 'rule'){ body.innerHTML = ruleTabHtml(); foot.innerHTML = ruleFootHtml(); bindRuleTab(); }
+  else if (modalTab === 'ai'){ body.innerHTML = aiTabHtml(); foot.innerHTML = aiFootHtml(); bindAiTab(); }
   else if (modalTab === 'sync'){ body.innerHTML = syncTabHtml(); foot.innerHTML = syncFootHtml(); bindSyncTab(); }
   else { body.innerHTML = dataTabHtml(); foot.innerHTML = dataFootHtml(); bindDataTab(); }
 }
@@ -2232,6 +2312,90 @@ function bindDataTab(){
     toast(added + '건을 추가했습니다' + (p.rows.length - added ? ' (' + (p.rows.length-added) + '건은 중복)' : ''));
   });
   b('btnImportCancel', ()=>{ pendingImport = null; renderModal(); });
+}
+
+/* ---------- AI 캡처 설정 탭 ---------- */
+const AI_KEY_LS = LS_KEY + '.ai';
+const AI_PROVIDERS = {
+  gemini: {name:'Google Gemini', models:['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'], keyHint:'AIza…'},
+  openai: {name:'OpenAI (GPT)', models:['gpt-4o-mini'], keyHint:'sk-…'}
+};
+let AI_CFG = {provider:'gemini', key:'', model:''};
+function loadAiConfig(){
+  try {
+    const raw = localStorage.getItem(AI_KEY_LS);
+    if (raw){
+      const p = JSON.parse(raw);
+      if (p && typeof p === 'object'){
+        AI_CFG = {
+          provider: p.provider === 'openai' ? 'openai' : 'gemini',
+          key: String(p.key || ''),
+          model: String(p.model || '')
+        };
+      }
+    }
+  } catch(e){}
+}
+function saveAiConfig(){
+  try { localStorage.setItem(AI_KEY_LS, JSON.stringify({provider:AI_CFG.provider, key:AI_CFG.key, model:AI_CFG.model})); return true; }
+  catch(e){ return false; }
+}
+function aiTabHtml(){
+  const pv = AI_CFG.provider === 'openai' ? 'openai' : 'gemini';
+  const prov = AI_PROVIDERS[pv];
+  return '<p class="sec-desc">카드사 앱·웹의 <b>사용내역 · 결제예정금액</b> 화면을 캡쳐해 올리면, 이 브러우저가 AI에 직접 물어 내역을 뽑고 자동 분류해 가계부에 넣습니다. 이미지는 분석 때만 AI 제공자에게 전송되고, API 키는 <b>이 브러우저(localStorage)에만</b> 저장됩니다 — 가계부 백업·동기화 파일에는 들어가지 않습니다.</p>'+
+    '<div class="field"><label>AI 제공자</label><select class="txt" id="aiProvider2">'+
+      '<option value="gemini"'+(pv==='gemini'?' selected':'')+'>Google Gemini (추천 · 무료 티어 가능)</option>'+
+      '<option value="openai"'+(pv==='openai'?' selected':'')+'>OpenAI (GPT)</option>'+
+    '</select><p class="tiny">Gemini는 무료 티어로도 쓸 수 있어 추천합니다. OpenAI는 결제(크레딧)가 등록된 키가 필요합니다.</p></div>'+
+    '<div class="field"><label>API 키</label>'+
+      '<div class="capkeyrow" style="margin-top:0">'+
+        '<input class="txt" type="password" id="aiKey2" value="'+esc(AI_CFG.key)+'" placeholder="'+esc(prov.keyHint)+' API 키" autocomplete="off" spellcheck="false">'+
+        '<button class="btn" id="aiKeyEye" type="button">보기</button>'+
+      '</div>'+
+      '<p class="tiny">키는 이 기기에서만 쓰입니다. 다른 사람과 파일을 나누어도 키는 따라가지 않습니다.</p></div>'+
+    '<p class="tiny" style="margin-top:0"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini API 키 발급 ↗</a> · <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI API 키 발급 ↗</a></p>'+
+    '<div class="field" style="margin-top:12px"><label>모델 (비우면 자동 선택)</label>'+
+      '<input class="txt" id="aiModel2" value="'+esc(AI_CFG.model||'')+'" placeholder="'+esc(prov.models[0])+'" autocomplete="off" spellcheck="false">'+
+      '<p class="tiny">Gemini는 '+prov.models.join(' → ')+' 순서로 자동 시도합니다. 보통 비워 두면 됩니다.</p></div>'+
+    '<div class="syncstate'+(AI_CFG.key?' ok':'')+'" id="aiState2">'+
+      (AI_CFG.key ? '키가 저장되어 있습니다. 캡쳐 분석을 바로 쓸 수 있습니다.' : '아직 API 키가 없습니다. 키를 넣고 [저장]을 누르세요.')+'</div>';
+}
+function aiFootHtml(){
+  return '<button class="btn ghost" id="aiCancel">닫기</button>'+
+    '<div class="spacer"></div>'+
+    '<button class="btn danger" id="aiClear">키 지우기</button>'+
+    '<button class="btn primary" id="aiSave">저장</button>';
+}
+function bindAiTab(){
+  const provEl = $('#aiProvider2'), keyEl = $('#aiKey2'), modelEl = $('#aiModel2');
+  provEl.addEventListener('change', ()=>{
+    const pv = provEl.value === 'openai' ? 'openai' : 'gemini';
+    keyEl.placeholder = AI_PROVIDERS[pv].keyHint + ' API 키';
+    modelEl.placeholder = AI_PROVIDERS[pv].models[0];
+  });
+  $('#aiKeyEye').addEventListener('click', ()=>{
+    const hide = keyEl.type === 'password';
+    keyEl.type = hide ? 'text' : 'password';
+    $('#aiKeyEye').textContent = hide ? '숨기기' : '보기';
+  });
+  $('#aiSave').addEventListener('click', ()=>{
+    AI_CFG.provider = provEl.value === 'openai' ? 'openai' : 'gemini';
+    AI_CFG.key = keyEl.value.trim();
+    AI_CFG.model = modelEl.value.trim();
+    if (!AI_CFG.key){ toast('API 키를 입력하세요'); keyEl.focus(); return; }
+    if (!saveAiConfig()){ toast('브러우저 저장이 막혀 있어 키를 저장하지 못했습니다'); return; }
+    const st = $('#aiState2');
+    if (st){ st.className = 'syncstate ok'; st.textContent = '키를 저장했습니다. 이 브러우저에만 보관됩니다.'; }
+    toast('AI 설정을 저장했습니다');
+  });
+  $('#aiClear').addEventListener('click', ()=>{
+    AI_CFG = {provider:'gemini', key:'', model:''};
+    try { localStorage.removeItem(AI_KEY_LS); } catch(e){}
+    renderModal();
+    toast('저장된 AI 키를 지웠습니다');
+  });
+  $('#aiCancel').addEventListener('click', closeModal);
 }
 
 /* ============================================================
@@ -2722,10 +2886,496 @@ $('#syncSetupBtn').addEventListener('click', ()=> openModal('sync'));
 $('#btnSync').addEventListener('click', refreshNow);
 
 /* ============================================================
+   AI 캐처 분석 — 캐처 이미지에서 카드 내역을 뽑아 바로 추가
+   · 이미지는 AI 제공자에게 직접 전송 (API 키는 로컬저장소에만)
+   · 같은 달짜·가맹점·금액이 이미 가계부에 있으면 자동 제외
+   ============================================================ */
+const CARD_ORDER = ['삼성카드','KB국민카드','현대카드','우리카드'];
+const CAP = {files:[], results:[], busy:false, status:'', error:'', ms:0, model:'', card:'', month:''};
+const capPad2 = n => String(n).padStart(2,'0');
+function capNowMonth(){ const d = new Date(); return d.getFullYear() + '-' + capPad2(d.getMonth()+1); }
+function capMonths(){
+  const set = new Set(monthsIn(S.rows));
+  const d = new Date(); let y = d.getFullYear(), m = d.getMonth()+1;
+  for (let i=0;i<3;i++){ set.add(y + '-' + capPad2(m)); m++; if (m>12){ m=1; y++; } }
+  return Array.from(set).sort();
+}
+function capStatusOnly(){
+  const el = $('#capStatus'); if (!el) return;
+  el.innerHTML = (CAP.busy ? '<span class="sp"></span>' : '') + esc(CAP.status || '분석 중…');
+}
+
+/* ---------- 가맹점명 정상화 + 중복 판정 ---------- */
+function merchKey(s){
+  return String(s==null?'':s).toLowerCase()
+    .normalize('NFKC')
+    .replace(/\(주\)|\(유\)|주식회사|㈜|\(합자\)|\(유한\)/g,'')   // 법인 표기 차이는 같은 가맹점
+    .replace(/[\s\u00a0\u3000]+/g,'')
+    .replace(/[()[\]{}.,·・\-_\/\\'"`~!@#$%^&*+=|<>?:;]/g,'')
+    .trim();
+}
+function dupKey(r){
+  return String(r.date||'').slice(0,10) + '|' + merchKey(r.merchant) + '|' + Math.round(+r.amount||0);
+}
+function existingCounts(){
+  const m = new Map();
+  S.rows.forEach(r=>{ const k = dupKey(r); m.set(k, (m.get(k)||0)+1); });
+  return m;
+}
+/* 기존 가계부 + 같은 배치 안의 앞선 항목과 비교해 중복을 표시합니다 (건수까지 맞춰 봄) */
+function applyDedupe(items){
+  const counts = existingCounts();
+  return items.map(it=>{
+    const k = dupKey(it);
+    const left = counts.get(k) || 0;
+    const dup = left > 0;
+    counts.set(k, dup ? left - 1 : 1);
+    return Object.assign({}, it, {dup:dup, on:!dup});
+  });
+}
+
+/* ---------- 이미지 준비 ---------- */
+function capPrepImage(file){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      try {
+        let w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+        const MAXS = 1800, MAXP = 3200000;      // 긴 캡처도 글자가 살아 있게
+        const k = Math.min(1, MAXS / Math.max(w,h), Math.sqrt(MAXP / (w*h)));
+        w = Math.max(1, Math.round(w*k)); h = Math.max(1, Math.round(h*k));
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        const dataUrl = cv.toDataURL('image/jpeg', 0.86);
+        resolve({name:file.name || '', mime:'image/jpeg', b64:dataUrl.split(',')[1] || '', w:w, h:h});
+      } catch(e){ URL.revokeObjectURL(url); reject(new Error('이미지를 줄이는 중 문제가 생겼습니다: ' + (file.name||''))); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('이미지를 열 수 없습니다: ' + (file.name||'') + ' — JPG·PNG 화면 캡처로 다시 올려 주세요.')); };
+    img.src = url;
+  });
+}
+
+/* ---------- 프롬프트 ---------- */
+function capPrompt(){
+  return [
+    '너는 한국 카드사 앱·웹의 [이용내역]·[결제예정금액] 화면 캡처 이미지에서 거래를 읽어 JSON으로 정리하는 도우미다.',
+    '규칙:',
+    '1) 이미지에 실제로 보이는 거래만 추출한다. 보이지 않는 거래를 추측해 만들지 않는다.',
+    '2) 합계·소계·총액·잔액·포인트·카드번호·공지·버튼 줄은 거래가 아니므로 제외한다.',
+    '3) 각 거래의 필드:',
+    '   - date: 이용일자(거래일)를 YYYY-MM-DD 로. 연도가 없으면 화면에 보이는 연도를 쓰고, 그것도 없으면 ' + new Date().getFullYear() + '년으로 본다.',
+    '   - merchant: 가맹점명(이용가맹점)을 원문 그대로.',
+    '   - amount: 청구·이용 금액을 정수(원)로. 취소·환불·마이너스 표시는 음수.',
+    '   - card: 카드사를 알 수 있으면 "삼성"·"KB국민"·"현대"·"우리" 중 하나, 모르면 빈 문자열.',
+    '   - note: 할부 개월, 취소·승인구분 등 비고. 없으면 빈 문자열.',
+    '4) 중복 제거: 같은 이미지 안에서, 그리고 여러 장을 함께 볼 때 겹쳐 보이는 같은 거래(날짜·가맹점·금액이 같음)는 반드시 1건만 남긴다. 스크롤이 겹쳐 찍혀 같은 거래가 두 번 보여도 한 번만 넣는다.',
+    '5) 응답은 아래 형식의 JSON 객체 하나만. 설명·마크다운·코드블록 없이 JSON만 출력한다.',
+    '{"transactions":[{"date":"2026-11-19","merchant":"쿠팡","amount":16400,"card":"삼성","note":""}]}',
+    '거래가 없으면 {"transactions":[]} 로 응답한다.'
+  ].join('\n');
+}
+
+/* ---------- AI 호출 ---------- */
+async function capReadError(res){
+  try {
+    const j = await res.json();
+    const e = j && j.error;
+    if (typeof e === 'string') return e;
+    if (e && e.message) return String(e.message);
+    if (j && j.message) return String(j.message);
+  } catch(e){}
+  try { return (await res.text()).slice(0, 300); } catch(e){ return ''; }
+}
+function capApiError(status, msg){
+  const m = String(msg||'');
+  if (status === 400 && /API_KEY_INVALID|API key not valid|invalid[_ ]?api[_ ]?key/i.test(m)) return new Error('API 키가 올바르지 않습니다. ⚙ 설정 → AI 캡처에서 키를 다시 확인해 주세요.');
+  if (status === 401) return new Error('API 키가 올바르지 않거나 만료됐습니다. ⚙ 설정 → AI 캡처에서 키를 다시 확인해 주세요.');
+  if (status === 403) return new Error('이 키로는 요청할 수 없습니다. 키 권한·결제 설정을 확인해 주세요.' + (m ? ' (' + m.slice(0,70) + ')' : ''));
+  if (status === 404) return new Error('AI 모델을 찾지 못했습니다(HTTP 404). 잠시 뒤 다시 시도해 주세요.');
+  if (status === 413) return new Error('이미지가 너무 큽니다. 장수를 줄이거나 다시 캡처해 주세요.');
+  if (status === 429) return new Error('AI 요청 한도(무료 할당량)를 넘었습니다. 잠시 뒤 다시 시도하거나 다른 제공자를 선택해 주세요.');
+  if (status >= 500) return new Error('AI 서버가 잠시 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요. (HTTP ' + status + ')');
+  return new Error('AI 요청이 실패했습니다 (HTTP ' + status + ')' + (m ? ': ' + m.slice(0,120) : ''));
+}
+async function capCallGemini(imgs){
+  const models = AI_CFG.model ? [AI_CFG.model] : AI_PROVIDERS.gemini.models.slice();
+  let lastErr = null;
+  for (const model of models){
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) +
+      ':generateContent?key=' + encodeURIComponent(AI_CFG.key);
+    const gen = {temperature:0, responseMimeType:'application/json', maxOutputTokens:8192};
+    if (/^gemini-2\.5/.test(model)) gen.thinkingConfig = {thinkingBudget:0};   // 2~5초 안에 답하게
+    const body = {
+      contents: [{role:'user', parts:[{text:capPrompt()}].concat(imgs.map(im=>({inline_data:{mime_type:im.mime, data:im.b64}})))}],
+      generationConfig: gen
+    };
+    let res;
+    try {
+      res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    } catch(e){ throw new Error('네트워크 오류로 AI에 연결하지 못했습니다. 인터넷 연결이나 광고 차단 앱을 확인해 주세요.'); }
+    if (!res.ok){
+      const msg = await capReadError(res);
+      if (res.status === 404 || /not found|not supported|unsupported|does not support/i.test(msg)){ lastErr = new Error('모델 ' + model + ' 사용 불가'); continue; }
+      throw capApiError(res.status, msg);
+    }
+    const j = await res.json();
+    const cand = (j.candidates || [])[0];
+    if (!cand) throw new Error('AI가 결과를 보내지 않았습니다. 이미지가 흐리면 다시 캡처해 주세요.');
+    if (cand.finishReason === 'MAX_TOKENS') throw new Error('내역이 너무 많아 중간에 끊겼습니다. 이미지를 나눠서 분석해 주세요.');
+    const text = ((cand.content || {}).parts || []).map(p=>p.text || '').join('\n');
+    if (!String(text).trim()) throw new Error('AI 응답이 비어 있습니다. 다시 시도해 주세요. (finish: ' + (cand.finishReason||'-') + ')');
+    return {text, model};
+  }
+  throw lastErr || new Error('사용할 수 있는 Gemini 모델을 찾지 못했습니다. 설정에서 모델을 바꾸거나 OpenAI를 선택해 주세요.');
+}
+async function capCallOpenAI(imgs){
+  const model = AI_CFG.model || AI_PROVIDERS.openai.models[0];
+  const content = [{type:'text', text:capPrompt()}].concat(imgs.map(im=>({type:'image_url', image_url:{url:'data:' + im.mime + ';base64,' + im.b64}})));
+  let res;
+  try {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + AI_CFG.key},
+      body: JSON.stringify({
+        model: model,
+        temperature: 0,
+        response_format: {type:'json_object'},
+        messages: [
+          {role:'system', content:'너는 카드 사용내역 캡처 이미지를 읽어 JSON만 출력하는 도우미다. 항상 {"transactions":[...]} 형식의 JSON 객체 하나만 출력한다.'},
+          {role:'user', content: content}
+        ]
+      })
+    });
+  } catch(e){ throw new Error('네트워크 오류로 AI에 연결하지 못했습니다. 인터넷 연결이나 광고 차단 앱을 확인해 주세요.'); }
+  if (!res.ok) throw capApiError(res.status, await capReadError(res));
+  const j = await res.json();
+  const ch = (j.choices || [])[0];
+  const text = ch && ch.message ? String(ch.message.content || '') : '';
+  if (!String(text).trim()) throw new Error('AI 응답이 비어 있습니다. 다시 시도해 주세요.');
+  return {text: text, model: model};
+}
+
+/* ---------- 응답 해석 ---------- */
+function capParseTx(text){
+  let t = String(text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) t = t.slice(a, b+1);
+  let p = null;
+  try { p = JSON.parse(t); } catch(e){}
+  if (!p){
+    const s = t.indexOf('['), e2 = t.lastIndexOf(']');
+    if (s >= 0 && e2 > s){ try { p = JSON.parse(t.slice(s, e2+1)); } catch(e3){} }
+  }
+  if (!p) throw new Error('AI 응답을 이해하지 못했습니다. 다시 시도해 주세요.');
+  const arr = Array.isArray(p) ? p
+    : (Array.isArray(p.transactions) ? p.transactions
+    : (Array.isArray(p.items) ? p.items
+    : (Array.isArray(p.data) ? p.data : [])));
+  return arr;
+}
+function capNormalize(raw, fallbackCard){
+  if (!raw || typeof raw !== 'object') return null;
+  const date = toDateStr(raw.date != null ? raw.date : (raw.이용일자 || raw.날짜 || ''));
+  const av = raw.amount != null ? raw.amount : (raw.청구금액 != null ? raw.청구금액 : (raw.금액 != null ? raw.금액 : raw.결제금액));
+  const amount = toAmount(av);
+  const merchant = String(raw.merchant != null ? raw.merchant : (raw.가맹점 || raw.이용가맹점 || raw.사용처 || '')).trim().slice(0,60);
+  if (!date || !merchant || isNaN(amount) || amount === 0) return null;
+  const c = String(raw.card || raw.카드사 || raw.카드 || '');
+  let card = '';
+  if (/삼성/.test(c)) card = '삼성카드';
+  else if (/KB|국민/i.test(c)) card = 'KB국민카드';
+  else if (/현대/.test(c)) card = '현대카드';
+  else if (/우리/.test(c)) card = '우리카드';
+  if (!card) card = fallbackCard || '내 카드';
+  const note = String(raw.note != null ? raw.note : (raw.비고 || raw.memo || '')).trim().slice(0,60);
+  return {date:date, merchant:merchant, amount:Math.round(amount), card:card, note:note};
+}
+
+/* ---------- 모달 ---------- */
+function capBodyHtml(){
+  const pvName = AI_PROVIDERS[AI_CFG.provider === 'openai' ? 'openai' : 'gemini'].name;
+  let h = '';
+  if (!AI_CFG.key){
+    const pv = AI_CFG.provider === 'openai' ? 'openai' : 'gemini';
+    h += '<div class="capkeybox">'+
+      '<div class="kt">🔑 AI API 키를 먼저 넣어 주세요</div>'+
+      '<p class="tiny">캐처 이미지는 <b>이 브러우저에서 AI로 직접</b> 전송됩니다. 키는 이 브러우저(localStorage)에만 저장되고 가계부 파일·동기화에는 들어가지 않습니다.</p>'+
+      '<div class="capkeyrow">'+
+        '<select class="txt" id="capProviderSel">'+
+          '<option value="gemini"'+(pv==='gemini'?' selected':'')+'>Google Gemini (추천 · 무료 티어 가능)</option>'+
+          '<option value="openai"'+(pv==='openai'?' selected':'')+'>OpenAI (GPT)</option>'+
+        '</select>'+
+        '<input class="txt" type="password" id="capKeyInput" placeholder="'+esc(AI_PROVIDERS[pv].keyHint)+' API 키" autocomplete="off" spellcheck="false">'+
+        '<button class="btn primary" id="capKeySave">저장</button>'+
+      '</div>'+
+      '<p class="tiny"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini 키 발급 ↗</a> · <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI 키 발급 ↗</a></p>'+
+    '</div>';
+  } else {
+    h += '<div class="capaibar"><span class="dot"></span>AI · '+esc(pvName)+
+      ' <span class="muted" style="font-weight:600">'+esc(AI_CFG.model || '모델 자동')+'</span>'+
+      '<button class="linkbtn" id="capAiSettings">키 변경</button></div>';
+  }
+  h += '<div class="capdrop" id="capDrop">'+
+    '<div class="ic">🖼️</div>'+
+    '<p><b>카드사 앱·웹의 사용내역 · 결제예정금액 화면 캡처</b>를 올려 주세요.<br>여러 장을 한번에 올리면 겹치는 거래는 한 번만 잡습니다.</p>'+
+    '<div class="capruns" style="justify-content:center;margin-top:9px">'+
+      '<button class="btn primary" id="capPick">이미지 선택</button>'+
+    '</div>'+
+    '<input type="file" id="capFiles" accept="image/*" multiple class="hidden">'+
+    (CAP.files.length ? '<div class="capthumbs">'+CAP.files.map((f,i)=>'<div class="capthumb"><img src="'+f.thumbUrl+'" alt=""><button class="x" data-cap-delfile="'+i+'" aria-label="이미지 빼기">✕</button><span class="nm">'+esc(f.name || ('이미지 '+(i+1)))+'</span></div>').join('')+'</div>' : '')+
+  '</div>'+
+  '<div class="capopts">'+
+    '<div class="field"><label>카드사</label><select class="txt" id="capCardSel">'+
+      '<option value=""'+(CAP.card?'':' selected')+'>자동 인식 (이미지에서)</option>'+
+      CARD_ORDER.map(c=>'<option value="'+c+'"'+(CAP.card===c?' selected':'')+'>'+shortCard(c)+'</option>').join('')+
+    '</select></div>'+
+    '<div class="field"><label>반영할 결제 월</label><select class="txt" id="capMonthSel">'+
+      capMonths().map(m=>'<option value="'+m+'"'+(CAP.month===m?' selected':'')+'>'+monthLabel(m)+'</option>').join('')+
+    '</select></div>'+
+  '</div>'+
+  '<div class="capruns">'+
+    '<button class="btn primary" id="capRun"'+(CAP.busy || !CAP.files.length ? ' disabled' : '')+'>'+(CAP.results.length ? '🔍 다시 분석' : '🔍 분석하기')+'</button>'+
+    '<span class="hint">'+(CAP.files.length ? CAP.files.length+'장 · 보통 2~5초' : '이미지를 고르면 분석할 수 있습니다')+'</span>'+
+  '</div>';
+  if (CAP.busy || CAP.status) h += '<div class="capstatus" id="capStatus">'+(CAP.busy?'<span class="sp"></span>':'')+esc(CAP.status || '분석 중…')+'</div>';
+  if (CAP.error) h += '<div class="caperr" id="capErr">'+esc(CAP.error)+'</div>';
+  if (CAP.results.length){
+    const dupN = CAP.results.filter(r=>r.dup).length;
+    const fresh = CAP.results.filter(r=>!r.dup);
+    h += '<div class="capsum">AI가 <b>'+fmt(CAP.results.length)+'건</b>을 읽었습니다 '+
+      (dupN ? '<span class="capbadge">중복 '+fmt(dupN)+'건 자동 제외됨</span>' : '<span class="capbadge new">중복 없음</span>')+
+      (CAP.ms ? '<span class="muted" style="margin-left:auto;font-size:11.5px">'+(CAP.ms < 150 ? '0.2초 이내' : (CAP.ms/1000).toFixed(1)+'초')+'</span>' : '')+'</div>';
+    if (fresh.length){
+      h += '<div class="caprows">'+fresh.map(r=>capRowHtml(r)).join('')+'</div>';
+    } else {
+      h += '<p class="tiny" style="margin:8px 0 0">새로 추가할 내역이 없습니다. 모두 이미 가계부에 있습니다.</p>';
+    }
+    if (dupN){
+      h += '<details class="capdupbox"><summary>중복 '+fmt(dupN)+'건 자동 제외됨 · 눌러서 보기</summary>'+
+        '<p class="tiny">같은 날짜·가맹점·금액이 이미 가계부에 있어 체크를 벗겨 두었습니다. 그래도 추가하려면 체크하세요.</p>'+
+        '<div class="caprows">'+CAP.results.filter(r=>r.dup).map(r=>capRowHtml(r)).join('')+'</div></details>';
+    }
+  }
+  return h;
+}
+function capRowHtml(r){
+  const i = CAP.results.indexOf(r);
+  const catNames = Array.from(new Set(S.categories.map(c=>c.name).concat(r.category || '기타')));
+  const catOpts = catNames.map(n=>'<option value="'+esc(n)+'"'+(n===(r.category||'기타')?' selected':'')+'>'+esc(n)+'</option>').join('');
+  const cardOpts = CARD_ORDER.concat(['내 카드']).map(c=>'<option value="'+c+'"'+(c===r.card?' selected':'')+'>'+shortCard(c)+'</option>').join('');
+  return '<div class="caprow'+(r.on?'':' off')+'" data-caprow="'+i+'">'+
+    '<input type="checkbox" data-cap-on="'+i+'" '+(r.on?'checked':'')+' aria-label="이 내역 추가">'+
+    '<div class="body">'+
+      '<div class="l1">'+
+        '<input class="mer" data-cap-f="merchant" data-i="'+i+'" value="'+esc(r.merchant)+'" maxlength="60" aria-label="가맹점">'+
+        (r.dup ? '<span class="capbadge">중복</span>' : '')+
+      '</div>'+
+      '<div class="l2">'+
+        '<input type="date" data-cap-f="date" data-i="'+i+'" value="'+esc(r.date)+'" aria-label="이용일자">'+
+        '<input type="number" step="1" data-cap-f="amount" data-i="'+i+'" value="'+r.amount+'" class="'+(r.amount<0?'neg':'')+'" aria-label="금액">'+
+        '<select data-cap-f="card" data-i="'+i+'" aria-label="카드사">'+cardOpts+'</select>'+
+        '<select data-cap-f="category" data-i="'+i+'" aria-label="분류">'+catOpts+'</select>'+
+      '</div>'+
+      (r.note ? '<div class="l2"><input class="memo" data-cap-f="note" data-i="'+i+'" value="'+esc(r.note)+'" placeholder="비고" maxlength="60"></div>' : '')+
+    '</div></div>';
+}
+function capFootHtml(){
+  return '<button class="btn ghost" id="capClose2">닫기</button>'+
+    '<div class="spacer"></div>'+
+    '<button class="btn primary" id="capAdd" disabled>선택 0건 추가</button>';
+}
+function capUpdateFoot(){
+  const btn = $('#capAdd'); if (!btn) return;
+  const sel = CAP.results.filter(r=>r.on);
+  const total = sel.reduce((s,r)=>s + (+r.amount||0), 0);
+  btn.textContent = sel.length ? '선택 ' + fmt(sel.length) + '건 추가 (' + fmt(total) + '원)' : '선택 0건 추가';
+  btn.disabled = !sel.length || CAP.busy;
+}
+function capRender(){
+  $('#capBody').innerHTML = capBodyHtml();
+  $('#capFoot').innerHTML = capFootHtml();
+  capUpdateFoot();
+}
+function openCapture(){
+  loadAiConfig();
+  CAP.files.forEach(f=>{ try { URL.revokeObjectURL(f.thumbUrl); } catch(e){} });
+  CAP.files = []; CAP.results = []; CAP.busy = false; CAP.status = ''; CAP.error = ''; CAP.ms = 0; CAP.model = '';
+  CAP.card = '';
+  CAP.month = (F.month && F.month !== 'all') ? F.month : capNowMonth();
+  $('#capBackdrop').classList.add('show');
+  capRender();
+}
+function closeCapture(){
+  $('#capBackdrop').classList.remove('show');
+  CAP.files.forEach(f=>{ try { URL.revokeObjectURL(f.thumbUrl); } catch(e){} });
+  CAP.files = []; CAP.results = []; CAP.busy = false; CAP.status = ''; CAP.error = '';
+}
+function capAddFiles(list){
+  const all = Array.from(list || []).filter(f=> /^image\//.test(f.type || '') || /\.(png|jpe?g|webp|gif|bmp|heic|heif)$/i.test(f.name || ''));
+  if (!all.length){ toast('이미지 파일을 골라 주세요'); return; }
+  const room = 10 - CAP.files.length;
+  if (room <= 0){ toast('이미지는 최대 10장까지입니다'); return; }
+  const take = all.slice(0, room);
+  take.forEach(f=> CAP.files.push({file:f, name:f.name || '', thumbUrl: URL.createObjectURL(f)}));
+  if (all.length > room) toast('이미지는 최대 10장 — ' + room + '장만 넣었습니다');
+  CAP.results = []; CAP.error = ''; CAP.ms = 0;
+  capRender();
+}
+function capRemoveFile(i){
+  const f = CAP.files[i]; if (!f) return;
+  try { URL.revokeObjectURL(f.thumbUrl); } catch(e){}
+  CAP.files.splice(i, 1);
+  CAP.results = []; CAP.error = '';
+  capRender();
+}
+function capSaveInlineKey(){
+  const prov = $('#capProviderSel'), key = $('#capKeyInput');
+  if (!prov || !key) return;
+  const v = key.value.trim();
+  if (!v){ toast('API 키를 붙여 넣어 주세요'); key.focus(); return; }
+  AI_CFG.provider = prov.value === 'openai' ? 'openai' : 'gemini';
+  AI_CFG.key = v;
+  AI_CFG.model = '';
+  if (!saveAiConfig()){ toast('브러우저 저장이 막혀 있어 키를 저장하지 못했습니다'); return; }
+  toast('AI 키를 저장했습니다 (이 브러우저에만)');
+  CAP.error = '';
+  capRender();
+}
+function capSetField(i, f, v, el){
+  const r = CAP.results[i]; if (!r) return;
+  if (f === 'amount'){
+    r.amount = Math.round(+v || 0);
+    if (el) el.classList.toggle('neg', r.amount < 0);
+    capUpdateFoot();
+  } else if (f === 'merchant' || f === 'date' || f === 'note' || f === 'category' || f === 'card'){
+    r[f] = v;
+  }
+}
+async function capRun(){
+  if (CAP.busy) return;
+  if (!AI_CFG.key){ CAP.error = 'AI API 키가 없습니다. 위 입력칸에 키를 넣고 [저장]을 눌러 주세요.'; capRender(); return; }
+  if (!CAP.files.length){ CAP.error = '분석할 캐처 이미지를 먼저 골라 주세요.'; capRender(); return; }
+  CAP.busy = true; CAP.error = ''; CAP.results = []; CAP.ms = 0; CAP.status = '이미지를 준비하는 중…';
+  capRender();
+  try {
+    const imgs = [];
+    for (let i=0;i<CAP.files.length;i++){
+      CAP.status = '이미지 준비 중… ' + (i+1) + '/' + CAP.files.length;
+      capStatusOnly();
+      imgs.push(await capPrepImage(CAP.files[i].file));
+    }
+    CAP.status = 'AI가 캐처를 읽는 중… (' + imgs.length + '장)';
+    capStatusOnly();
+    const t0 = Date.now();
+    const res = AI_CFG.provider === 'openai' ? await capCallOpenAI(imgs) : await capCallGemini(imgs);
+    CAP.ms = Date.now() - t0;
+    CAP.model = res.model || '';
+    const arr = capParseTx(res.text);
+    const items = arr.map(x=> capNormalize(x, CAP.card)).filter(Boolean);
+    CAP.results = applyDedupe(items).map(it=> Object.assign(it, {category: autoCategory(it.merchant, it.amount, S.rules) || '기타'}));
+    if (!items.length) CAP.error = '이미지에서 거래를 찾지 못했습니다. 사용내역 화면이 잘 보이게 다시 캡처해 주세요.';
+  } catch(e){
+    CAP.error = (e && e.message) ? e.message : String(e);
+  } finally {
+    CAP.busy = false; CAP.status = '';
+    capRender();
+    const box = $('#capBody'); if (box) box.scrollTop = 0;
+  }
+}
+function capAddSelected(){
+  const sel = CAP.results.filter(r=>r.on && String(r.merchant||'').trim() && r.date && +r.amount);
+  if (!sel.length){ toast('추가할 내역이 없습니다'); return; }
+  const month = CAP.month || capNowMonth();
+  let added = 0;
+  sel.forEach(it=>{
+    let cat = String(it.category||'').trim();
+    if (!cat) cat = autoCategory(it.merchant, it.amount, S.rules) || '기타';
+    if (!S.categories.some(c=> c.name === cat)) S.categories.push({name:cat, color:'#64748b'});
+    S.rows.push({
+      id: uid(), month: month, card: it.card || '내 카드', date: it.date,
+      merchant: String(it.merchant).trim(), amount: Math.round(+it.amount || 0),
+      category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture'
+    });
+    added++;
+  });
+  const dupN = CAP.results.filter(r=>r.dup && !r.on).length;
+  S.mode = 'mine';
+  F.month = month; F.date = null; F.cards = []; F.categories = []; $('#search').value = '';
+  S.ui.limit = 20;
+  saveState(); renderAll(); closeCapture();
+  toast(added + '건을 ' + monthLabel(month) + '에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : ''));
+  const tc = document.querySelector('.table-card');
+  if (tc) setTimeout(()=> tc.scrollIntoView({behavior:'smooth', block:'start'}), 120);
+}
+
+/* ---------- 캐처 모달 이벤트 ---------- */
+$('#btnCapture').addEventListener('click', openCapture);
+$('#btnCapture2').addEventListener('click', openCapture);
+$('#capClose').addEventListener('click', closeCapture);
+$('#capBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'capBackdrop') closeCapture(); });
+$('#capFoot').addEventListener('click', ev=>{
+  if (ev.target.closest('#capClose2')) closeCapture();
+  else if (ev.target.closest('#capAdd')) capAddSelected();
+  else if (ev.target.closest('#capRe')) capRun();
+});
+$('#capBody').addEventListener('click', ev=>{
+  const t = ev.target;
+  if (t.closest('#capPick')){ const f = $('#capFiles'); if (f) f.click(); return; }
+  const dl = t.closest('[data-cap-delfile]'); if (dl){ capRemoveFile(+dl.dataset.capDelfile); return; }
+  if (t.closest('#capKeySave')){ capSaveInlineKey(); return; }
+  if (t.closest('#capAiSettings')){ closeCapture(); openModal('ai'); return; }
+  if (t.closest('#capRun')){ capRun(); return; }
+});
+$('#capBody').addEventListener('change', ev=>{
+  const t = ev.target, d = t.dataset || {};
+  if (t.id === 'capFiles'){ const fs = Array.from(t.files || []); t.value = ''; capAddFiles(fs); return; }
+  if (t.id === 'capCardSel'){ CAP.card = t.value; return; }
+  if (t.id === 'capMonthSel'){ CAP.month = t.value; return; }
+  if (t.id === 'capProviderSel'){ AI_CFG.provider = t.value === 'openai' ? 'openai' : 'gemini'; const k = $('#capKeyInput'); if (k) k.placeholder = AI_PROVIDERS[AI_CFG.provider].keyHint + ' API 키'; return; }
+  if (d.capOn != null){
+    const i = +d.capOn, r = CAP.results[i];
+    if (r){ r.on = !!t.checked; const row = t.closest('.caprow'); if (row) row.classList.toggle('off', !t.checked); }
+    capUpdateFoot();
+    return;
+  }
+  if (d.capF){ capSetField(+d.i, d.capF, t.value, t); }
+});
+$('#capBody').addEventListener('input', ev=>{
+  const t = ev.target, d = t.dataset || {};
+  if (d.capF) capSetField(+d.i, d.capF, t.value, t);
+});
+$('#capBody').addEventListener('dragover', ev=>{
+  const d = ev.target.closest && ev.target.closest('#capDrop');
+  if (!d) return;
+  ev.preventDefault(); d.classList.add('over');
+});
+$('#capBody').addEventListener('dragleave', ev=>{
+  const d = ev.target.closest && ev.target.closest('#capDrop');
+  if (d) d.classList.remove('over');
+});
+$('#capBody').addEventListener('drop', ev=>{
+  const d = ev.target.closest && ev.target.closest('#capDrop');
+  if (!d) return;
+  ev.preventDefault(); d.classList.remove('over');
+  const dt = ev.dataTransfer;
+  if (dt && dt.files && dt.files.length) capAddFiles(dt.files);
+});
+document.addEventListener('keydown', ev=>{
+  if (ev.key === 'Escape' && $('#capBackdrop').classList.contains('show')) closeCapture();
+});
+
+
+/* ============================================================
    BOOT
    ============================================================ */
 (function boot(){
   loadState();
+  loadAiConfig();
   loadSyncConfig();
   if (PUBLIC_BUILD){
     const seg = $('#modeSeg'); if (seg) seg.style.display = 'none';
