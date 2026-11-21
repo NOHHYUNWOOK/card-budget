@@ -2347,7 +2347,7 @@ function aiTabHtml(){
     '<div class="field"><label>AI 제공자</label><select class="txt" id="aiProvider2">'+
       '<option value="gemini"'+(pv==='gemini'?' selected':'')+'>Google Gemini (추천 · 무료 티어 가능)</option>'+
       '<option value="openai"'+(pv==='openai'?' selected':'')+'>OpenAI (GPT)</option>'+
-    '</select><p class="tiny">Gemini는 무료 티어로도 쓸 수 있어 추천합니다. OpenAI는 결제(크레딧)가 등록된 키가 필요하고, OpenAI가 브라우저에서의 직접 호출(CORS)을 막는 경우에는 동작하지 않습니다. 그럴 때는 Gemini를 쓰세요.</p></div>'
+    '</select><p class="tiny">Gemini는 무료 티어로도 쓸 수 있어 추천합니다. OpenAI는 결제(크레딧)가 등록된 키가 필요하고, OpenAI가 브라우저에서의 직접 호출(CORS)을 막는 경우에는 동작하지 않습니다. 그럴 때는 Gemini를 쓰세요.</p></div>'+
     '<div class="field"><label>API 키</label>'+
       '<div class="capkeyrow" style="margin-top:0">'+
         '<input class="txt" type="password" id="aiKey2" value="'+esc(AI_CFG.key)+'" placeholder="'+esc(prov.keyHint)+' API 키" autocomplete="off" spellcheck="false">'+
