@@ -2357,7 +2357,7 @@ function aiTabHtml(){
     '<p class="tiny" style="margin-top:0"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini API 키 발급 ↗</a> · <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI API 키 발급 ↗</a></p>'+
     '<div class="field" style="margin-top:12px"><label>모델 (비우면 자동 선택)</label>'+
       '<input class="txt" id="aiModel2" value="'+esc(AI_CFG.model||'')+'" placeholder="'+esc(prov.models[0])+'" autocomplete="off" spellcheck="false">'+
-      '<p class="tiny">Gemini는 '+prov.models.join(' → ')+' 순서로 자동 시도합니다. 보통 비워 두면 됩니다.</p></div>'+
+      '<p class="tiny">'+(pv==='gemini' ? 'Gemini는 '+prov.models.join(' → ')+' 순서로 자동 시도합니다. 보통 비워 두면 됩니다.' : 'OpenAI는 gpt-4o-mini로 분석합니다. 다른 모델을 쓰려면 직접 입력하세요.')+'</p></div>'+
     '<div class="syncstate'+(AI_CFG.key?' ok':'')+'" id="aiState2">'+
       (AI_CFG.key ? '키가 저장되어 있습니다. 캡쳐 분석을 바로 쓸 수 있습니다.' : '아직 API 키가 없습니다. 키를 넣고 [저장]을 누르세요.')+'</div>';
 }
