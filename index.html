@@ -1995,6 +1995,9 @@ function finishImport(rows, fileName, extra){
   const fileMonth = monthFromName(fileName);
   const maxDate = rows.map(r=>r.date).sort().pop();
   const fallbackMonth = maxDate ? maxDate.slice(0,7) : new Date().toISOString().slice(0,7);
+  // 파일 이름에 월이 없고 한 파일에 여러 달이 섮여 있으면 각 행의 이용일자 달을 그대로 씁니다(=연간 그래프가 정확해짐)
+  const distinctMonths = new Set(rows.map(r=> String(r.date||'').slice(0,7)));
+  const useOwnMonth = !fileMonth && distinctMonths.size > 1;
   let auto = 0, unmatched = 0;
   const out = rows.map(r=>{
     let cat = r.category;
@@ -2002,7 +2005,7 @@ function finishImport(rows, fileName, extra){
       const c = autoCategory(r.merchant, r.amount, S.rules);
       if (c){ cat = c; auto++; } else { cat = '기타'; unmatched++; }
     }
-    return {id:uid(), month: fileMonth || fallbackMonth, card:r.card || '내 카드', date:r.date,
+    return {id:uid(), month: fileMonth || (useOwnMonth ? String(r.date).slice(0,7) : fallbackMonth), card:r.card || '내 카드', date:r.date,
             merchant:r.merchant, amount:r.amount, category:cat, memo:r.memo || '',
             cardName: r.cardName || '', payType: r.payType || ''};
   });
