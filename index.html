@@ -962,7 +962,7 @@ function renderAnnual(){
     const txt = shortKrw(val);
     const tw = txt.length * (smallW?5.0:5.7) + 4;
     const left = cx - tw/2, right = cx + tw/2;
-    let lane = laneRight[0] <= left ? 0 : (laneRight[1] <= left ? 1 : 0);
+    let lane = laneRight[0] + 2 <= left ? 0 : (laneRight[1] + 2 <= left ? 1 : 0);
     laneRight[lane] = right;
     const baseY = yBase - h - 5 - lane*11;
     svg += '<text x="'+cx.toFixed(1)+'" y="'+Math.max(9, baseY).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="700" fill="'+(m===selIdx?'#1d4ed8':'#111827')+'" pointer-events="none">'+txt+'</text>';
