@@ -1010,7 +1010,6 @@ function renderAnnual(){
   } else if (!graphMax){
     body = annualEmptyBox('지금 켜진 선의 금액이 0원입니다');
   } else {
-    const labelAll = W >= 620;   // 넓을 때만 12개월 금액 라벨
     const order = series.filter(s=> isOn(s) && (s.isTotal || s.vals.some(v=> v>0)));
     order.sort((a,b)=> (a.isTotal?1:0) - (b.isTotal?1:0));   // 분류 먼저, 전체를 맨 위에
     // 내역이 있는 달 구간만 선을 그림 — 기록 전 달을 0으로 오해하지 않게
@@ -1053,12 +1052,12 @@ function renderAnnual(){
         svg += '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="'+r.toFixed(1)+'" fill="'+(sel ? s.color : '#fff')+'" stroke="'+s.color+'" stroke-width="'+(s.isTotal?2.2:1.5)+'" style="animation:alineDot .3s ease-out both"/>';
       }
     });
-    /* 전체 금액 라벨 (넓은 화면은 매달, 좁은 화면은 최고·고른 달만) */
+    /* 전체 금액 라벨 (최고 달·고른 달만 — 숫자는 아래 요약과 겹치지 않게) */
     const t = series[0];
     if (isOn(t)){
       for (let i=0;i<12;i++){
         const v = t.vals[i]; if (!v) continue;
-        if (!(labelAll || i === selIdx || i === peakIdx)) continue;
+        if (!(i === selIdx || i === peakIdx)) continue;
         const lx = Math.min(Math.max(xAt(i), pad.l + 16), W - pad.r - 16);
         svg += '<text x="'+lx.toFixed(1)+'" y="'+(yAt(v)-7).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="700" fill="'+(i===selIdx?'#1d4ed8':'#111827')+'" pointer-events="none">'+shortKrw(v)+'</text>';
       }
