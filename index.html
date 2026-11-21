@@ -154,6 +154,13 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .aline-chip.off{color:#a3aab8;background:#f8f9fb;border-style:dashed}
 .aline-chip.off .dot,.aline-chip.off .bar{background:#c9ced8}
 .aline-chip.off .nm{text-decoration:line-through;text-decoration-color:#d3d8e0}
+.aline-all{
+  border:1px solid #d9e2f3;background:#f2f6fd;color:#26406e;border-radius:999px;
+  font-size:11.5px;font-weight:700;padding:4px 11px;min-height:28px;
+  display:inline-flex;align-items:center;gap:4px;transition:.15s;white-space:nowrap;
+}
+.aline-all:hover{border-color:#b9cdf7;background:var(--accent-soft);color:#1d4ed8}
+.aline-all:active{transform:scale(.97)}
 .aline-readout{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink2);min-height:20px;margin-top:6px;line-height:1.35}
 .aline-readout .mo{font-weight:750;color:var(--ink)}
 .aline-readout .it{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
@@ -185,6 +192,23 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 /* ---------- table ---------- */
 .table-card{overflow:hidden;scroll-margin-top:74px;transition:box-shadow .25s}
 .table-card.flash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 1px #b9cdf7}
+/* ---------- detail panel filters (카드사 버튼 · 분류 지우기) ---------- */
+.detail-filters{padding:0 16px 10px;display:flex;flex-direction:column;gap:7px}
+.detail-filters .chips{gap:5px}
+.detail-filters .chip{padding:4px 10px;font-size:12px}
+.detail-filters .chips .lbl{font-size:11.5px;min-width:33px}
+.catpick{display:inline-flex;align-items:stretch;border:1px solid var(--line);background:#fff;border-radius:999px;overflow:hidden;font-size:12px;font-weight:600;color:var(--ink2);transition:.15s}
+.catpick:hover{border-color:#cfd6e4;background:#fbfcfe}
+.catpick .lb{border:0;background:transparent;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:6px;padding:4px 8px 4px 10px;white-space:nowrap}
+.catpick .lb .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.catpick .cnt{font-size:11.5px;font-weight:600;color:var(--muted)}
+.catpick.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.catpick.on .cnt{color:rgba(255,255,255,.7)}
+.catpick .delx{border:0;border-left:1px solid var(--line);background:transparent;color:#b8bdc8;font-size:10.5px;line-height:1;padding:0 7px;display:inline-flex;align-items:center;transition:.15s}
+.catpick .delx:hover{color:#e11d48;background:#fff5f5}
+.catpick.on .delx{border-left-color:rgba(255,255,255,.28);color:rgba(255,255,255,.72)}
+.catpick.on .delx:hover{color:#fff;background:rgba(255,255,255,.16)}
+.detail-note{font-size:11px;color:var(--muted);font-weight:500}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 thead th{
@@ -341,6 +365,12 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .chip .cnt{font-size:11px}
   .aline-legend{gap:5px}
   .aline-chip{padding:3px 9px 3px 7px;font-size:11.5px;min-height:26px}
+  .aline-all{font-size:11px;min-height:26px;padding:3px 9px}
+  .detail-filters{padding:0 12px 9px;gap:6px}
+  .detail-filters .chip{padding:3px 8px;font-size:11.5px}
+  .catpick{font-size:11.5px}
+  .catpick .lb{padding:3px 7px 3px 9px;gap:5px}
+  .detail-note{flex:1 0 100%;font-size:10.5px}
   .aline-readout{font-size:11.5px;gap:8px}
   .donut-wrap{gap:10px}
   .donut-box{width:116px;height:116px}
@@ -474,9 +504,13 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   </section>
 
   <section class="card table-card">
-    <div class="card-head" style="padding-bottom:12px">
+    <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
       <span class="hint" id="tableHint"></span>
+    </div>
+    <div class="detail-filters" id="detailFilters">
+      <div class="chips" id="cardChipsDetail"></div>
+      <div class="chips" id="catChipsDetail"></div>
     </div>
     <div class="table-scroll">
       <table id="table">
@@ -654,8 +688,8 @@ function filteredRows(opts){
   const q = F.q.trim().toLowerCase();
   return S.rows.filter(r=>{
     if (!o.ignoreMonth && F.month !== 'all' && r.month !== F.month) return false;
-    if (F.cards.length && F.cards.indexOf(r.card) < 0) return false;
-    if (F.categories.length && F.categories.indexOf(r.category) < 0) return false;
+    if (!o.ignoreCards && F.cards.length && F.cards.indexOf(r.card) < 0) return false;
+    if (!o.ignoreCats && F.categories.length && F.categories.indexOf(r.category) < 0) return false;
     if (F.date && r.date !== F.date) return false;
     if (q){
       const hay = ((r.merchant||'') + ' ' + (r.memo||'') + ' ' + (r.card||'')).toLowerCase();
@@ -686,6 +720,52 @@ function summarize(rows){
 /* ============================================================
    FILTERS UI
    ============================================================ */
+/* 카드사 칩 — 위 필터 카드와 상세 내역 패널이 같은 F.cards 상태를 씁니다 */
+function cardChipsHtml(withCount){
+  const cards = Array.from(new Set(availableCards().concat(cardsIn(S.rows))));
+  if (!cards.length) return '';
+  const baseRows = withCount ? filteredRows({ignoreCards:true}) : null;
+  const counts = new Map();
+  if (baseRows) baseRows.forEach(r=> counts.set(r.card, (counts.get(r.card)||0) + 1));
+  const cnt = c => (withCount ? '<span class="cnt">'+fmt(c === null ? baseRows.length : (counts.get(c)||0))+'</span>' : '');
+  // 상세 내역 패널은 카드사를 늘 같은 순서로 (삼성·KB국민·현대·우리 → 나머지)
+  const list = withCount ? (function(){
+    const PREF = ['삼성카드','KB국민카드','현대카드','우리카드'];
+    const rank = c => { const i = PREF.indexOf(c); return i < 0 ? 99 : i; };
+    return cards.slice().sort((a,b)=> rank(a) - rank(b));
+  })() : cards;
+  return '<span class="lbl">카드사</span>' +
+    '<button class="chip'+(F.cards.length?'':' on')+'" data-card="" title="모든 카드사 내역 보기">전체'+cnt(null)+'</button>' +
+    list.map(c=>{
+      const on = F.cards.indexOf(c)>=0;
+      return '<button class="chip'+(on?' on':'')+'" data-card="'+esc(c)+'" title="'+esc(c)+' 내역만 보기">'+
+        '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+cnt(c)+'</button>';
+    }).join('');
+}
+/* 상세 내역 패널의 분류 칩 — 누르면 필터, ✕ 는 그 분류 지우기 */
+function catChipsDetailHtml(){
+  if (!S.rows.length) return '';
+  const catNames = S.categories.map(c=>c.name);
+  S.rows.forEach(r=>{ if(catNames.indexOf(r.category)<0) catNames.push(r.category); });
+  const counts = new Map();
+  filteredRows({ignoreCats:true}).forEach(r=> counts.set(r.category, (counts.get(r.category)||0) + 1));
+  const registered = n => S.categories.some(c=> c.name === n);
+  const canDelete = S.categories.length > 1;
+  const chips = catNames.map(n=>{
+    const on = F.categories.indexOf(n)>=0;
+    const cnt = '<span class="cnt">'+fmt(counts.get(n)||0)+'</span>';
+    const dot = '<span class="dot" style="background:'+catMeta(n).color+'"></span>';
+    if (!canDelete || !registered(n)){
+      return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+dot+esc(n)+cnt+'</button>';
+    }
+    return '<span class="catpick'+(on?' on':'')+'">'+
+      '<button type="button" class="lb" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+dot+esc(n)+cnt+'</button>'+
+      '<button type="button" class="delx" data-cat-del="'+esc(n)+'" title="'+esc(n)+' 분류 지우기" aria-label="'+esc(n)+' 분류 지우기">✕</button>'+
+    '</span>';
+  }).join('');
+  return '<span class="lbl">분류</span>' + chips +
+    (canDelete ? '<span class="detail-note">✕ 를 누르면 그 분류를 지울 수 있습니다</span>' : '');
+}
 function renderFilters(){
   // month
   const ms = monthsIn(S.rows);
@@ -698,15 +778,10 @@ function renderFilters(){
   mSeg.innerHTML = '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
     ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+mLab(m)+'</button>').join('');
 
-  // card chips — 전체 + 카드사별 (이름만, 금액은 아래 카드사 요약에서)
-  const cards = Array.from(new Set(availableCards().concat(cardsIn(S.rows))));
-  $('#cardChips').innerHTML = !cards.length ? '' : ('<span class="lbl">카드사</span>' +
-    '<button class="chip'+(F.cards.length?'':' on')+'" data-card="" title="모든 카드사 보기">전체</button>' +
-    cards.map(c=>{
-      const on = F.cards.indexOf(c)>=0;
-      return '<button class="chip'+(on?' on':'')+'" data-card="'+esc(c)+'" title="'+esc(c)+' 내역만 보기">'+
-        '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</button>';
-    }).join(''));
+  // card chips — 전체 + 카드사별 (위 필터 카드·상세 내역 패널 두 곳에 같은 상태로)
+  $('#cardChips').innerHTML = cardChipsHtml(false);
+  const detailCards = $('#cardChipsDetail');
+  if (detailCards) detailCards.innerHTML = cardChipsHtml(true);
 
   // category chips
   const catNames = S.categories.map(c=>c.name);
@@ -719,6 +794,12 @@ function renderFilters(){
         '<span class="dot" style="background:'+col+'"></span>'+esc(n)+'</button>';
     }).join('') +
     '<button class="chip add" data-addcat="1" title="새 분류 만들기 · 이름·색 수정">＋ 분류</button>';
+
+  // 상세 내역 패널: 카드사 버튼 + 분류 칩(✕ 로 지우기)
+  const detailCats = $('#catChipsDetail');
+  if (detailCats) detailCats.innerHTML = catChipsDetailHtml();
+  const detailBox = $('#detailFilters');
+  if (detailBox) detailBox.classList.toggle('hidden', !S.rows.length);
 
   // active filters
   const tags = [];
@@ -920,6 +1001,17 @@ function toggleAnnualSeries(key){
   saveState();
   renderAnnual();
 }
+/* 모두 끄기 / 모두 켜기 — 전체와 모든 분류 선을 한 번에 */
+function setAllAnnualSeries(off){
+  const years = annualYears();
+  const year = (+S.ui.year && years.indexOf(+S.ui.year) >= 0) ? +S.ui.year : years[years.length-1];
+  const rows = filteredRows({ignoreMonth:true}).filter(r=> String(r.month||'').slice(0,4) === String(year));
+  const series = annualSeries(rows);
+  S.ui.annualOff = off ? series.map(s=> s.key) : [];
+  saveState();
+  renderAnnual();
+  toast(off ? '모든 선을 껐습니다 · 보고 싶은 선만 남겨 켜세요' : '모든 선을 켰습니다');
+}
 function annualEmptyBox(txt){
   return '<div class="empty" style="padding:30px 10px">'+txt+'</div>';
 }
@@ -969,6 +1061,12 @@ function renderAnnual(){
     '</button>';
   }).join('');
 
+  /* ---- 모두 끄기 / 모두 켜기 (전체 + 모든 분류 선) ---- */
+  const allOff = series.every(s=> !isOn(s));
+  const allBtn = '<button type="button" class="aline-all" data-series-all="'+(allOff?'on':'off')+'"'+
+    ' title="'+(allOff ? '전체와 모든 분류 선을 한 번에 켭니다' : '전체와 모든 분류 선을 한 번에 꿉니다')+'">'+
+    (allOff ? '모두 켜기' : '모두 끄기')+'</button>';
+
   /* ---- 아래 요약: 고른 달의 전체·켜진 분류별 금액 ---- */
   let readout = '';
   if (rows.length){
@@ -1005,10 +1103,6 @@ function renderAnnual(){
   let body = '';
   if (!rows.length){
     body = annualEmptyBox(year+'년 내역이 없습니다');
-  } else if (!series.some(isOn)){
-    body = annualEmptyBox('표시할 선을 모두 껐습니다 · 위 범례를 눌러 다시 켜세요');
-  } else if (!graphMax){
-    body = annualEmptyBox('지금 켜진 선의 금액이 0원입니다');
   } else {
     const order = series.filter(s=> isOn(s) && (s.isTotal || s.vals.some(v=> v>0)));
     order.sort((a,b)=> (a.isTotal?1:0) - (b.isTotal?1:0));   // 분류 먼저, 전체를 맨 위에
@@ -1023,9 +1117,11 @@ function renderAnnual(){
     for (let m=0;m<12;m++){
       svg += '<line x1="'+xAt(m).toFixed(1)+'" y1="'+pad.t+'" x2="'+xAt(m).toFixed(1)+'" y2="'+(pad.t+innerH).toFixed(1)+'" stroke="#f5f7fb" stroke-width="1"/>';
     }
-    const gy = smallW ? 3 : 4;
+    // 선을 모두 끈 상태에서도 그래프 틀(격자·0선·달 이름)은 그대로 유지
+    const gy = graphMax ? (smallW ? 3 : 4) : 0;
+    const gyDiv = gy || 1;
     for (let i=0;i<=gy;i++){
-      const v = niceMax*i/gy, yy = yAt(v);
+      const v = niceMax*i/gyDiv, yy = yAt(v);
       svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+(i?'#eef0f4':'#e3e7ef')+'" stroke-width="1"/>';
       svg += '<text x="'+(pad.l-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
     }
@@ -1034,6 +1130,14 @@ function renderAnnual(){
       svg += '<rect x="'+(xAt(selIdx)-bw/2).toFixed(1)+'" y="'+pad.t+'" width="'+bw.toFixed(1)+'" height="'+innerH.toFixed(1)+'" rx="6" fill="#2f6fed" opacity=".07"/>';
     }
 
+    if (!order.length){
+      /* 모두 꺼짐(또는 켜진 선이 0원) — 빈 틀 위에 안내만 표시 */
+      const anyOn = series.some(isOn);
+      const msg1 = anyOn ? '지금 켜진 선의 금액이 0원입니다' : '모든 선을 껐습니다';
+      const msg2 = anyOn ? '다른 선을 켜 보세요' : '위 「모두 켜기」 또는 원하는 선을 눌러 다시 켜세요';
+      svg += '<text x="'+(W/2).toFixed(1)+'" y="'+(pad.t+innerH/2-5).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?11.5:13)+'" font-weight="700" fill="#98a0ad">'+msg1+'</text>'+
+        '<text x="'+(W/2).toFixed(1)+'" y="'+(pad.t+innerH/2+15).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?10:11.5)+'" fill="#b6bcc6">'+msg2+'</text>';
+    } else {
     /* 선 (내역이 있는 첫 달 ~ 마지막 달) */
     order.forEach(s=>{
       let d = 'M'+xAt(i0).toFixed(1)+','+yAt(s.vals[i0]).toFixed(1);
@@ -1062,6 +1166,7 @@ function renderAnnual(){
         svg += '<text x="'+lx.toFixed(1)+'" y="'+(yAt(v)-7).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="700" fill="'+(i===selIdx?'#1d4ed8':'#111827')+'" pointer-events="none">'+shortKrw(v)+'</text>';
       }
     }
+    }
     /* 달 이름 (내역 구간 밖은 더 흐리게) */
     for (let m=0;m<12;m++){
       const on = m === selIdx;
@@ -1084,7 +1189,7 @@ function renderAnnual(){
   }
 
   el.innerHTML =
-    (rows.length ? '<div class="aline-legend"><span class="lbl">선 켜고 끄기</span>'+chips+'</div>' : '') +
+    (rows.length ? '<div class="aline-legend"><span class="lbl">선 켜고 끄기</span>'+allBtn+chips+'</div>' : '') +
     body +
     (readout ? '<div class="aline-readout">'+readout+'</div>' : '');
 }
@@ -1234,11 +1339,13 @@ function renderTable(rows, sum){
   const sorted = sortRows(rows);
   const limit = S.ui.limit;
   const view = sorted.slice(0, limit);
-  const catNames = S.categories.map(c=>c.name);
+  const catNames = S.categories.map(c=>c.name).filter(n=> n !== '미분류');
   tbody.innerHTML = view.map(r=>{
-    const unknown = catNames.indexOf(r.category) < 0;
-    const opts = (unknown ? [r.category].concat(catNames) : catNames).map(n=>
+    const none = !r.category || r.category === '미분류';
+    const extra = (!none && catNames.indexOf(r.category) < 0) ? [r.category] : [];
+    const opts = extra.concat(catNames).map(n=>
       '<option value="'+esc(n)+'"'+(n===r.category?' selected':'')+'>'+esc(n)+'</option>').join('')+
+      '<option value="미분류"'+(none?' selected':'')+'>미분류 (제거)</option>'+
       '<option value="__new__">＋ 새 분류 직접 입력</option>';
     return '<tr data-id="'+r.id+'">'+
       '<td class="date"><span class="date-full">'+esc(r.date)+'</span><span class="date-short">'+dMD(r.date)+'</span></td>'+
@@ -1375,6 +1482,8 @@ $('#yearSeg').addEventListener('click', ev=>{
   saveState(); renderAll();
 });
 $('#annual').addEventListener('click', ev=>{
+  const all = ev.target.closest('[data-series-all]');
+  if (all){ setAllAnnualSeries(all.dataset.seriesAll === 'off'); return; }
   const chip = ev.target.closest('[data-series]');
   if (chip){ toggleAnnualSeries(chip.dataset.series); return; }
   const g = ev.target.closest('[data-month]'); if(!g) return;
@@ -1383,9 +1492,8 @@ $('#annual').addEventListener('click', ev=>{
   F.date = null; S.ui.limit = 20;
   renderAll();
 });
-$('#cardChips').addEventListener('click', ev=>{
-  const b = ev.target.closest('[data-card]'); if(!b) return;
-  const c = b.dataset.card;
+/* 카드사 칩 — 위 필터 카드와 상세 내역 패널 두 곳에서 같은 상태를 바꿉니다 */
+function applyCardChip(c){
   if (!c){ F.cards = []; }               // '전체' 칩
   else {
     const i = F.cards.indexOf(c);
@@ -1393,6 +1501,14 @@ $('#cardChips').addEventListener('click', ev=>{
   }
   S.ui.limit = 20;
   renderAll();
+}
+$('#cardChips').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-card]'); if(!b) return;
+  applyCardChip(b.dataset.card);
+});
+$('#cardChipsDetail') && $('#cardChipsDetail').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-card]'); if(!b) return;
+  applyCardChip(b.dataset.card);
 });
 $('#catChips') && $('#catChips').addEventListener('click', ev=>{
   if (ev.target.closest('[data-addcat]')){ openModal('cat'); return; }
@@ -1403,6 +1519,39 @@ function toggleCategory(c){
   const i = F.categories.indexOf(c);
   if (i>=0) F.categories.splice(i,1); else F.categories.push(c);
   renderAll();
+}
+/* 상세 내역 패널의 분류 칩: 몸통=필터, ✕=그 분류 지우기 */
+$('#catChipsDetail') && $('#catChipsDetail').addEventListener('click', ev=>{
+  const d = ev.target.closest('[data-cat-del]');
+  if (d){ ev.preventDefault(); askDeleteCategory(d.dataset.catDel); return; }
+  const b = ev.target.closest('[data-cat]'); if(!b) return;
+  toggleCategory(b.dataset.cat);
+});
+function askDeleteCategory(name){
+  if (!name) return;
+  if (S.categories.length <= 1){ toast('분류는 최소 1개가 필요합니다'); return; }
+  if (!S.categories.some(c=> c.name === name)){
+    toast('기본 분류 목록에 없는 분류입니다'); return;
+  }
+  const used = S.rows.filter(r=> r.category === name).length;
+  const rest = S.categories.filter(c=> c.name !== name);
+  const target = (rest.find(c=> c.name === '기타') || rest[0]).name;
+  askConfirm('「' + name + '」 분류를 지울까요?',
+    (used ? '이 분류를 쓰는 내역 ' + fmt(used) + '건은 「' + target + '」(으)로 옮깁니다. '
+          : '지금 이 분류를 쓰는 내역은 없습니다. ') +
+    '지운 분류는 분류 칩·그래프·표 선택지에서 바로 사라지고, 이 브라우저에 저장됩니다.',
+    '분류 지우기', ()=> deleteCategory(name, target));
+}
+function deleteCategory(name, target){
+  let moved = 0;
+  S.rows.forEach(r=>{ if (r.category === name){ r.category = target; r.edited = true; moved++; } });
+  S.rules.forEach(rule=>{ if (rule.category === name) rule.category = target; });
+  S.categories = S.categories.filter(c=> c.name !== name);
+  const off = annualOffList(); const oi = off.indexOf(name); if (oi >= 0) off.splice(oi,1);
+  F.categories = F.categories.filter(n=> n !== name);
+  saveState();
+  renderAll();
+  toast('「' + name + '」 분류를 지웠습니다' + (moved ? ' · 내역 ' + fmt(moved) + '건은 「' + target + '」로' : ''));
 }
 $('#activeBar').addEventListener('click', ev=>{
   if (ev.target.id === 'clearFilters'){
@@ -1452,6 +1601,13 @@ $('#table').addEventListener('change', ev=>{
   const row = S.rows.find(r=>r.id === sel.dataset.id);
   if (!row) return;
   const prev = row.category;
+  if (sel.value === '미분류'){
+    row.category = '미분류';
+    row.edited = true;
+    saveState(); renderAll();
+    toast(prev && prev !== '미분류' ? prev + ' → 미분류 (분류를 비웠습니다)' : '분류를 비웠습니다 — 미분류로 표시');
+    return;
+  }
   if (sel.value === '__new__'){
     askPrompt('새 분류 만들기', '분류 이름을 입력하세요. 이 거래에 바로 적용되고, 목록에도 생깁니다.', '', val=>{
       const name = addCategory(val);
