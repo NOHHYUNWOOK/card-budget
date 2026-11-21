@@ -403,6 +403,12 @@ body.catsheet-open .toast.show{transform:translate(-50%,0)}
 .capdrop .ic{font-size:24px;line-height:1}
 .capdrop p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.55}
 .capdrop p b{color:var(--ink2)}
+.capdrop.compact{padding:9px 11px;text-align:left}
+.capchead{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2);flex-wrap:wrap}
+.capchead b{font-size:13px;color:var(--ink)}
+.capchead .muted{margin-left:-3px;font-weight:600}
+.capchead .btn{margin-left:auto;padding:5px 10px;font-size:12px}
+.capchead .btn.ghost{margin-left:0}
 .capthumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;margin-top:10px}
 .capthumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;height:104px}
 .capthumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -3120,14 +3126,17 @@ function capBodyHtml(){
       ' <span class="muted" style="font-weight:600">'+esc(AI_CFG.model || '모델 자동')+'</span>'+
       '<button class="linkbtn" id="capAiSettings">키 변경</button></div>';
   }
-  h += '<div class="capdrop" id="capDrop">'+
-    '<div class="ic">🖼️</div>'+
-    '<p><b>카드사 앱·웹의 사용내역 · 결제예정금액 화면 캡처</b>를 올려 주세요.<br>여러 장을 한번에 올리면 겹치는 거래는 한 번만 잡습니다.</p>'+
-    '<div class="capruns" style="justify-content:center;margin-top:9px">'+
-      '<button class="btn primary" id="capPick">이미지 선택</button>'+
-    '</div>'+
+  const capCompact = !!(CAP.results.length || CAP.error);
+  h += '<div class="capdrop'+(capCompact?' compact':'')+'" id="capDrop">'+
+    (capCompact
+      ? '<div class="capchead"><span>🖼️</span><b>'+CAP.files.length+'장</b><span class="muted">올린 캡처</span>'+
+          '<button class="btn" id="capPick">+ 이미지 추가</button>'+
+          '<button class="btn ghost" id="capClearFiles">비우기</button></div>'
+      : '<div class="ic">🖼️</div>'+
+        '<p><b>카드사 앱·웹의 사용내역 · 결제예정금액 화면 캡처</b>를 올려 주세요.<br>여러 장을 한번에 올리면 겹치는 거래는 한 번만 잡습니다.</p>'+
+        '<div class="capruns" style="justify-content:center;margin-top:9px"><button class="btn primary" id="capPick">이미지 선택</button></div>'+
+        (CAP.files.length ? '<div class="capthumbs">'+CAP.files.map((f,i)=>'<div class="capthumb"><img src="'+f.thumbUrl+'" alt=""><button class="x" data-cap-delfile="'+i+'" aria-label="이미지 빼기">✕</button><span class="nm">'+esc(f.name || ('이미지 '+(i+1)))+'</span></div>').join('')+'</div>' : ''))+
     '<input type="file" id="capFiles" accept="image/*" multiple class="hidden">'+
-    (CAP.files.length ? '<div class="capthumbs">'+CAP.files.map((f,i)=>'<div class="capthumb"><img src="'+f.thumbUrl+'" alt=""><button class="x" data-cap-delfile="'+i+'" aria-label="이미지 빼기">✕</button><span class="nm">'+esc(f.name || ('이미지 '+(i+1)))+'</span></div>').join('')+'</div>' : '')+
   '</div>'+
   '<div class="capopts">'+
     '<div class="field"><label>카드사</label><select class="txt" id="capCardSel">'+
@@ -3224,6 +3233,11 @@ function capAddFiles(list){
   take.forEach(f=> CAP.files.push({file:f, name:f.name || '', thumbUrl: URL.createObjectURL(f)}));
   if (all.length > room) toast('이미지는 최대 10장 — ' + room + '장만 넣었습니다');
   CAP.results = []; CAP.error = ''; CAP.ms = 0;
+  capRender();
+}
+function capClearFiles(){
+  CAP.files.forEach(f=>{ try { URL.revokeObjectURL(f.thumbUrl); } catch(e){} });
+  CAP.files = []; CAP.results = []; CAP.error = ''; CAP.ms = 0;
   capRender();
 }
 function capRemoveFile(i){
@@ -3328,6 +3342,7 @@ $('#capBody').addEventListener('click', ev=>{
   const t = ev.target;
   if (t.closest('#capPick')){ const f = $('#capFiles'); if (f) f.click(); return; }
   const dl = t.closest('[data-cap-delfile]'); if (dl){ capRemoveFile(+dl.dataset.capDelfile); return; }
+  if (t.closest('#capClearFiles')){ capClearFiles(); return; }
   if (t.closest('#capKeySave')){ capSaveInlineKey(); return; }
   if (t.closest('#capAiSettings')){ closeCapture(); openModal('ai'); return; }
   if (t.closest('#capRun')){ capRun(); return; }
