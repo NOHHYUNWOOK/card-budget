@@ -942,7 +942,7 @@ function renderAnnual(){
     const yy = yBase - h;
     svg += '<g data-month="'+year+'-'+String(m+1).padStart(2,'0')+'" style="cursor:pointer">';
     if (on) svg += '<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+pad.t+'" width="'+bw.toFixed(1)+'" height="'+innerH+'" rx="5" fill="#2f6fed" opacity=".09"/>';
-    svg += '<rect x="0" y="'+pad.t+'" width="'+W.toFixed(0)+'" height="'+(innerH+pad.b)+'" fill="transparent"/>';
+    svg += '<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+pad.t+'" width="'+bw.toFixed(1)+'" height="'+(innerH+pad.b)+'" fill="transparent"/>';
     svg += '<rect x="'+(cx-barW/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(barW>10?4:2)+'" fill="'+(val ? (on?'#1d4ed8':'#2f6fed') : '#e6eaf1')+'"'+
       ' style="transform-box:fill-box;transform-origin:center bottom;animation:barUp .45s cubic-bezier(.2,.8,.2,1) both"/>';
     svg += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9.5:11)+'" font-weight="'+(val?700:500)+'" fill="'+(on?'#1d4ed8': (val?'#4b5563':'#a3aab8'))+'">'+(m+1)+(smallW?'':'월')+'</text>';
