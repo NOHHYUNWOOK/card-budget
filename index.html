@@ -84,6 +84,10 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
   background:#f3f5f9;border:1px solid #eaedf3;border-radius:9px;padding:3px 9px;white-space:nowrap}
 .yr-total b{font-size:13.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .yr-total:empty{display:none}
+.yr-total.mile{background:#f7f5ff;border-color:#e5e0fc;color:#5646d6}
+.yr-total.mile .k{font-size:11.5px;color:#7b70c9;font-weight:650}
+.yr-total.mile b{color:#4c3fd6}
+.yr-total.mile small{font-size:11px;font-weight:700;color:#7b70c9;margin-left:1px}
 .annual-filters{display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:8px 16px 0;min-height:0}
 .annual-filters:empty{display:none}
 .annual-filters .lbl{font-size:11.5px;color:var(--muted);font-weight:600;margin-right:1px}
@@ -372,7 +376,7 @@ details.sync-help code{background:#f1f3f8;border-radius:5px;padding:1px 5px;font
   background:#fff;border-radius:20px;width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;
   box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden;animation:pop .18s ease-out;
 }
-.modal.small{max-width:420px}
+.modal.small{max-width:340px}
 @keyframes pop{from{transform:translateY(10px) scale(.985);opacity:.6}to{transform:none;opacity:1}}
 .modal-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .modal-head h2{font-size:16.5px}
@@ -690,16 +694,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 .mile-goal-set:hover{text-decoration:underline}
 .mile-goal-hint{font-size:10.5px;color:var(--muted);font-weight:500}
 .mile-goal .mile-edit input{width:104px}
-/* 최근 적립 내역 — 한 줄에 한 건씩, 5건까지만 */
-.mile-recent{margin-top:7px;padding-top:7px;border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:3px;min-width:0}
-.mile-recent-h{display:flex;align-items:baseline;gap:6px}
-.mile-recent-h .n{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
-.mile-rec{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px;align-items:baseline;
-  font-size:11.5px;font-variant-numeric:tabular-nums;line-height:1.35}
-.mile-rec .d{color:var(--muted);font-weight:600;letter-spacing:-.01em}
-.mile-rec .n{color:var(--ink2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mile-rec .m{font-weight:800;color:#0b8f5e;letter-spacing:-.01em}
-.mile-rec.neg .m{color:#c2410c}
+/* 목표·필요 마일 진행과 함께 쓰는 보조 줄 (최근 적립 내역은 2026-11-22 사용자 요청으로 화면에 표시하지 않음) */
 </style>
 </head>
 <body>
@@ -790,6 +785,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
         <h2>연간 사용액</h2>
         <div class="seg small" id="yearSeg"></div>
         <span class="yr-total" id="annualTotal"></span>
+        <span class="yr-total mile" id="annualMileTotal" title="연간 적립 마일리지 (본인+가족 합산)"></span>
         <span class="hint" id="annualHint"></span>
       </div>
       <div class="annual-filters" id="annualCards"></div>
@@ -1258,22 +1254,7 @@ function renderMileage(){
       foot += '<div class="mile-row mile-fam-row"><span class="mile-k">가족 구성원</span>' +
         '<span class="r mile-fam-names" title="' + esc(txt) + '">' + esc(txt) + '</span></div>';
     }
-    /* 최근 적립 내역 — 최근 5건만 한 줄씩 (없으면 숨김) */
-    const rec = (MILE.recentHistory || []).slice(0, 5);
-    if (rec.length){
-      foot += '<div class="mile-recent">' +
-        '<div class="mile-recent-h"><span class="mile-k">최근 적립 내역</span>' +
-          ((MILE.recentHistory || []).length > rec.length ? '<span class="n">최근 ' + rec.length + '건</span>' : '') +
-        '</div>' +
-        rec.map(r=>{
-          const d = /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? dMD(r.date) : '';
-          return '<div class="mile-rec' + (r.miles < 0 ? ' neg' : '') + '">' +
-            '<span class="d">' + esc(d) + '</span>' +
-            '<span class="n">' + esc(r.desc || '적립') + '</span>' +
-            '<span class="m">' + (r.miles >= 0 ? '+' : '') + fmt(r.miles) + '</span></div>';
-        }).join('') +
-      '</div>';
-    }
+    /* 최근 적립 내역은 화면에 띄우지 않고 데이터만 보관합니다(2026-11-22 요청) */
   }
   box.innerHTML = head + mid + foot;
   if (mileEdit){
@@ -2087,6 +2068,7 @@ function renderAnnualMileage(year){
   const nReal = kind.filter(k=> k === 'real').length, nEst = kind.filter(k=> k === 'est').length;
   const totEl = $('#annualTotal');
   if (totEl) totEl.innerHTML = have.length ? '연간 <b>+' + fmt(total) + ' 마일</b>' : '';
+  const mTot = $('#annualMileTotal'); if (mTot) mTot.innerHTML = '';
   const hint = $('#annualHint');
   if (hint) hint.textContent = have.length ? '본인·가족 합산 · 예상 포함' : (year + '년 마일리지 기록 없음');
   if (!have.length){ el.innerHTML = annualEmptyBox(year + '년 마일리지 기록이 없습니다'); return; }
@@ -2209,6 +2191,15 @@ function renderAnnual(){
   const yearTotal = series[0].vals.reduce((a,b)=> a + b, 0);
   const totEl = $('#annualTotal');
   if (totEl) totEl.innerHTML = rows.length ? '총 <b>' + fmt(yearTotal) + '원</b>' : '';
+  /* 총 사용금액 옆에 그 해 적립 마일리지(본인+가족 합산, 실제 기록 없으면 삼성·우리 예상) */
+  const mTot = $('#annualMileTotal');
+  if (mTot){
+    const mm = mileageMonthly(year);
+    const mSum = mm.vals.reduce((a,v)=> a + (v || 0), 0);
+    mTot.innerHTML = mm.vals.some(v=> v != null)
+      ? '<span class="k">마일리지</span><b>+' + fmt(mSum) + '</b><small>마일</small>' : '';
+    mTot.title = '연간 적립 마일리지 (본인+가족 합산' + (mm.kind.some(k=> k === 'est') ? ' · 예상 포함' : '') + ')';
+  }
 
   /* 카드사 필터 — 이 해 내역이 있는 카드사 + 마일리지 모드 */
   const fc = $('#annualCards');
