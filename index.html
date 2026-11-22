@@ -3950,9 +3950,14 @@ function loadSyncConfig(){
   if (stored) SYNC = Object.assign(SYNC, stored || {});
   else if (DEFAULT_SYNC_URLS.length){ SYNC.urls = DEFAULT_SYNC_URLS.slice(); SYNC.autoOn = false; }
   if (!Array.isArray(SYNC.urls)) SYNC.urls = SYNC.urls ? [SYNC.urls] : [];
+  SYNC.readonly = false;      /* 권한이 고쳐졌을 수 있으니 세션마다 한 번은 다시 써 봅니다 */
 }
 function saveSyncConfig(){
-  try { localStorage.setItem(SYNC_KEY, JSON.stringify(SYNC)); } catch(e){}
+  try {
+    const c = Object.assign({}, SYNC);
+    delete c.readonly;        /* 읽기 전용 여부는 이 화면 세션 안에서만 기억 */
+    localStorage.setItem(SYNC_KEY, JSON.stringify(c));
+  } catch(e){}
 }
 function fmtDateTime(iso){
   const d = iso instanceof Date ? iso : new Date(iso);
