@@ -327,6 +327,10 @@ td.cat{white-space:nowrap}
 .catbtn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .catbtn .car{font-size:9px;color:#a8afbc;flex:none}
 .catbtn.none{color:var(--muted);background:#f8f9fb;border-style:dashed}
+.catbtn.cardbtn{max-width:118px}
+.catchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 0 0}
+.catchips .lbl{font-size:12px;color:var(--muted);font-weight:650;margin-right:2px}
+.capcardhint{margin:6px 0 0;font-size:11.8px;color:var(--ink2);line-height:1.5}
 .table-foot{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap;font-size:13px;color:var(--ink2)}
 .table-foot .spacer{margin-left:auto}
 
@@ -887,7 +891,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="catSheetTitle">
     <div class="sheet-head">
       <div style="min-width:0">
-        <h2 id="catSheetTitle">분류 선택</h2>
+        <h2 id="catSheetTitle">내역 수정</h2>
         <p class="sheet-sub" id="catSheetSub"></p>
       </div>
       <button class="iconbtn" id="catSheetClose" aria-label="닫기">✕</button>
@@ -2606,7 +2610,10 @@ function renderTable(rows, sum){
     const catName = none ? '미분류' : r.category;
     return '<tr data-id="'+r.id+'">'+
       '<td class="date"><span class="date-full">'+esc(r.date)+'</span><span class="date-short">'+dMD(r.date)+'</span></td>'+
-      '<td><span class="cardtag"><span class="dot" style="background:'+cardColor(r.card)+'"></span>'+esc(shortCard(r.card))+'</span></td>'+
+      '<td><button type="button" class="catbtn cardbtn" data-cardedit="'+r.id+'" '+
+        'title="카드사 바꾸기 · 이 거래 삭제" aria-label="'+esc(shortCard(r.card))+' — 카드사 변경">'+
+        '<span class="dot" style="background:'+cardColor(r.card)+'"></span>'+
+        '<span class="nm">'+esc(shortCard(r.card))+'</span><span class="car">▾</span></button></td>'+
       '<td class="merchant"><span class="nm" title="'+esc(r.merchant)+'">'+esc(r.merchant)+'</span>'+
         (r.memo? '<span class="memo" title="'+esc(r.memo)+'">'+esc(r.memo)+'</span>':'')+'</td>'+
       '<td class="cat"><button type="button" class="catbtn'+(none?' none':'')+'" data-catedit="'+r.id+'" '+
@@ -2990,6 +2997,8 @@ $('#table').addEventListener('click', ev=>{
   }
   const b = ev.target.closest('[data-catedit]');
   if (b){ openCatSheet(b.dataset.catedit); return; }
+  const cb = ev.target.closest('[data-cardedit]');
+  if (cb){ openCatSheet(cb.dataset.cardedit); return; }
 });
 
 /* ---------- 거래 한 건의 분류 선택 시트 (선택 · 추가 · 삭제) ---------- */
@@ -3020,7 +3029,7 @@ function renderCatSheet(){
   const list = S.categories.map(c=> c.name);
   if (cur !== '미분류' && list.indexOf(cur) < 0) list.unshift(cur);   // 목록에 없는 분류도 현재 값으로 보이게
   const canDel = S.categories.length > 1;
-  $('#catSheetSub').textContent = row.merchant + ' · ' + fmt(row.amount) + '원 · ' + dMD(row.date);
+  $('#catSheetSub').textContent = row.merchant + ' · ' + fmt(row.amount) + '원 · ' + dMD(row.date) + ' · ' + shortCard(row.card);
   const opts = list.map(n=>{
     const on = n === cur;
     const reg = S.categories.some(c=> c.name === n);
@@ -3042,8 +3051,17 @@ function renderCatSheet(){
         (noneOn ? '<span class="chk" aria-label="지금 분류">✓</span>' : '')+
       '</button></div>';
 
+  const cardList = Array.from(new Set(CARD_ORDER.concat(S.rows.map(r=> r.card).filter(Boolean))));
+  const cardRow = '<div class="sec-title" style="margin-top:8px">카드사</div>'+
+    '<div class="chips catchips">' + cardList.map(c=>{
+      const on = c === row.card;
+      return '<button type="button" class="chip'+(on?' on':'')+'" data-pickcard="'+esc(c)+'" '+
+        'title="'+esc(shortCard(c))+'로 바꾸기">'+
+        '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</button>';
+    }).join('') + '</div>';
   $('#catSheetBody').innerHTML =
-    '<div class="sec-title" style="margin-top:8px">분류 고르기</div>'+
+    cardRow +
+    '<div class="sec-title" style="margin-top:14px">분류 고르기</div>'+
     '<div class="catopts">'+ opts + noneRow +'</div>'+
     (canDel ? '' : '<p class="tiny">분류는 최소 1개가 필요해 지금은 지울 수 없습니다.</p>')+
     '<div class="sec-title">새 분류 추가</div>'+
@@ -3051,7 +3069,44 @@ function renderCatSheet(){
       '<input type="text" id="catSheetName" maxlength="18" placeholder="새 분류 이름 (예: 교육비)" autocomplete="off" enterkeyhint="done">'+
       '<button type="button" class="btn primary" id="catSheetAdd">추가</button>'+
     '</div>'+
-    '<p class="tiny">분류 오른쪽 <b>삭제</b>를 누르면 그 분류가 목록에서 없어집니다. 그 분류를 쓰던 내역은 「기타」로 옮겨지고, 이 브라우저에 저장됩니다.</p>';
+    '<p class="tiny">분류 오른쪽 <b>삭제</b>를 누르면 그 분류가 목록에서 없어집니다. 그 분류를 쓰던 내역은 「기타」로 옮겨지고, 이 브라우저에 저장됩니다.</p>'+
+    '<div class="sec-title" style="margin-top:14px">이 거래</div>'+
+    '<button type="button" class="btn danger" data-rowdel="'+esc(row.id)+'" style="width:100%">이 거래 삭제</button>'+
+    '<p class="tiny">카드사·분류를 바꾸거나 거래를 지우면 다른 기기와도 함께 동기화됩니다.</p>';
+}
+/* 거래 한 건의 카드사를 바꿉니다 — 이 달을 올림 대상으로 표시해 다른 기기와도 맞춥니다 */
+function setRowCard(card){
+  const row = catSheetRow();
+  if (!row || !card) return;
+  const prev = row.card;
+  if (prev === card){ closeCatSheet(); return; }
+  row.card = card;
+  row.edited = true;
+  saveState();
+  renderAll();
+  closeCatSheet();
+  markDirtyMonth(row.month);
+  toast(shortCard(prev || '내 카드') + ' → ' + shortCard(card) + ' 로 바꿨습니다');
+}
+function askDeleteRow(){
+  const row = catSheetRow();
+  if (!row) return;
+  askConfirm('이 거래를 지울까요?',
+    row.merchant + ' · ' + fmt(row.amount) + '원 · ' + dMD(row.date) + ' (' + shortCard(row.card) + ')\n' +
+    '지운 거래는 다른 기기에서도 함께 사라집니다.',
+    '삭제', ()=> deleteRowById(row.id));
+}
+function deleteRowById(id){
+  const i = S.rows.findIndex(r=> r.id === id);
+  if (i < 0) return;
+  const r = S.rows[i];
+  S.rows.splice(i, 1);
+  addTomb(rowKey(r), r.month);   /* 동기화할 때 되살아나지 않도록 삭제로 기록 */
+  saveState();
+  renderAll();
+  closeCatSheet();
+  markDirtyMonth(r.month);
+  toast('내역을 지웠습니다 · ' + (monthLabel(r.month) || '') + '에서도 사라집니다');
 }
 function assignCatToSheetRow(name){
   const row = catSheetRow();
@@ -3070,6 +3125,9 @@ function assignCatToSheetRow(name){
   }
 }
 $('#catSheetBody').addEventListener('click', ev=>{
+  const cd = ev.target.closest('[data-pickcard]');
+  if (cd){ setRowCard(cd.dataset.pickcard); return; }
+  if (ev.target.closest('[data-rowdel]')){ askDeleteRow(); return; }
   if (ev.target.closest('#catSheetAdd')){
     const inp = $('#catSheetName');
     const name = addCategory(inp ? inp.value : '');
@@ -4158,6 +4216,7 @@ function monthPayload(month, remoteJson){
     Object.keys(remoteJson.dueDates).forEach(m=>{ due[m] = Object.assign({}, due[m] || {}, remoteJson.dueDates[m] || {}); });
   }
   return {v:1, month:month, updatedAt:nowIso(), categories:cats, dueDates:due,
+          deleted:(OUTBOX.deleted || []).filter(d=> d.m === month).map(d=> d.k).slice(-200),
           rows: rows.map(rowForStore).concat(extra.map(rowForStore))};
 }
 async function pushMonth(month){
@@ -4391,6 +4450,18 @@ function mergePayload(payload, stats){
       arr.push(r); S.rows.push(r); stats.added++;
     }
   });
+  if (payload && Array.isArray(payload.deleted) && payload.deleted.length){
+    const del = new Set(payload.deleted.map(k=> String(k)));
+    const before = S.rows.length;
+    S.rows = S.rows.filter(r=> !del.has(rowKey(r)));
+    const removed = before - S.rows.length;
+    if (removed){
+      stats.removed = (stats.removed || 0) + removed;
+      if (Array.isArray(F.categories)) F.categories = F.categories.slice();
+    }
+    del.forEach(k=>{ const m = String(k).slice(0, 7); addTomb(k, /^\d{4}-\d{2}$/.test(m) ? m : (payload.month || '')); });
+    saveOutbox();
+  }
   if (payload && Array.isArray(payload.categories)){
     payload.categories.forEach(c=>{ if (c && c.name && !S.categories.some(x=>x.name === c.name)) S.categories.push({name:c.name, color:c.color || '#64748b'}); });
   }
@@ -4429,7 +4500,7 @@ async function runSync(quiet){
     /* 3) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
     monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));
     SYNC.lastSync = nowIso();
-    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (setApplied ? ' · 설정 반영' : '');
+    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (stats.removed ? ' · 삭제 ' + stats.removed + '건' : '') + (setApplied ? ' · 설정 반영' : '');
     saveSyncConfig(); saveState(); renderAll(); scheduleSyncTimer();
     syncing = false;
     setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
@@ -4618,8 +4689,10 @@ function capPrepImage(file){
 
 /* ---------- 프롬프트 ---------- */
 function capPrompt(){
+  const fixed = CAP.card ? shortCard(CAP.card) : '';
   return [
     '너는 한국 카드사 앱·웹의 [이용내역]·[결제예정금액] 화면 캡처 이미지에서 거래를 읽어 JSON으로 정리하는 도우미다.',
+    (fixed ? '※ 이 이미지' + (CAP.files && CAP.files.length > 1 ? '들은 모두' : '는') + ' ' + fixed + ' 카드사 사용내역 화면이다. 모든 거래의 card 는 반드시 "' + fixed + '" 로 채운다. 이미지에 다른 카드사 이름·로고가 보여도 무시한다.' : ''),
     '규칙:',
     '1) 이미지에 실제로 보이는 거래만 추출한다. 보이지 않는 거래를 추측해 만들지 않는다.',
     '2) 합계·소계·총액·잔액·포인트·카드번호·공지·버튼 줄은 거래가 아니므로 제외한다.',
@@ -4627,7 +4700,7 @@ function capPrompt(){
     '   - date: 이용일자(거래일)를 YYYY-MM-DD 로. 연도가 없으면 화면에 보이는 연도를 쓰고, 그것도 없으면 ' + new Date().getFullYear() + '년으로 본다.',
     '   - merchant: 가맹점명(이용가맹점)을 원문 그대로.',
     '   - amount: 청구·이용 금액을 정수(원)로. 취소·환불·마이너스 표시는 음수.',
-    '   - card: 카드사를 알 수 있으면 "삼성"·"KB국민"·"현대"·"우리" 중 하나, 모르면 빈 문자열.',
+    '   - card: ' + (fixed ? '항상 "' + fixed + '".' : '카드사를 알 수 있으면 "삼성"·"KB국민"·"현대"·"우리" 중 하나, 모르면 빈 문자열.'),
     '   - note: 할부 개월, 취소·승인구분 등 비고. 없으면 빈 문자열.',
     '4) 중복 제거: 같은 이미지 안에서, 그리고 여러 장을 함께 볼 때 겹쳐 보이는 같은 거래(날짜·가맹점·금액이 같음)는 반드시 1건만 남긴다. 스크롤이 겹쳐 찍혀 같은 거래가 두 번 보여도 한 번만 넣는다.',
     '5) 응답은 아래 형식의 JSON 객체 하나만. 설명·마크다운·코드블록 없이 JSON만 출력한다.',
@@ -4716,7 +4789,7 @@ function capParseTx(text){
     : (Array.isArray(p.data) ? p.data : [])));
   return arr;
 }
-function capNormalize(raw, fallbackCard){
+function capNormalize(raw, fallbackCard, forceCard){
   if (!raw || typeof raw !== 'object') return null;
   const date = toDateStr(raw.date != null ? raw.date : (raw.이용일자 || raw.날짜 || ''));
   const av = raw.amount != null ? raw.amount : (raw.청구금액 != null ? raw.청구금액 : (raw.금액 != null ? raw.금액 : raw.결제금액));
@@ -4729,7 +4802,8 @@ function capNormalize(raw, fallbackCard){
   else if (/KB|국민/i.test(c)) card = 'KB국민카드';
   else if (/현대/.test(c)) card = '현대카드';
   else if (/우리/.test(c)) card = '우리카드';
-  if (!card) card = fallbackCard || '내 카드';
+  if (forceCard) card = forceCard;
+  else if (!card) card = fallbackCard || '내 카드';
   const note = String(raw.note != null ? raw.note : (raw.비고 || raw.memo || '')).trim().slice(0,60);
   return {date:date, merchant:merchant, amount:Math.round(amount), card:card, note:note};
 }
@@ -4759,7 +4833,12 @@ function capBodyHtml(){
       '<button class="linkbtn" id="capAiSettings">키 변경</button></div>';
   }
   const capCompact = !!(CAP.results.length || CAP.error);
-  h += '<div class="capdrop'+(capCompact?' compact':'')+'" id="capDrop">'+
+  h += '<div class="catchips" id="capCardChips"><span class="lbl">카드사</span>'+
+    '<button type="button" class="chip'+(CAP.card?'':' on')+'" data-capcard="" title="이미지에서 카드사를 알아서 판별">자동</button>'+
+    CARD_ORDER.map(c=> '<button type="button" class="chip'+(CAP.card===c?' on':'')+'" data-capcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 내역으로 올리기">'+esc(shortCard(c))+'</button>').join('')+
+  '</div>'+
+  (CAP.card ? '<p class="capcardhint">'+esc(shortCard(CAP.card))+' 내역으로 고정해 분석합니다.</p>' : '')+
+  '<div class="capdrop'+(capCompact?' compact':'')+'" id="capDrop">'+
     (capCompact
       ? '<div class="capchead"><span>🖼️</span><b>'+CAP.files.length+'장</b><span class="muted">올린 캡처</span>'+
           '<button class="btn" id="capPick">+ 이미지 추가</button>'+
@@ -4771,10 +4850,6 @@ function capBodyHtml(){
     '<input type="file" id="capFiles" accept="image/*" multiple class="hidden">'+
   '</div>'+
   '<div class="capopts">'+
-    '<div class="field"><label>카드사</label><select class="txt" id="capCardSel">'+
-      '<option value=""'+(CAP.card?'':' selected')+'>자동 인식 (이미지에서)</option>'+
-      CARD_ORDER.map(c=>'<option value="'+c+'"'+(CAP.card===c?' selected':'')+'>'+shortCard(c)+'</option>').join('')+
-    '</select></div>'+
     '<div class="field"><label>반영할 결제 월</label><select class="txt" id="capMonthSel">'+
       capMonths().map(m=>'<option value="'+m+'"'+(CAP.month===m?' selected':'')+'>'+monthLabel(m)+'</option>').join('')+
     '</select></div>'+
@@ -4902,6 +4977,12 @@ function capSetField(i, f, v, el){
     r[f] = v;
   }
 }
+function capSetCard(card){
+  CAP.card = card || '';
+  /* 이미 분석한 결과도 고른 카드사로 다시 붙입니다 (카드사 잘못 인식 바로 수정) */
+  if (CAP.card && CAP.results.length) CAP.results.forEach(r=>{ r.card = CAP.card; });
+  capRender();
+}
 async function capRun(){
   if (CAP.busy) return;
   if (!AI_CFG.key){ CAP.error = 'AI API 키가 없습니다. 위 입력칸에 키를 넣고 [저장]을 눌러 주세요.'; capRender(); return; }
@@ -4922,7 +5003,7 @@ async function capRun(){
     CAP.ms = Date.now() - t0;
     CAP.model = res.model || '';
     const arr = capParseTx(res.text);
-    const items = arr.map(x=> capNormalize(x, CAP.card)).filter(Boolean);
+    const items = arr.map(x=> capNormalize(x, CAP.card, CAP.card)).filter(Boolean);
     CAP.results = applyDedupe(items).map(it=> Object.assign(it, {category: autoCategory(it.merchant, it.amount, S.rules) || '기타'}));
     if (!items.length) CAP.error = '이미지에서 거래를 찾지 못했습니다. 사용내역 화면이 잘 보이게 다시 캡처해 주세요.';
   } catch(e){
@@ -4944,7 +5025,7 @@ function capAddSelected(){
     if (!cat) cat = autoCategory(it.merchant, it.amount, S.rules) || '기타';
     if (!S.categories.some(c=> c.name === cat)) S.categories.push({name:cat, color:'#64748b'});
     S.rows.push({
-      id: uid(), month: month, card: it.card || '내 카드', date: it.date,
+      id: uid(), month: month, card: (CAP.card || it.card || '내 카드'), date: it.date,
       merchant: String(it.merchant).trim(), amount: Math.round(+it.amount || 0),
       category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture'
     });
@@ -4974,6 +5055,7 @@ $('#capFoot').addEventListener('click', ev=>{
 $('#capBody').addEventListener('click', ev=>{
   const t = ev.target;
   if (t.closest('#capPick')){ const f = $('#capFiles'); if (f) f.click(); return; }
+  const cc = t.closest('[data-capcard]'); if (cc){ capSetCard(cc.dataset.capcard || ''); return; }
   const dl = t.closest('[data-cap-delfile]'); if (dl){ capRemoveFile(+dl.dataset.capDelfile); return; }
   if (t.closest('#capClearFiles')){ capClearFiles(); return; }
   if (t.closest('#capKeySave')){ capSaveInlineKey(); return; }
