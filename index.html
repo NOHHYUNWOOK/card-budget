@@ -141,15 +141,22 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 /* ---------- per-card monthly limits (top panel) ---------- */
 .limit-box{display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--line2);padding-top:10px}
 .limit-box.hidden{display:none!important}
-.limit-head{display:flex;align-items:baseline;gap:8px}
+.limit-head{display:flex;align-items:baseline;gap:2px 8px;flex-wrap:wrap}
 .limit-head .lbl{font-size:12px;color:var(--muted);font-weight:600}
 .limit-head .hint{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500}
+/* 전체 카드 사용액·남은 한도 요약 */
+.limit-sum{font-size:11.5px;color:var(--ink2);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.limit-sum b{font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.limit-sum b.over{color:var(--danger)}
 .limit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .lim-item{border:1px solid var(--line);background:#fbfcfe;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0;transition:.15s}
 button.lim-item:hover{border-color:#cfd6e4;background:#fff}
 button.lim-item:active{transform:scale(.99)}
-.lim-item .top{display:flex;align-items:center;gap:6px;font-size:12.3px;font-weight:700;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lim-item .top{display:flex;align-items:center;gap:6px;font-size:12.3px;font-weight:700;color:var(--ink2);white-space:nowrap;overflow:hidden}
 .lim-item .top .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.lim-item .top .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lim-item .top .use{margin-left:auto;flex:none;font-size:11px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.lim-item .top .use.zero{font-weight:600;color:var(--muted)}
 .lim-item .rem{font-size:15px;font-weight:750;letter-spacing:-.02em;line-height:1.25;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lim-item .rem small{font-size:11.5px;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
 .lim-item .bar{height:4px;border-radius:3px;background:#e8ebf1;overflow:hidden}
@@ -737,6 +744,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
     <div class="limit-box" id="limitBox">
       <div class="limit-head">
         <span class="lbl">카드별 한도</span>
+        <span class="limit-sum" id="limitSum"></span>
         <span class="hint" id="limitHint"></span>
       </div>
       <div class="limit-grid" id="limitGrid"></div>
@@ -1410,14 +1418,16 @@ function limitContext(){
   return {month:m, spent, latest: F.month === 'all'};
 }
 function limitTileHtml(c, ctx){
-  const nm = '<span class="dot" style="background:'+cardColor(c)+'"></span>' + esc(shortCard(c));
   const lim = limitOf(c);
   const used = ctx.spent.get(c) || 0;
+  const nm = '<span class="dot" style="background:'+cardColor(c)+'"></span>' +
+    '<span class="nm">' + esc(shortCard(c)) + '</span>' +
+    '<span class="use' + (used ? '' : ' zero') + '">' + fmt(used) + '원</span>';
   if (!lim){
     return '<button class="lim-item unset" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 월 한도 설정">'+
       '<span class="top">'+nm+'</span>'+
       '<span class="rem">한도 설정</span>'+
-      '<span class="meta">'+(used ? '사용 '+fmt(used)+'원' : '사용 내역 없음')+'</span>'+
+      '<span class="meta">눌러서 한도 입력</span>'+
       '</button>';
   }
   const rem = lim - used;
@@ -1450,6 +1460,18 @@ function renderLimits(){
   const cards = limitCards();
   box.classList.toggle('hidden', !(S.rows.length && cards.length));
   const ctx = limitContext();
+  /* 제목 옆 요약 — 전체 카드 총 결제예상금액과 전체 남은 한도(한도 설정한 카드 기준) */
+  const sumUse = cards.reduce((a,c)=> a + (ctx.spent.get(c) || 0), 0);
+  const limited = cards.filter(c=> limitOf(c) > 0);
+  const remLim = limited.reduce((a,c)=> a + limitOf(c) - (ctx.spent.get(c) || 0), 0);
+  const sumEl = $('#limitSum');
+  if (sumEl){
+    sumEl.innerHTML = cards.length
+      ? '사용 <b>' + fmt(sumUse) + '원</b>' +
+        (limited.length ? ' · 남은 한도 <b' + (remLim < 0 ? ' class="over"' : '') + '>' +
+          (remLim < 0 ? '−' : '') + fmt(Math.abs(remLim)) + '원</b>' : '')
+      : '';
+  }
   const hint = $('#limitHint');
   if (hint) hint.textContent = ctx.month
     ? ((ctx.latest ? '최근 ' : '') + monthLabel(ctx.month).replace(/^\d{4}년 /, '') + ' 사용액 기준')
