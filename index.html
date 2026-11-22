@@ -80,6 +80,15 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .card-head .hint{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500}
 .tm-chip{font-size:11.5px;font-weight:700;color:#1d4ed8;background:var(--accent-soft);border-radius:999px;padding:3px 9px;white-space:nowrap}
 .tm-chip:empty{display:none}
+.yr-total{display:inline-flex;align-items:baseline;gap:4px;font-size:12px;font-weight:650;color:var(--ink2);
+  background:#f3f5f9;border:1px solid #eaedf3;border-radius:9px;padding:3px 9px;white-space:nowrap}
+.yr-total b{font-size:13.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.yr-total:empty{display:none}
+.annual-filters{display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:8px 16px 0;min-height:0}
+.annual-filters:empty{display:none}
+.annual-filters .lbl{font-size:11.5px;color:var(--muted);font-weight:600;margin-right:1px}
+.annual-filters .chip{padding:2px 8px;font-size:11.5px;min-height:24px;gap:4px}
+.annual-filters .chip .dot{width:7px;height:7px}
 
 /* ---------- summary strip ---------- */
 .sumstrip{padding:13px 16px;display:flex;flex-direction:column;gap:5px}
@@ -675,8 +684,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <div class="card-head">
         <h2>연간 사용액</h2>
         <div class="seg small" id="yearSeg"></div>
+        <span class="yr-total" id="annualTotal"></span>
         <span class="hint" id="annualHint"></span>
       </div>
+      <div class="annual-filters" id="annualCards"></div>
       <div class="chart-body" id="annual"></div>
     </div>
 
@@ -1522,6 +1533,26 @@ function renderAnnual(){
   const peakVal = Math.max.apply(null, series[0].vals);
   const peakIdx = series[0].vals.indexOf(peakVal);
   const scope = (F.cards.length || F.categories.length || F.q) ? '필터 적용 · ' : '';
+  const yearTotal = series[0].vals.reduce((a,b)=> a + b, 0);
+  const totEl = $('#annualTotal');
+  if (totEl) totEl.innerHTML = rows.length ? '총 <b>' + fmt(yearTotal) + '원</b>' : '';
+
+  /* 카드사 필터 — 이 해 내역이 있는 카드사만 (상세 내역과 같은 전역 카드 필터를 씁니다) */
+  const fc = $('#annualCards');
+  if (fc){
+    const yearRows = filteredRows({ignoreCards:true, ignoreMonth:true})
+      .filter(r=> String(r.month||'').slice(0,4) === String(year));
+    const known = Array.from(new Set(yearRows.map(r=> r.card).concat(F.cards))).filter(Boolean);
+    const PREF = ['삼성카드','KB국민카드','현대카드','우리카드'];
+    const rank = c => { const i = PREF.indexOf(c); return i < 0 ? 99 : i; };
+    const list = known.sort((a,b)=> (rank(a) - rank(b)) || String(a).localeCompare(String(b),'ko'));
+    fc.innerHTML = (list.length > 1 || F.cards.length)
+      ? '<span class="lbl">카드사</span>'+
+        '<button class="chip'+(F.cards.length?'':' on')+'" data-annual-card="" title="모든 카드사 보기">전체</button>'+
+        list.map(c=> '<button class="chip'+(F.cards.indexOf(c)>=0?' on':'')+'" data-annual-card="'+esc(c)+'" title="'+esc(c)+'만 보기">'+
+          '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</button>').join('')
+      : '';
+  }
   $('#annualHint').textContent = rows.length
     ? scope + year + '년 · 최고 ' + (peakIdx+1) + '월 ' + fmt(peakVal) + '원'
     : scope + year + '년 내역 없음';
@@ -2073,6 +2104,10 @@ $('#yearSeg').addEventListener('click', ev=>{
   S.ui.year = years[i];
   if (F.month !== 'all' && String(F.month).slice(0,4) !== String(S.ui.year)){ F.month = 'all'; F.monthUser = true; }
   saveState(); renderAll();
+});
+$('#annualCards') && $('#annualCards').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-annual-card]'); if (!b) return;
+  applyCardChip(b.dataset.annualCard || '');
 });
 $('#annual').addEventListener('click', ev=>{
   const all = ev.target.closest('[data-series-all]');
