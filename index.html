@@ -2728,7 +2728,7 @@ function renderTable(rows, sum){
 /* ============================================================
    상세 내역 · 편집 모드 (2026-11-22)
    편집 모드에서는 두 가지를 합니다.
-   1) 행 왼쪽의 ⋮⋮ 핸들을 끌어 위/아래로 옮겨 순서를 바꿉니다.
+   1) 행 왼쪽의 ⠿ 핸들을 끌어 위/아래로 옮겨 순서를 바꿉니다.
       바뀐 순서는 각 행의 order 값으로 기기에 저장되고,
       같은 달 JSON(card-budget-data/data/YYYY-MM.json)에도 함께 올라가 다른 기기에도 그대로 남습니다.
    2) 눌러서 고른 뒤 한 번에 지웁니다. 지운 내역은 deleted 기록과 dirtyMonths 에 남겨
@@ -2852,7 +2852,7 @@ function askDeleteOneRow(id){
 
 /* ============================================================
    드래그로 순서 바꾸기 (2026-11-22)
-   · 편집 모드의 ⋮⋮ 핸들에서만 시작합니다 → 화면 스크롤과 부딪치지 않습니다.
+   · 편집 모드의 ⠿ 핸들에서만 시작합니다 → 화면 스크롤과 부딪치지 않습니다.
    · 끌고 있는 동안에는 행을 DOM 안에서 옮겨 보여 주고, 손을 떼면 그 자리로 order 값을 정합니다.
    · order 는 행(row)에 남고 같은 달 JSON 에도 함께 올라가 다른 기기·새로고침 뒤에도 그대로 유지됩니다.
    ============================================================ */
@@ -2860,7 +2860,7 @@ function hasOrder(r){ return !!r && typeof r.order === 'number' && isFinite(r.or
 function tableViewIds(){ return $$('#tbody tr[data-id]').map(tr=> tr.dataset.id); }
 
 /* 그 달의 순서를 사용자 순서로 확정합니다.
-   아직 order가 없는 행(새로 잡은 캐처·다른 기기에서 온 내역)은 날짜 위치에 끼워 넣고 10·20·30… 으로 다시 매입니다. */
+   아직 order가 없는 행(새로 잡은 캡처·다른 기기에서 온 내역)은 날짜 위치에 끼워 넣고 10·20·30… 으로 다시 매입니다. */
 function materializeMonthOrder(month, force){
   if (!month) return false;
   const rows = S.rows.filter(r=> r.month === month);
@@ -3356,7 +3356,7 @@ $('#table').addEventListener('click', ev=>{
     renderAll();
     return;
   }
-  /* 편집 모드: 행 누름 = 고르기, 🗑 = 한 건 바로 지우기, ⋮⋮ = 끌어서 순서 바꾸기 */
+  /* 편집 모드: 행 누름 = 고르기, 🗑 = 한 건 바로 지우기, ⠿ = 끌어서 순서 바꾸기 */
   if (EDITMODE){
     if (ev.target.closest('[data-grip]')) return;
     if (GRIP_SKIP_CLICK){ GRIP_SKIP_CLICK = false; return; }
@@ -3530,12 +3530,12 @@ $('#tableFoot').addEventListener('click', ev=>{
   if (ev.target.id === 'btnMore'){ S.ui.limit += 20; renderAll(); }
   if (ev.target.id === 'btnResetLimit'){ S.ui.limit = 20; renderAll(); }
 });
-/* ---------- 삭제 모드 ---------- */
+/* ---------- 편집 모드 ---------- */
 $('#btnEditMode').addEventListener('click', ()=> setEditMode(!EDITMODE));
 $('#btnSelDel').addEventListener('click', askDeleteSelected);
 $('#btnSelAll').addEventListener('click', toggleSelectAll);
 $('#btnSelCancel').addEventListener('click', ()=> setEditMode(false));
-/* ⋮⋮ 핸들에서만 드래그를 시작합니다 (터치·마우스 공통) */
+/* ⠿ 핸들에서만 드래그를 시작합니다 (터치·마우스 공통) */
 $('#tbody').addEventListener('pointerdown', startGripDrag);
 document.addEventListener('keydown', ev=>{
   if (ev.key === 'Escape' && EDITMODE && !$('#dialogBackdrop').classList.contains('show')) setEditMode(false);
