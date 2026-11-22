@@ -1205,7 +1205,11 @@ function fbLines(d){
     const c0 = t.cats[0];
     const m0 = t.mers.filter(m=> m.name !== c0.name)[0];
     let s = '<b>'+esc(t.name)+'</b> 1위 '+esc(c0.name)+' <b>'+Math.round(c0.amt/t.used*100)+'%</b>';
-    if (m0 && m0.amt > 0) s += ' · '+esc(m0.name)+' '+m0.n+'건 <b>'+Math.round(m0.amt/t.used*100)+'%</b>';
+    /* 가맹점 하나가 그 분류 전부면 이름을 또 쓰지 않습니다 (줄이 길어지지 않게) */
+    if (m0 && m0.amt > 0 && m0.amt !== c0.amt){
+      const nm = String(m0.name).length > 10 ? String(m0.name).slice(0,10) + '…' : m0.name;
+      s += ' · '+esc(nm)+' '+m0.n+'건 <b>'+Math.round(m0.amt/t.used*100)+'%</b>';
+    }
     out.push({warn:false, html:s});
   }
   /* 3) 다음 달 관리 */
