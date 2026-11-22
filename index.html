@@ -601,29 +601,26 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 }
 
 /* ---------- 대한항공 스카이패스 마일리지 ---------- */
-.mile-card{padding:12px 16px 13px}
-.mile-in{display:flex;align-items:flex-end;gap:8px 16px;flex-wrap:wrap}
-.mile-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mile-card{padding:11px 16px 12px}
+.mile-in{display:flex;flex-direction:column;gap:1px}
+.mile-row{display:flex;align-items:baseline;gap:8px 10px;flex-wrap:wrap}
+.mile-row > .r{margin-left:auto;text-align:right}
 .mile-k{font-size:11.5px;color:var(--muted);font-weight:600}
-.mile-val{border:0;background:transparent;padding:0;display:flex;align-items:baseline;gap:4px;text-align:left;
-  font-size:26px;font-weight:750;letter-spacing:-.03em;line-height:1.12;font-variant-numeric:tabular-nums;color:var(--ink)}
+.mile-rate{font-size:11px;color:var(--muted);font-weight:500}
+.mile-val{border:0;background:transparent;padding:0;display:inline-flex;align-items:baseline;gap:4px;text-align:left;
+  font-size:26px;font-weight:750;letter-spacing:-.03em;line-height:1.14;font-variant-numeric:tabular-nums;color:var(--ink)}
 .mile-val small{font-size:13.5px;font-weight:700;color:var(--ink2);letter-spacing:0}
 .mile-val.pending{font-size:16px;font-weight:700;color:var(--accent);line-height:1.5}
 .mile-val:hover{color:#1d4ed8}
-.mile-sub{font-size:11.5px;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
-.mile-side{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
-.mile-exp{font-size:12.5px;font-weight:650;color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mile-exp{font-size:12px;font-weight:650;color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .mile-exp b{font-weight:750;color:var(--ink)}
-.mile-side .sub{font-size:11px;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.mile-sub,.mile-basis{font-size:11.5px;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
 .mile-edit{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.mile-edit input{width:118px;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:15px;font-weight:700;
+.mile-edit input{width:112px;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:15px;font-weight:700;
   text-align:right;font-variant-numeric:tabular-nums;outline:none;background:#fafbfd}
 .mile-edit input:focus{border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
 .mile-edit .unit{font-size:12px;color:var(--muted);font-weight:600;margin-left:-2px}
 .mile-edit .btn.sm{padding:5px 10px;font-size:12.5px;border-radius:9px}
-@media (max-width:430px){
-  .mile-side{margin-left:0;align-items:flex-start;text-align:left}
-}
 </style>
 </head>
 <body>
@@ -1020,28 +1017,30 @@ function renderMileage(){
   const box = $('#mileIn');
   if (!box) return;
   const exp = mileageExpected();
-  const when = MILE.updatedAt ? fmtDateTime(MILE.updatedAt) + ' 기준'
-    : (MILE.skypass != null ? '직접 입력' : '눌러서 입력');
-  let side = '';
-  if (exp){
-    const lab = exp.month === AUTO_MONTH ? '이번 달 예상' : monthLabel(exp.month).replace(/^\d{4}년 /, '') + ' 예상';
-    side = '<span class="mile-exp">' + esc(lab) + ' <b>+' + fmt(exp.miles) + '마일</b></span>' +
-           '<span class="sub">삼성·우리 ' + fmt(exp.spent) + '원 · 1,000원당 1마일</span>';
-  }
-  const main = mileEdit
-    ? '<div class="mile-edit">' +
+  const has = MILE.skypass != null;
+  const when = MILE.updatedAt ? fmtDateTime(MILE.updatedAt) + ' 기준' : (has ? '직접 입력' : '눌러서 입력');
+  const rate = exp ? '<span class="r mile-rate">1,000원당 1마일</span>' : '';
+  const lab = exp ? (exp.month === AUTO_MONTH ? '이번 달 예상' : monthLabel(exp.month).replace(/^\d{4}년 /, '') + ' 예상') : '';
+  let head = '<div class="mile-row"><span class="mile-k">대한항공 마일리지</span>' + rate + '</div>';
+  let mid, foot = '';
+  if (mileEdit){
+    mid = '<div class="mile-row"><div class="mile-edit">' +
         '<input id="mileInput" type="text" inputmode="numeric" autocomplete="off" value="' +
-          (MILE.skypass != null ? fmt(MILE.skypass) : '') + '" placeholder="보유 마일" aria-label="보유 마일리지">' +
+          (has ? fmt(MILE.skypass) : '') + '" placeholder="보유 마일" aria-label="보유 마일리지">' +
         '<span class="unit">마일</span>' +
         '<button class="btn primary sm" data-mileact="save">저장</button>' +
         '<button class="btn ghost sm" data-mileact="cancel">취소</button>' +
-      '</div>'
-    : (MILE.skypass != null
-        ? '<button class="mile-val" id="mileVal" title="눌러서 보유 마일리지 입력">' + fmt(MILE.skypass) + '<small>마일</small></button>'
-        : '<button class="mile-val pending" id="mileVal" title="눌러서 보유 마일리지 입력">연동 대기</button>') +
-      '<span class="mile-sub">' + esc(when) + (MILE.note ? ' · ' + esc(MILE.note) : '') + '</span>';
-  box.innerHTML = '<div class="mile-main"><span class="mile-k">대한항공 마일리지</span>' + main + '</div>' +
-    '<div class="mile-side">' + side + '</div>';
+      '</div></div>';
+  } else {
+    const val = has
+      ? '<button class="mile-val" id="mileVal" title="눌러서 보유 마일리지 입력">' + fmt(MILE.skypass) + '<small>마일</small></button>'
+      : '<button class="mile-val pending" id="mileVal" title="눌러서 보유 마일리지 입력">연동 대기</button>';
+    mid = '<div class="mile-row">' + val +
+      (exp ? '<span class="r mile-exp">' + esc(lab) + ' <b>+' + fmt(exp.miles) + '마일</b></span>' : '') + '</div>';
+    foot = '<div class="mile-row"><span class="mile-sub">' + esc(when) + (MILE.note ? ' · ' + esc(MILE.note) : '') + '</span>' +
+      (exp ? '<span class="r mile-basis">삼성·우리 ' + fmt(exp.spent) + '원</span>' : '') + '</div>';
+  }
+  box.innerHTML = head + mid + foot;
   if (mileEdit){
     const i = $('#mileInput');
     if (i){ i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){} }
@@ -3597,7 +3596,7 @@ function syncTabHtml(){
   '<div class="field">'+
     '<label>데이터 주소 (한 줄에 하나)</label>'+
     '<textarea id="syncUrls" rows="3" placeholder="https://api.github.com/repos/USER/card-budget-data/contents/data"></textarea>'+
-    '<p class="tiny">· GitHub API 폴더 주소를 넣으면 그 안의 <code>.json</code>을 모두 읽습니다 (예: 2026-11.json, 2026-12.json, rules.json, mileage.json).<br>· 공개된 JSON 주소(예: raw.githubusercontent.com)라면 토큰 없이도 됩니다.</p>'+'
+    '<p class="tiny">· GitHub API 폴더 주소를 넣으면 그 안의 <code>.json</code>을 모두 읽습니다 (예: 2026-11.json, 2026-12.json, rules.json, mileage.json).<br>· 공개된 JSON 주소(예: raw.githubusercontent.com)라면 토큰 없이도 됩니다.</p>'+
   '</div>'+
   '<div class="field">'+
     '<label>GitHub 읽기 토큰 (비공개 저장소일 때만)</label>'+
