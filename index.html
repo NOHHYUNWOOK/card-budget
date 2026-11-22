@@ -2159,9 +2159,9 @@ function renderAnnualMileage(year){
   }
   svg += '</svg>';
 
-  const legend = '<div class="aline-legend"><span class="lbl">본인·가족 합산</span>'+
-    '<span class="aline-chip"><i class="bar" style="--c:#6d5efc"></i><span class="nm">실제 '+nReal+'달</span></span>'+
-    '<span class="aline-chip"><i class="dot" style="--c:#c2bcfd"></i><span class="nm">예상 '+nEst+'달</span></span>'+
+  const legend = '<div class="aline-legend">'+
+    (nReal ? '<span class="aline-chip"><i class="bar" style="--c:#6d5efc"></i><span class="nm">실제 '+nReal+'달</span></span>' : '')+
+    (nEst ? '<span class="aline-chip"><i class="dot" style="--c:#c2bcfd"></i><span class="nm">예상 '+nEst+'달</span></span>' : '')+
     (nEst ? '<span class="lbl" style="font-weight:500">예상 = 삼성·우리 사용액 ÷ 1,000</span>' : '')+'</div>';
 
   let readout;
