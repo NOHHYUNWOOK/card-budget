@@ -3669,6 +3669,7 @@ function bindDataTab(){
       if (left > 0){ counts.set(k, left - 1); return; }  // 이미 있는 같은 건이면 건너뜀
       S.rows.push(r); added++;
       if (r.month) touched.add(r.month);
+      clearTomb(rowKey(r));
     });
     S.mode = 'mine';
     migrateCategoryNames();
@@ -4144,6 +4145,13 @@ function addTomb(k, month){
   if ((OUTBOX.deleted || []).some(d=> d.k === k)) return;
   OUTBOX.deleted.push({k:k, m:month || '', at:nowIso()});
 }
+/* 같은 거래를 다시 넣었을 때는 삭제 기록을 풀어 다시 살립니다 */
+function clearTomb(k){
+  if (!k || !(OUTBOX.deleted || []).length) return;
+  const n = OUTBOX.deleted.length;
+  OUTBOX.deleted = OUTBOX.deleted.filter(d=> d.k !== k);
+  if (OUTBOX.deleted.length !== n) saveOutbox();
+}
 function monthPath(g, month){ return (g.dir ? g.dir + '/' : '') + month + '.json'; }
 function settingsPath(g){ return (g.dir ? g.dir + '/' : '') + 'settings.json'; }
 
@@ -4193,7 +4201,8 @@ function rowForStore(r){
 function monthPayload(month, remoteJson){
   const rows = S.rows.filter(r=> r.month === month);
   const counts = new Map();
-  rows.forEach(r=>{ const k = rowKey(r); counts.set(k, (counts.get(k) || 0) + 1); });
+  const currentKeys = new Set();
+  rows.forEach(r=>{ const k = rowKey(r); currentKeys.add(k); counts.set(k, (counts.get(k) || 0) + 1); });
   const tombs = tombSet();
   const extra = [];
   const remoteRows = (remoteJson && Array.isArray(remoteJson.rows)) ? remoteJson.rows : [];
@@ -4216,7 +4225,7 @@ function monthPayload(month, remoteJson){
     Object.keys(remoteJson.dueDates).forEach(m=>{ due[m] = Object.assign({}, due[m] || {}, remoteJson.dueDates[m] || {}); });
   }
   return {v:1, month:month, updatedAt:nowIso(), categories:cats, dueDates:due,
-          deleted:(OUTBOX.deleted || []).filter(d=> d.m === month).map(d=> d.k).slice(-200),
+          deleted:(OUTBOX.deleted || []).filter(d=> d.m === month && !currentKeys.has(d.k)).map(d=> d.k).slice(-200),
           rows: rows.map(rowForStore).concat(extra.map(rowForStore))};
 }
 async function pushMonth(month){
@@ -5024,11 +5033,13 @@ function capAddSelected(){
     let cat = String(it.category||'').trim();
     if (!cat) cat = autoCategory(it.merchant, it.amount, S.rules) || '기타';
     if (!S.categories.some(c=> c.name === cat)) S.categories.push({name:cat, color:'#64748b'});
-    S.rows.push({
+    const row = {
       id: uid(), month: month, card: (CAP.card || it.card || '내 카드'), date: it.date,
       merchant: String(it.merchant).trim(), amount: Math.round(+it.amount || 0),
       category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture'
-    });
+    };
+    S.rows.push(row);
+    clearTomb(rowKey(row));   /* 같은 거래를 일부러 다시 넣었으면 삭제 기록을 풉니다 */
     added++;
   });
   const dupN = CAP.results.filter(r=>r.dup && !r.on).length;
