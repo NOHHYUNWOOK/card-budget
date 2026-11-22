@@ -4236,7 +4236,12 @@ async function pushMonth(month){
     const payload = monthPayload(month, remote && remote.json);
     const r = await ghPutFileObj(path, payload, remote && remote.sha,
       '웹앱에서 ' + month + ' 변경 반영 (' + payload.rows.length + '건)');
-    if (r.ok){ rememberMonthKeys(month); return payload; }
+    if (r.ok){
+      rememberMonthKeys(month);
+      S.rows.forEach(x=>{ if (x.month === month && x.src) delete x.src; });   /* 올라간 캐프처 표시는 지움 */
+      saveState();
+      return payload;
+    }
     if (r.conflict && attempt === 0){ remote = await ghGetFileObj(path); continue; }   /* 최신 GET 후 1회 재시도 */
     const err = new Error(r.message || ('HTTP ' + r.status));
     err.status = r.status; err.readonly = !!r.readonly;
@@ -4508,6 +4513,25 @@ async function runSync(quiet){
     }
     /* 3) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
     monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));
+    /* 4) 이 기기에서 캡처로 넣어 둔 내역이 저장소에 아직 없으면 함께 올립니다
+       (업그레이드 전에 넣어 둔 캡처분이 이 기기에만 남지 않도록) */
+    let catchup = 0;
+    const remoteKeys = new Map();
+    payloads.forEach(p=>{
+      if (!p || !/^\d{4}-\d{2}$/.test(p.month || '') || !Array.isArray(p.rows)) return;
+      const set = new Set();
+      p.rows.forEach(raw=>{ const n = normalizeRow(raw); if (n) set.add(rowKey(n)); });
+      remoteKeys.set(p.month, set);
+    });
+    monthsIn(S.rows).forEach(m=>{
+      const set = remoteKeys.get(m);
+      if (!set || OUTBOX.months[m]) return;
+      if (S.rows.some(r=> r.month === m && r.src === 'capture' && !set.has(rowKey(r)))){
+        OUTBOX.months[m] = nowIso();
+        catchup++;
+      }
+    });
+    if (catchup){ saveOutbox(); scheduleFlush(1500); }
     SYNC.lastSync = nowIso();
     SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (stats.removed ? ' · 삭제 ' + stats.removed + '건' : '') + (setApplied ? ' · 설정 반영' : '');
     saveSyncConfig(); saveState(); renderAll(); scheduleSyncTimer();
