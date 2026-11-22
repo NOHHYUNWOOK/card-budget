@@ -958,9 +958,9 @@ const AUTO_MONTH = billingMonthFor();   // 페이지를 열 때의 기본 결제
 const cardColor = c => CARD_COLORS[c] || '#64748b';
 
 let toastTimer = null;
-function toast(msg){
+function toast(msg, ms){
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), ms || 2400);
 }
 
 /* ---------- state ---------- */
@@ -2740,12 +2740,14 @@ $('#limitGrid').addEventListener('click', ev=>{
     if (a === 'cancel'){ limitEdit = null; renderLimits(); return; }
     if (a === 'clear'){
       LIMITS[card] = 0; saveLimits(); limitEdit = null; renderAll();
+      markSettingsDirty();
       toast(shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
     if (a === 'save'){
       const v = parseLimit($('#limInput') ? $('#limInput').value : '');
       LIMITS[card] = v; saveLimits(); limitEdit = null; renderAll();
+      markSettingsDirty();
       toast(v ? shortCard(card) + ' 월 한도 ' + won(v) : shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
@@ -2781,6 +2783,7 @@ $('#mileCard').addEventListener('click', ev=>{
       const gv = d ? Math.min(9999999, Math.round(Number(d))) : 0;
       MILE.goal = gv;
       mileageSave(); mileGoalEdit = false; renderMileage();
+      markSettingsDirty();
       toast(gv ? '목표 마일리지를 ' + fmt(gv) + '마일로 저장했습니다' : '목표 마일리지를 꽂습니다');
       return;
     }
@@ -2928,13 +2931,16 @@ function askDeleteCategory(name, after){
 }
 function deleteCategory(name, target){
   let moved = 0;
-  S.rows.forEach(r=>{ if (r.category === name){ r.category = target; r.edited = true; moved++; } });
+  const touched = new Set();
+  S.rows.forEach(r=>{ if (r.category === name){ r.category = target; r.edited = true; moved++; touched.add(r.month); } });
   S.rules.forEach(rule=>{ if (rule.category === name) rule.category = target; });
   S.categories = S.categories.filter(c=> c.name !== name);
   const off = annualOffList(); const oi = off.indexOf(name); if (oi >= 0) off.splice(oi,1);
   F.categories = F.categories.filter(n=> n !== name);
   saveState();
   renderAll();
+  touched.forEach(m=> markDirtyMonth(m));
+  markSettingsDirty();
   toast('「' + name + '」 분류를 지웠습니다' + (moved ? ' · 내역 ' + fmt(moved) + '건은 「' + target + '」로' : ''));
 }
 $('#activeBar').addEventListener('click', ev=>{
@@ -3054,6 +3060,7 @@ function assignCatToSheetRow(name){
   row.category = name;
   row.edited = true;
   saveState();
+  markDirtyMonth(row.month);
   renderAll();
   closeCatSheet();
   if (name === '미분류'){
@@ -3156,6 +3163,7 @@ function addCategory(rawName){
   const color = CAT_PALETTE.find(c=> !used.has(c)) || CAT_PALETTE[S.categories.length % CAT_PALETTE.length];
   S.categories.push({name, color});
   saveState();
+  markSettingsDirty();
   return name;
 }
 
@@ -3321,9 +3329,12 @@ function saveCategories(){
   });
   const valid = new Set(names);
   let moved = 0;
+  const touched = new Set();
   S.rows.forEach(r=>{
+    const before = r.category;
     if (rename.has(r.category)) r.category = rename.get(r.category);
     if (!valid.has(r.category)){ r.category = names[0]; moved++; }
+    if (r.category !== before){ r.edited = true; touched.add(r.month); }
   });
   S.rules.forEach(rule=>{
     if (rename.has(rule.category)) rule.category = rename.get(rule.category);
@@ -3334,6 +3345,8 @@ function saveCategories(){
   F.categories = F.categories.map(n=> rename.get(n) || n).filter(n=> valid.has(n));
   saveState(); renderAll();
   toast('분류를 저장했습니다' + (moved ? ' (' + moved + '건 이동)' : ''));
+  touched.forEach(m=> markDirtyMonth(m));
+  markSettingsDirty();
   draft = {cats: clone(S.categories).map(c=>({...c, _orig:c.name})), rules: clone(S.rules), deleted: []};
   renderModal();
 }
@@ -3393,17 +3406,21 @@ function bindRuleTab(){
   $('#btnSaveRules').addEventListener('click', ()=>{
     S.rules = clone(draft.rules);
     saveState();
+    markSettingsDirty();
     toast('자동 분류 규칙 ' + S.rules.length + '개를 저장했습니다');
   });
   $('#btnApplyRules2').addEventListener('click', ()=>{
     const ow = $('#ruleOverwrite') && $('#ruleOverwrite').checked;
     S.rules = clone(draft.rules);
     let n = 0;
+    const touched = new Set();
     S.rows.forEach(r=>{
       const c = autoCategory(r.merchant, r.amount, S.rules);
-      if (c && c !== r.category && (ow || !r.category || r.category === '미분류')){ r.category = c; n++; }
+      if (c && c !== r.category && (ow || !r.category || r.category === '미분류')){ r.category = c; r.edited = true; n++; touched.add(r.month); }
     });
     saveState(); renderAll();
+    touched.forEach(m=> markDirtyMonth(m));
+    markSettingsDirty();
     toast(n ? n + '건을 규칙으로 다시 분류했습니다' : '바뀐 내역이 없습니다 (덮어쓰기를 켜보세요)');
   });
 }
@@ -3587,15 +3604,18 @@ function bindDataTab(){
     const counts = new Map();
     S.rows.forEach(r=>{ const k = rowKey(r); counts.set(k, (counts.get(k) || 0) + 1); });
     let added = 0;
+    const touched = new Set();
     p.rows.forEach(r=>{
       const k = rowKey(r);
       const left = counts.get(k) || 0;
       if (left > 0){ counts.set(k, left - 1); return; }  // 이미 있는 같은 건이면 건너뜀
       S.rows.push(r); added++;
+      if (r.month) touched.add(r.month);
     });
     S.mode = 'mine';
     migrateCategoryNames();
     saveState(); renderAll(); pendingImport = null; closeModal();
+    touched.forEach(m=> markDirtyMonth(m));
     toast(added + '건을 추가했습니다' + (p.rows.length - added ? ' (' + (p.rows.length-added) + '건은 중복)' : ''));
   });
   b('btnImportCancel', ()=>{ pendingImport = null; renderModal(); });
@@ -3943,12 +3963,16 @@ function fmtDateTime(iso){
 function updateSyncLabel(state, msg){
   const dot = $('#syncDot'), info = $('#syncInfo');
   if (!dot || !info) return;
+  if (syncing && !state) return;            /* 동기화 중 문구를 덮어쓰지 않습니다 */
   dot.className = 'dot' + (state ? ' ' + state : (SYNC.urls.length ? ' on' : ''));
   let text;
+  const pend = pendingCount();
+  const pendTxt = pend ? ' · 올릴 변경 <b>' + pend + '건</b>' : '';
   if (state === 'busy') text = '동기화 중…';
   else if (state === 'err') text = '동기화 실패 · ' + (msg || '주소·토큰 확인');
-  else if (SYNC.lastSync) text = '마지막 동기화 <b>' + fmtDateTime(SYNC.lastSync) + '</b>' + (SYNC.lastMsg ? ' · ' + SYNC.lastMsg : '');
-  else if (SYNC.urls.length) text = '아직 동기화 안 됨 · 주소는 저장돼 있습니다';
+  else if (SYNC.readonly) text = '읽기 전용 토큰 · 이 기기에만 저장';
+  else if (SYNC.lastSync) text = '마지막 동기화 <b>' + fmtDateTime(SYNC.lastSync) + '</b>' + (SYNC.lastMsg ? ' · ' + SYNC.lastMsg : '') + pendTxt;
+  else if (SYNC.urls.length) text = '아직 동기화 안 됨 · 주소는 저장돼 있습니다' + pendTxt;
   else text = '자동 동기화 꺼짐';
   info.innerHTML = text;
 }
@@ -3976,6 +4000,312 @@ async function ghFetch(url, token, raw){
   }
   return raw ? res.text() : res.json();
 }
+
+/* ------------------------------------------------------------
+   GitHub 양방향 동기화 (2026-11-22)
+   · 이 기기에서 바꾼 것(캡처 추가·분류 변경·카드 한도·목표 마일리지·커스텀 분류/규칙)을
+     비공개 저장소의 data/YYYY-MM.json · data/settings.json 으로 올립니다.
+   · 올리기 전에 항상 최신 원격을 GET 해 sha 를 확인하고 병합 → 원격에만 있는 내역을 지우지 않음.
+   · 409 Conflict 면 최신 GET 후 1회 재시도.
+   · 읽기 전용 토큰(403)이면 이 기기 저장만 유지하고 한 번만 안내.
+   ------------------------------------------------------------ */
+const OUTBOX_KEY = LS_KEY + '.outbox';
+const PUSHED_KEY = LS_KEY + '.pushed';
+const GH_API = 'https://api.github.com/repos/';
+const READONLY_MSG = '읽기 전용 토큰이라 이 기기에만 저장됐습니다 (다른 기기와 공유하려면 토큰 Contents 권한을 Read and write로 변경)';
+let OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[]};
+let PUSHED = {};                    /* {'YYYY-MM': [rowKey…]} 마지막으로 저장소와 맞춘 시점의 키 */
+let RULES_AT = null;                /* data/rules.json 이 마지막으로 들어온 시각 — settings.json 과 비교용 */
+let outboxTimer = null, pushQueue = Promise.resolve();
+let READONLY_NOTICED = false;
+
+function nowIso(){ return new Date().toISOString(); }
+function ghParse(){
+  for (const u of (SYNC.urls || [])){
+    const m = /^https:\/\/api\.github\.com\/repos\/([^\/]+)\/([^\/]+)\/contents\/?(.*)$/.exec(String(u).trim());
+    if (!m) continue;
+    return {owner:m[1], repo:m[2], dir:String(m[3] || '').replace(/^\/+|\/+$/g, '')};
+  }
+  return null;
+}
+function ghHeaders(){
+  const h = {'Accept':'application/vnd.github+json'};
+  if (SYNC.token) h['Authorization'] = 'Bearer ' + SYNC.token;
+  return h;
+}
+function ghFileUrl(g, path){
+  const p = String(path || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+  return GH_API + g.owner + '/' + g.repo + '/contents/' + p;
+}
+function b64encodeUtf8(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  return btoa(bin);
+}
+function loadOutbox(){
+  OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[]};
+  try {
+    const p = JSON.parse(localStorage.getItem(OUTBOX_KEY) || 'null');
+    if (p && typeof p === 'object'){
+      if (p.months && typeof p.months === 'object') Object.keys(p.months).forEach(m=>{ if (/^\d{4}-\d{2}$/.test(m)) OUTBOX.months[m] = p.months[m] || nowIso(); });
+      OUTBOX.settings = !!p.settings;
+      OUTBOX.settingsAt = p.settingsAt || null;
+      if (Array.isArray(p.deleted)) OUTBOX.deleted = p.deleted.filter(d=> d && d.k).slice(-200);
+    }
+  } catch(e){}
+  PUSHED = {};
+  try {
+    const q = JSON.parse(localStorage.getItem(PUSHED_KEY) || 'null');
+    if (q && typeof q === 'object') Object.keys(q).forEach(m=>{ if (Array.isArray(q[m])) PUSHED[m] = q[m].slice(); });
+  } catch(e){}
+}
+function saveOutbox(){
+  pruneOutbox();
+  try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(OUTBOX)); } catch(e){}
+}
+function savePushed(){
+  const keys = Object.keys(PUSHED).sort();
+  while (keys.length > 6) delete PUSHED[keys.shift()];
+  try { localStorage.setItem(PUSHED_KEY, JSON.stringify(PUSHED)); } catch(e){}
+}
+function pruneOutbox(){
+  const cut = Date.now() - 60 * 86400000;
+  OUTBOX.deleted = (OUTBOX.deleted || []).filter(d=>{ const t = Date.parse(d.at || ''); return !(t && t < cut); }).slice(-200);
+}
+function pendingCount(){ return Object.keys(OUTBOX.months || {}).length + (OUTBOX.settings ? 1 : 0); }
+function tombSet(){ const s = new Set(); (OUTBOX.deleted || []).forEach(d=> s.add(d.k)); return s; }
+function addTomb(k, month){
+  if (!k) return;
+  if ((OUTBOX.deleted || []).some(d=> d.k === k)) return;
+  OUTBOX.deleted.push({k:k, m:month || '', at:nowIso()});
+}
+function monthPath(g, month){ return (g.dir ? g.dir + '/' : '') + month + '.json'; }
+function settingsPath(g){ return (g.dir ? g.dir + '/' : '') + 'settings.json'; }
+
+/* 원격 파일 읽기 — 없으면(404) null, 그 밖의 오류는 던집니다 */
+async function ghGetFileObj(path){
+  const g = ghParse(); if (!g) return null;
+  const url = ghFileUrl(g, path) + '?ts=' + Date.now();
+  const res = await fetch(url, {cache:'no-store', headers:ghHeaders()});
+  if (res.status === 404) return null;
+  if (!res.ok){
+    const err = new Error('HTTP ' + res.status); err.status = res.status; throw err;
+  }
+  const j = await res.json();
+  if (!j || j.content == null) return null;
+  const text = b64utf8(j.content);
+  let json = null;
+  try { json = JSON.parse(text); } catch(e){ json = null; }
+  return {sha:j.sha, json:json, text:text};
+}
+/* 원격 파일 쓰기 — sha 를 함께 보내 덮어쓰기 사고를 막습니다. 409/422 는 conflict 로 돌려줍니다 */
+async function ghPutFileObj(path, obj, sha, message){
+  const g = ghParse(); if (!g) return {ok:false, status:0, message:'저장소 주소가 없습니다'};
+  const body = {message: message || ('update ' + path), content: b64encodeUtf8(JSON.stringify(obj, null, 1))};
+  if (sha) body.sha = sha;
+  const res = await fetch(ghFileUrl(g, path), {
+    method:'PUT', cache:'no-store',
+    headers: Object.assign(ghHeaders(), {'Content-Type':'application/json'}),
+    body: JSON.stringify(body)
+  });
+  const txt = await res.text();
+  let j = null; try { j = JSON.parse(txt); } catch(e){}
+  const msg = (j && j.message) || ('HTTP ' + res.status);
+  if (!res.ok){
+    const conflict = res.status === 409 || (res.status === 422 && /sha/i.test(msg));
+    const readonly = res.status === 403 && /not accessible|read[- ]?only|permission/i.test(msg);
+    return {ok:false, status:res.status, conflict:conflict, readonly:readonly, message:msg};
+  }
+  return {ok:true, status:res.status, json:j};
+}
+/* 저장소에 넣을 행 모양 — 화면 전용 필드(id·편집표시·캡처출처)는 뺍니다 */
+function rowForStore(r){
+  return {month:r.month, card:r.card, date:r.date, merchant:String(r.merchant || '').trim(),
+          amount:Math.round(+r.amount || 0), category:r.category || '', memo:r.memo || '',
+          cardName:r.cardName || '', payType:r.payType || ''};
+}
+/* 이 달의 업로드 내용 — 로컬 행 + (원격에만 있는 행) 을 합칩니다. 삭제한 행은 되살리지 않습니다 */
+function monthPayload(month, remoteJson){
+  const rows = S.rows.filter(r=> r.month === month);
+  const counts = new Map();
+  rows.forEach(r=>{ const k = rowKey(r); counts.set(k, (counts.get(k) || 0) + 1); });
+  const tombs = tombSet();
+  const extra = [];
+  const remoteRows = (remoteJson && Array.isArray(remoteJson.rows)) ? remoteJson.rows : [];
+  remoteRows.forEach(raw=>{
+    const nr = normalizeRow(raw);
+    if (!nr) return;
+    const k = rowKey(nr);
+    const n = counts.get(k) || 0;
+    if (n > 0){ counts.set(k, n - 1); return; }        /* 이 기기에도 있는 건은 이 기기 값이 우선 */
+    if (tombs.has(k)) return;                          /* 지운 건은 되살리지 않음 */
+    extra.push(nr);
+  });
+  /* 분류·결제일도 함께 — 원격 값을 잃지 않게 합칩니다 */
+  const cats = S.categories.map(c=>({name:c.name, color:c.color || '#64748b'}));
+  const rCats = (remoteJson && Array.isArray(remoteJson.categories)) ? remoteJson.categories : [];
+  rCats.forEach(c=>{ if (c && c.name && !cats.some(x=> x.name === c.name)) cats.push({name:c.name, color:c.color || '#64748b'}); });
+  const due = {};
+  Object.keys(S.dueDates || {}).forEach(m=>{ due[m] = Object.assign({}, S.dueDates[m]); });
+  if (remoteJson && remoteJson.dueDates && typeof remoteJson.dueDates === 'object'){
+    Object.keys(remoteJson.dueDates).forEach(m=>{ due[m] = Object.assign({}, due[m] || {}, remoteJson.dueDates[m] || {}); });
+  }
+  return {v:1, month:month, updatedAt:nowIso(), categories:cats, dueDates:due,
+          rows: rows.map(rowForStore).concat(extra.map(rowForStore))};
+}
+async function pushMonth(month){
+  const g = ghParse(); if (!g) throw new Error('저장소 주소가 없습니다');
+  const path = monthPath(g, month);
+  let remote = await ghGetFileObj(path);
+  for (let attempt = 0; attempt < 2; attempt++){
+    const payload = monthPayload(month, remote && remote.json);
+    const r = await ghPutFileObj(path, payload, remote && remote.sha,
+      '웹앱에서 ' + month + ' 변경 반영 (' + payload.rows.length + '건)');
+    if (r.ok){ rememberMonthKeys(month); return payload; }
+    if (r.conflict && attempt === 0){ remote = await ghGetFileObj(path); continue; }   /* 최신 GET 후 1회 재시도 */
+    const err = new Error(r.message || ('HTTP ' + r.status));
+    err.status = r.status; err.readonly = !!r.readonly;
+    throw err;
+  }
+}
+function settingsSnapshot(){
+  const colors = {}, cats = [];
+  S.categories.forEach(c=>{ cats.push(c.name); if (c.color) colors[c.name] = c.color; });
+  const snap = {v:1, limits:Object.assign({}, LIMITS), mileageGoal:(MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT),
+                cats:cats, colors:colors, rules:S.rules, dueDates:S.dueDates,
+                updatedAt: OUTBOX.settingsAt || nowIso()};
+  OUTBOX.settingsAt = snap.updatedAt;
+  return snap;
+}
+async function pushSettings(){
+  const g = ghParse(); if (!g) throw new Error('저장소 주소가 없습니다');
+  const path = settingsPath(g);
+  let remote = await ghGetFileObj(path);
+  for (let attempt = 0; attempt < 2; attempt++){
+    const snap = settingsSnapshot();
+    if (remote && remote.json && remote.json.updatedAt && Date.parse(remote.json.updatedAt) > Date.parse(snap.updatedAt)){
+      /* 원격이 더 최신이면 그쪽을 받아들입니다 */
+      applyRemoteSettings(remote.json);
+      return remote.json;
+    }
+    const r = await ghPutFileObj(path, snap, remote && remote.sha, '웹앱 설정(한도·목표·분류) 반영');
+    if (r.ok) return snap;
+    if (r.conflict && attempt === 0){ remote = await ghGetFileObj(path); continue; }
+    const err = new Error(r.message || ('HTTP ' + r.status));
+    err.status = r.status; err.readonly = !!r.readonly;
+    throw err;
+  }
+}
+/* 원격 settings.json 이 더 최신이면 이 기기에 반영합니다 */
+function applyRemoteSettings(p){
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return '';
+  const remoteAt = p.updatedAt ? Date.parse(p.updatedAt) : 0;
+  const localAt = OUTBOX.settingsAt ? Date.parse(OUTBOX.settingsAt) : 0;
+  if (!remoteAt) return '';
+  if (localAt && remoteAt <= localAt) return '';          /* 이 기기가 더 최신 — 올릴 차례 */
+  let changed = 0;
+  if (p.limits && typeof p.limits === 'object' && !Array.isArray(p.limits)){
+    const next = Object.assign({}, LIMITS);   /* 이 기기에만 있던 값은 남기고 원격 값으로 덮어씀 */
+    Object.keys(p.limits).forEach(c=>{ const v = Math.round(+p.limits[c]); if (v >= 0) next[c] = v; });
+    LIMITS = next; saveLimits(); changed++;
+  }
+  if (p.mileageGoal != null && isFinite(+p.mileageGoal)){
+    const gv = Math.max(0, Math.round(+p.mileageGoal));
+    const mileAt = MILE.updatedAt ? Date.parse(MILE.updatedAt) : 0;
+    if (!(mileAt && mileAt > remoteAt)){ MILE.goal = gv; mileageSave(); changed++; }
+  }
+  if (Array.isArray(p.cats) && p.cats.length && (!RULES_AT || !Date.parse(RULES_AT) || remoteAt >= Date.parse(RULES_AT))){
+    const colors = (p.colors && typeof p.colors === 'object') ? p.colors : {};
+    const cur = new Map(S.categories.map(c=> [c.name, c.color]));
+    const next = [];
+    p.cats.forEach(c=>{
+      const name = (typeof c === 'string') ? c : (c && c.name);
+      if (!name) return;
+      const col = (c && c.color) || colors[name] || cur.get(name) || '#64748b';
+      if (!next.some(x=> x.name === name)) next.push({name:String(name), color:col});
+    });
+    if (next.length){ S.categories = next; changed++; }
+  }
+  if (Array.isArray(p.rules) && (!RULES_AT || !Date.parse(RULES_AT) || remoteAt >= Date.parse(RULES_AT))){
+    S.rules = p.rules.map(r=> Object.assign({}, r)); changed++;
+  }
+  if (p.dueDates && typeof p.dueDates === 'object'){
+    Object.keys(p.dueDates).forEach(m=>{ S.dueDates[m] = Object.assign({}, S.dueDates[m] || {}, p.dueDates[m] || {}); });
+  }
+  OUTBOX.settingsAt = p.updatedAt;
+  saveOutbox(); saveState();
+  if (changed){ migrateCategoryNames(); renderAll(); }
+  return changed ? 'settings' : '';
+}
+function rememberMonthKeys(month){
+  PUSHED[month] = S.rows.filter(r=> r.month === month).map(rowKey);
+  savePushed();
+}
+/* 이 달을 올릴 대상으로 표시 — 저장소와 맞춰 둔 키에서 사라진 행은 삭제 기록으로 남깁니다 */
+function markDirtyMonth(month){
+  if (!month) return;
+  const known = PUSHED[month];
+  if (Array.isArray(known) && known.length){
+    const now = new Set(S.rows.filter(r=> r.month === month).map(rowKey));
+    const gone = known.filter(k=> !now.has(k));
+    /* 너무 많이 사라졌으면(초기화·복원 등) 삭제로 보지 않습니다 — 원격 자료를 지우지 않기 위해 */
+    if (gone.length && gone.length < Math.max(3, Math.ceil(known.length * 0.2))) gone.forEach(k=> addTomb(k, month));
+  }
+  OUTBOX.months[month] = nowIso();
+  saveOutbox(); scheduleFlush(); updateSyncLabel();
+}
+function markSettingsDirty(){
+  OUTBOX.settingsAt = nowIso();
+  OUTBOX.settings = true;
+  saveOutbox(); scheduleFlush(); updateSyncLabel();
+}
+function scheduleFlush(delay){
+  clearTimeout(outboxTimer);
+  outboxTimer = setTimeout(()=>{
+    pushQueue = pushQueue.then(()=> flushOutbox(true), ()=> flushOutbox(true));
+  }, delay || 1300);
+}
+function noticeReadonly(){
+  SYNC.readonly = true; saveSyncConfig();
+  setSyncState('err', READONLY_MSG);
+  if (!READONLY_NOTICED){ READONLY_NOTICED = true; toast(READONLY_MSG, 5200); }
+  updateSyncLabel();
+}
+/* 대기 중인 변경을 저장소로 올립니다 (여러 건이면 달별로 한 번씩) */
+async function flushOutbox(quiet){
+  const g = ghParse();
+  if (!g || !SYNC.token || SYNC.readonly) return {pushed:0, skipped:true};
+  if (!pendingCount()) return {pushed:0};
+  const stats = {pushed:0, failed:0, error:''};
+  for (const month of Object.keys(OUTBOX.months || {})){
+    try {
+      await pushMonth(month);
+      delete OUTBOX.months[month]; saveOutbox(); stats.pushed++;
+    } catch(e){
+      stats.failed++;
+      if (e && e.readonly){ SYNC.readonly = true; saveOutbox(); noticeReadonly(); break; }
+      stats.error = e && e.message ? e.message : String(e);
+      if (!quiet) setSyncState('err', '업로드 실패: ' + stats.error);
+      break;
+    }
+  }
+  if (!SYNC.readonly && OUTBOX.settings){
+    try { await pushSettings(); OUTBOX.settings = false; saveOutbox(); stats.pushed++; }
+    catch(e){
+      stats.failed++;
+      if (e && e.readonly){ noticeReadonly(); }
+      stats.error = stats.error || (e && e.message ? e.message : String(e));
+    }
+  }
+  saveOutbox();
+  if (stats.pushed) SYNC.lastPush = nowIso(), saveSyncConfig();
+  if (pendingCount() && !quiet) setSyncState('err', '아직 못 올린 변경 ' + pendingCount() + '건' + (stats.error ? ' — ' + stats.error : ''));
+  updateSyncLabel();
+  return stats;
+}
+
 async function fetchSyncSource(url){
   try { return await fetchSyncSourceRaw(url); }
   catch(e){
@@ -3989,7 +4319,7 @@ async function fetchSyncSourceRaw(url){
   if (isGh){
     const j = await ghFetch(url, SYNC.token, false);
     if (Array.isArray(j) && j.length && j[0] && j[0].type && j[0].path){
-      const files = j.filter(x=> x.type === 'file' && /\.json$/i.test(x.name));
+      const files = j.filter(x=> x.type === 'file' && /\.json$/i.test(x.name) && !/^settings\.json$/i.test(x.name));
       if (!files.length) throw new Error('폴더 안에 .json 파일이 없습니다');
       const out = [];
       for (const f of files){
@@ -4062,7 +4392,7 @@ function mergePayload(payload, stats){
   if (payload && payload.dueDates && typeof payload.dueDates === 'object'){
     Object.keys(payload.dueDates).forEach(m=>{ S.dueDates[m] = Object.assign({}, S.dueDates[m] || {}, payload.dueDates[m]); });
   }
-  if (payload && Array.isArray(payload.rules) && payload.rules.length) S.rules = payload.rules;
+  if (payload && Array.isArray(payload.rules) && payload.rules.length){ S.rules = payload.rules; RULES_AT = payload.updatedAt || nowIso(); }
   migrateCategoryNames();   /* 동기화 JSON의 예전 분류 이름도 새 이름으로 */
 }
 async function runSync(quiet){
@@ -4073,19 +4403,34 @@ async function runSync(quiet){
   if (syncing) return;
   syncing = true;
   setSyncState('busy', '동기화 중… (캐시 무시하고 새로 받는 중)');
+  let pushed = 0;
   try {
+    /* 1) 이 기기에서 바꾼 내용이 있으면 먼저 올리고 병합 — 다른 기기 변경과 함께 살아남게 */
+    const g = ghParse();
+    if (g && SYNC.token){
+      try { const r = await flushOutbox(true); pushed = (r && r.pushed) || 0; } catch(e){}
+    }
     let payloads = [];
     for (const u of SYNC.urls) payloads = payloads.concat(await fetchSyncSource(u));
     const stats = {added:0, updated:0};
     payloads.forEach(p=> mergePayload(p, stats));
     payloads.forEach(p=> mileageApply(p));
-    SYNC.lastSync = new Date().toISOString();
-    SYNC.lastMsg = payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건';
+    /* 2) settings.json — 더 최신 쪽 채택 (한도·목표·분류·규칙) */
+    let setApplied = '';
+    if (g && SYNC.token){
+      try { const st = await ghGetFileObj(settingsPath(g)); if (st && st.json) setApplied = applyRemoteSettings(st.json); }
+      catch(e){ /* settings.json 이 없거나 못 읽어도 동기화는 계속합니다 */ }
+    }
+    /* 3) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
+    monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));
+    SYNC.lastSync = nowIso();
+    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (setApplied ? ' · 설정 반영' : '');
     saveSyncConfig(); saveState(); renderAll(); scheduleSyncTimer();
+    syncing = false;
     setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
-    updateSyncLabel();
     if (!quiet) toast('동기화 완료 · ' + SYNC.lastMsg);
   } catch(e){
+    syncing = false;
     setSyncState('err', '동기화 실패: ' + e.message);
     updateSyncLabel('err', e.message);
     if (!quiet) toast('동기화 실패: ' + e.message);
@@ -4109,16 +4454,16 @@ function refreshNow(){
 
 /* -------- sync settings tab -------- */
 function syncTabHtml(){
-  return '<p class="sec-desc">카드 내역 JSON을 어딘가에 두고, 그 주소만 저장해 두면 앱을 열 때마다 <b>캐시를 무시하고(cache: no-store)</b> 최신 자료를 받아 화면과 합칩니다. GitHub 비공개 저장소는 아래 주소 형식과 읽기 전용 토큰을 쓰면 됩니다.</p>'+
+  return '<p class="sec-desc">카드 내역 JSON을 비공개 저장소에 두고, 그 주소만 저장해 두면 앱을 열 때마다 <b>캐시를 무시하고(cache: no-store)</b> 최신 자료를 받아옵니다. 여기서 추가·수정한 내역(카드 한도·목표 마일리지·분류·규칙)은 <b>자동으로 저장소에 올라가 다른 기기와 양방향으로 맞춰집니다.</b></p>'+
   '<div class="field">'+
     '<label>데이터 주소 (한 줄에 하나)</label>'+
     '<textarea id="syncUrls" rows="3" placeholder="https://api.github.com/repos/USER/card-budget-data/contents/data"></textarea>'+
     '<p class="tiny">· GitHub API 폴더 주소를 넣으면 그 안의 <code>.json</code>을 모두 읽습니다 (예: 2026-11.json, 2026-12.json, rules.json, mileage.json).<br>· 공개된 JSON 주소(예: raw.githubusercontent.com)라면 토큰 없이도 됩니다.</p>'+
   '</div>'+
   '<div class="field">'+
-    '<label>GitHub 읽기 토큰 (비공개 저장소일 때만)</label>'+
-    '<input class="txt" type="password" id="syncToken" placeholder="github_pat_... · Contents 읽기 전용" autocomplete="off">'+
-    '<p class="tiny">토큰은 이 브라우저(localStorage)에만 저장되고 다른 곳으로 전송되지 않습니다. 비공개 저장소의 <b>Contents: Read-only</b> 권한만 주면 충분합니다.</p>'+
+    '<label>GitHub 토큰 (비공개 저장소일 때만)</label>'+
+    '<input class="txt" type="password" id="syncToken" placeholder="github_pat_... · Contents: Read and write" autocomplete="off">'+
+    '<p class="tiny">토큰은 이 브라우저(localStorage)에만 저장되고 다른 곳으로 전송되지 않습니다. 다른 기기와 주고받으려면 <b>Contents: Read and write</b>, 읽기만 하려면 <b>Read-only</b>를 주세요.</p>'+
   '</div>'+
   '<div class="field">'+
     '<label>자동 갱신</label>'+
@@ -4133,7 +4478,7 @@ function syncTabHtml(){
   '<div class="syncstate" id="syncState">'+(SYNC.lastSync ? '마지막 동기화 ' + fmtDateTime(SYNC.lastSync) + ' · ' + (SYNC.lastMsg||'') : '아직 동기화한 적이 없습니다.')+'</div>'+
   '<details class="sync-help"><summary>GitHub 비공개 저장소로 쓰는 방법</summary><ol>'+
     '<li>GitHub에서 <b>Private</b> 저장소(예: <code>card-budget-data</code>)를 만들고, 그 안 <code>data/2026-11.json</code>, <code>data/2026-12.json</code> 처럼 JSON을 둡니다.</li>'+
-    '<li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> 에서 새 토큰을 만들고, Repository access는 그 저장소만, Permissions → Contents: <b>Read-only</b> 로 저장합니다.</li>'+
+    '<li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> 에서 새 토큰을 만들고, Repository access는 그 저장소만, Permissions → Contents: <b>Read and write</b> 로 저장합니다. (읽기만 하려면 Read-only — 이 떈 이 기기에만 저장됩니다)</li>'+
     '<li>위 주소 칸에 <code>https://api.github.com/repos/아이디/card-budget-data/contents/data</code> 를, 토큰 칸에 방금 만든 토큰을 넣고 <b>연결 테스트</b>를 누릅니다.</li>'+
     '<li>JSON 형식은 이 앱의 <b>데이터 → JSON 백업</b> 파일 그대로입니다. (<code>{ "rows": [ … ] }</code> 또는 행 배열만 있어도 됨)</li>'+
   '</ol></details>';
@@ -4153,15 +4498,18 @@ function bindSyncTab(){
   $('#syncInterval').value = String(SYNC.intervalMin || 0);
 
   const readForm = ()=>{
+    const prevTok = SYNC.token;
     SYNC.urls = urlsEl.value.split(/[\n\s]+/).map(s=>s.trim()).filter(Boolean);
     SYNC.token = tokenEl.value.trim();
     SYNC.autoOn = $('#syncAuto').checked;
     SYNC.intervalMin = +$('#syncInterval').value || 0;
+    if (SYNC.token && SYNC.token !== prevTok){ SYNC.readonly = false; READONLY_NOTICED = false; }   /* 새 토큰이면 다시 써 봅니다 */
   };
   $('#syncSave').addEventListener('click', ()=>{
     readForm(); saveSyncConfig(); scheduleSyncTimer(); updateSyncLabel();
     setSyncState('ok', '저장했습니다. ' + (SYNC.urls.length ? (SYNC.autoOn ? '앱을 열 때 자동으로 동기화합니다.' : '자동 동기화는 꺼져 있습니다.') : '주소가 비어 있어 동기화하지 않습니다.'));
     toast('동기화 설정을 저장했습니다');
+    if (pendingCount()) scheduleFlush(400);
   });
   $('#syncTest').addEventListener('click', async ()=>{
     readForm(); saveSyncConfig();
@@ -4600,6 +4948,7 @@ function capAddSelected(){
   F.month = month; F.date = null; F.monthUser = true; F.cards = []; F.categories = []; $('#search').value = '';
   S.ui.limit = 20;
   saveState(); renderAll(); closeCapture();
+  markDirtyMonth(month);
   toast(added + '건을 ' + monthLabel(month) + '에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : ''));
   const tc = document.querySelector('.table-card');
   if (tc) setTimeout(()=> tc.scrollIntoView({behavior:'smooth', block:'start'}), 120);
@@ -4672,6 +5021,7 @@ document.addEventListener('keydown', ev=>{
   mileageLoad();
   loadAiConfig();
   loadSyncConfig();
+  loadOutbox();
   migrateCategoryNames();   /* 엑셀 시드에 남은 예전 분류 이름도 새 이름으로 */
   if (PUBLIC_BUILD){
     const seg = $('#modeSeg'); if (seg) seg.style.display = 'none';
