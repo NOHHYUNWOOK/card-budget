@@ -104,17 +104,22 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 }
 
 /* ---------- summary strip ---------- */
-.sumstrip{padding:13px 16px;display:flex;flex-direction:column;gap:5px}
-.sumstrip .s-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
-.sumstrip .k{font-size:11.5px;color:var(--muted);font-weight:600}
-.sumstrip .v{font-size:26px;font-weight:750;letter-spacing:-.03em;line-height:1.14;font-variant-numeric:tabular-nums}
-.sumstrip .v small{font-size:13.5px;font-weight:700;color:var(--ink2);margin-left:2px}
-.sumstrip .side{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);font-weight:600;padding-bottom:3px}
-.sumstrip .side b{font-weight:750;color:var(--ink)}
-.sumstrip .s-sub{font-size:11.8px;color:var(--muted);font-weight:500}
+.sum-block{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--line2);padding-top:10px;min-width:0}
+.sum-block .s-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.sum-block .k{font-size:11.5px;color:var(--muted);font-weight:600}
+.sum-block .v{font-size:26px;font-weight:750;letter-spacing:-.03em;line-height:1.14;font-variant-numeric:tabular-nums}
+.sum-block .v small{font-size:13.5px;font-weight:700;color:var(--ink2);margin-left:2px}
+.sum-block .side{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);font-weight:600;padding-bottom:3px}
+.sum-block .side b{font-weight:750;color:var(--ink)}
+.sum-block .s-sub{font-size:11.8px;color:var(--muted);font-weight:500}
+.sum-block .side .rem-lim{padding:1px 8px;border-radius:8px;background:#f3f7ff;color:#26406e}
+.sum-block .side .rem-lim b{color:#1d4ed8}
+.sum-block .side .rem-lim.over{background:#fff4f3}
+.sum-block .side .rem-lim.over b{color:var(--danger)}
 
 /* ---------- filters ---------- */
 .filters{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.filter-row:empty,#monthSeg:empty,.active-bar:empty{display:none}
 .filter-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .searchwrap{position:relative;flex:1;min-width:180px}
 .searchwrap input{width:100%;border:1px solid var(--line);background:#fafbfd;border-radius:11px;padding:9px 12px 9px 34px;font-size:14px;outline:none;transition:.15s}
@@ -144,10 +149,6 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .limit-head{display:flex;align-items:baseline;gap:2px 8px;flex-wrap:wrap}
 .limit-head .lbl{font-size:12px;color:var(--muted);font-weight:600}
 .limit-head .hint{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500}
-/* 전체 카드 사용액·남은 한도 요약 */
-.limit-sum{font-size:11.5px;color:var(--ink2);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.limit-sum b{font-weight:800;color:var(--ink);letter-spacing:-.02em}
-.limit-sum b.over{color:var(--danger)}
 .limit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .lim-item{border:1px solid var(--line);background:#fbfcfe;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0;transition:.15s}
 button.lim-item:hover{border-color:#cfd6e4;background:#fff}
@@ -592,7 +593,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .lg{padding:3px 4px;gap:6px}
   .lg .nm{font-size:12px}
   .lg .am{font-size:11.5px}
-  .sumstrip .v{font-size:23px}
+  .sum-block .v{font-size:23px}
   .seg{flex-wrap:wrap;max-width:100%}
   .seg button{padding:5px 9px;font-size:12.5px}
   .kpis .kpi:last-child{grid-column:1 / -1}
@@ -741,10 +742,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <div class="seg" id="monthSeg"></div>
     </div>
     <div class="active-bar" id="activeBar"></div>
+    <div class="sum-block" id="kpis"></div>
     <div class="limit-box" id="limitBox">
       <div class="limit-head">
         <span class="lbl">카드별 한도</span>
-        <span class="limit-sum" id="limitSum"></span>
         <span class="hint" id="limitHint"></span>
       </div>
       <div class="limit-grid" id="limitGrid"></div>
@@ -758,8 +759,6 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       </div>
     </div>
   </section>
-
-  <section class="card sumstrip" id="kpis"></section>
 
   <section class="card mile-card" id="mileCard" aria-label="대한항공 마일리지">
     <div class="mile-in" id="mileIn"></div>
@@ -1373,8 +1372,10 @@ function renderFilters(){
   ms.forEach(m=>{ yrs[String(m).slice(0,4)] = 1; });
   const oneYear = Object.keys(yrs).length <= 1;
   const mLab = m => oneYear ? (+String(m).slice(5,7)) + '월' : monthLabel(m);
-  mSeg.innerHTML = '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
-    ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+mLab(m)+'</button>').join('');
+  mSeg.innerHTML = ms.length
+    ? '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
+      ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+mLab(m)+'</button>').join('')
+    : '';   /* 자료가 없을 때는 달 선택 줄을 그리지 않음(시작 화면만 깔끔하게) */
 
   // 카드사·분류 칩과 가맹점 검색은 '상세 내역' 패널에만 있습니다 (상단 필터 카드는 전체/월별만)
   const detailCards = $('#cardChipsDetail');
@@ -1460,18 +1461,6 @@ function renderLimits(){
   const cards = limitCards();
   box.classList.toggle('hidden', !(S.rows.length && cards.length));
   const ctx = limitContext();
-  /* 제목 옆 요약 — 전체 카드 총 결제예상금액과 전체 남은 한도(한도 설정한 카드 기준) */
-  const sumUse = cards.reduce((a,c)=> a + (ctx.spent.get(c) || 0), 0);
-  const limited = cards.filter(c=> limitOf(c) > 0);
-  const remLim = limited.reduce((a,c)=> a + limitOf(c) - (ctx.spent.get(c) || 0), 0);
-  const sumEl = $('#limitSum');
-  if (sumEl){
-    sumEl.innerHTML = cards.length
-      ? '사용 <b>' + fmt(sumUse) + '원</b>' +
-        (limited.length ? ' · 남은 한도 <b' + (remLim < 0 ? ' class="over"' : '') + '>' +
-          (remLim < 0 ? '−' : '') + fmt(Math.abs(remLim)) + '원</b>' : '')
-      : '';
-  }
   const hint = $('#limitHint');
   if (hint) hint.textContent = ctx.month
     ? ((ctx.latest ? '최근 ' : '') + monthLabel(ctx.month).replace(/^\d{4}년 /, '') + ' 사용액 기준')
@@ -1863,6 +1852,11 @@ function renderKpis(rows, sum){
   subs.push('카드 ' + cards.length + '곳');
   if (dueSet.length) subs.push('결제일 ' + dueSet.slice(0,3).join('·'));
 
+  /* 전체 남은 한도 — 한도가 설정된 카드의 (한도 합 − 그 카드들 사용액) */
+  const lctx = limitContext();
+  const limited = limitCards().filter(c=> limitOf(c) > 0);
+  const remLim = limited.length
+    ? limited.reduce((a,c)=> a + limitOf(c) - (lctx.spent.get(c) || 0), 0) : null;
   el.innerHTML =
     '<div class="s-row">'+
       '<div class="s-main">'+
@@ -1870,6 +1864,8 @@ function renderKpis(rows, sum){
         '<div class="v">'+fmt(sum.total)+'<small>원</small></div>'+
       '</div>'+
       '<div class="side">'+
+        (remLim != null ? '<span class="rem-lim'+(remLim < 0 ? ' over' : '')+'">남은 한도 <b>'+
+          (remLim < 0 ? '−' : '')+fmt(Math.abs(remLim))+'</b>원</span>' : '')+
         '<span><b>'+fmt(sum.count)+'</b>건</span>'+
         '<span>건당 <b>'+fmt(Math.round(sum.avgPerItem))+'</b>원</span>'+
       '</div>'+
@@ -2673,8 +2669,7 @@ function renderAll(){
   const showTrend = hasRows;
   const charts = document.querySelector('.charts');
   if (charts) charts.classList.toggle('hidden', !hasRows);
-  const filters = document.querySelector('.filters');
-  if (filters) filters.classList.toggle('hidden', !hasRows);
+  /* 통합 상단 패널은 자료가 없을 때도 '시작하기·파일 올리기'를 보여 줍니다(숨기지 않음) */
   const annualCard = $('#annualCard');
   if (annualCard) annualCard.classList.toggle('hidden', !hasRows);
   const trendCard = $('#trendCard');
@@ -2731,13 +2726,13 @@ $('#limitGrid').addEventListener('click', ev=>{
     const a = act.dataset.limact;
     if (a === 'cancel'){ limitEdit = null; renderLimits(); return; }
     if (a === 'clear'){
-      LIMITS[card] = 0; saveLimits(); limitEdit = null; renderLimits();
+      LIMITS[card] = 0; saveLimits(); limitEdit = null; renderAll();
       toast(shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
     if (a === 'save'){
       const v = parseLimit($('#limInput') ? $('#limInput').value : '');
-      LIMITS[card] = v; saveLimits(); limitEdit = null; renderLimits();
+      LIMITS[card] = v; saveLimits(); limitEdit = null; renderAll();
       toast(v ? shortCard(card) + ' 월 한도 ' + won(v) : shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
