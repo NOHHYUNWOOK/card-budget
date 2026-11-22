@@ -4511,7 +4511,9 @@ function bindSyncTab(){
     if (SYNC.token && SYNC.token !== prevTok){ SYNC.readonly = false; READONLY_NOTICED = false; }   /* 새 토큰이면 다시 써 봅니다 */
   };
   $('#syncSave').addEventListener('click', ()=>{
-    readForm(); saveSyncConfig(); scheduleSyncTimer(); updateSyncLabel();
+    readForm();
+    SYNC.readonly = false; READONLY_NOTICED = false;   /* 저장을 누르면 다시 써 봅니다 */
+    saveSyncConfig(); scheduleSyncTimer(); updateSyncLabel();
     setSyncState('ok', '저장했습니다. ' + (SYNC.urls.length ? (SYNC.autoOn ? '앱을 열 때 자동으로 동기화합니다.' : '자동 동기화는 꺼져 있습니다.') : '주소가 비어 있어 동기화하지 않습니다.'));
     toast('동기화 설정을 저장했습니다');
     if (pendingCount()) scheduleFlush(400);
