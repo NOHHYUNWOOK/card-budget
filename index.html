@@ -78,6 +78,8 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 0;flex-wrap:wrap}
 .card-head h2{font-size:15px;flex:none;white-space:nowrap}
 .card-head .hint{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500}
+.tm-chip{font-size:11.5px;font-weight:700;color:#1d4ed8;background:var(--accent-soft);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.tm-chip:empty{display:none}
 
 /* ---------- summary strip ---------- */
 .sumstrip{padding:13px 16px;display:flex;flex-direction:column;gap:5px}
@@ -137,6 +139,7 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .chart-card{padding-bottom:12px;overflow:hidden}
 .chart-card.wide{grid-column:1 / -1}
 .chart-body{padding:8px 14px 0}
+@media (max-width:560px){ .chart-body{padding:6px 10px 0} }
 /* ---------- annual line chart ---------- */
 .aline-legend{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:2px 0 8px}
 .aline-legend .lbl{font-size:11.5px;color:var(--muted);font-weight:600;margin-right:2px}
@@ -193,6 +196,8 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .table-card{overflow:hidden;scroll-margin-top:74px;transition:box-shadow .25s}
 .table-card.flash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 1px #b9cdf7}
 /* ---------- detail panel filters (카드사 버튼 · 분류 칩: 이름만) ---------- */
+.detail-search{padding:10px 16px 9px}
+.detail-search .searchwrap{flex:none;min-width:0}
 .detail-filters{padding:0 16px 10px;display:flex;flex-direction:column;gap:7px}
 .detail-filters .chips{gap:5px}
 .detail-filters .chip{padding:4px 10px;font-size:12px}
@@ -483,6 +488,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .aline-chip{padding:3px 9px 3px 7px;font-size:11.5px;min-height:26px}
   .aline-all{font-size:11px;min-height:26px;padding:3px 9px}
   .detail-filters{padding:0 12px 9px;gap:6px}
+  .detail-search{padding:9px 12px 8px}
   .detail-filters .chip{padding:3px 8px;font-size:11.5px}
   .catbtn{font-size:12px;padding:4px 8px;max-width:120px}
   .aline-readout{font-size:11.5px;gap:8px}
@@ -514,6 +520,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .catopt .pick{font-size:13.5px;padding:10px 11px;min-height:44px}
   .table-foot{font-size:12.5px;padding:10px 12px}
   .table-scroll{overflow-x:visible}
+  .table-card .card-head{display:grid;grid-template-columns:1fr auto;gap:6px 8px}
+  .table-card .card-head h2{grid-column:1;grid-row:1}
+  .table-card .card-head #btnCapture2{grid-column:2;grid-row:1;justify-self:end}
+  .table-card .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0;text-align:left;line-height:1.4}
 }
 @media (max-width:520px){
   .seg button{padding:4px 7px;font-size:12px}
@@ -567,28 +577,21 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
     </div>
     <div class="filter-row">
       <div class="seg" id="monthSeg"></div>
-      <div class="searchwrap">
-        <span class="ico">🔍</span>
-        <input id="search" type="search" placeholder="가맹점 · 비고 검색" autocomplete="off">
-      </div>
     </div>
-    <div class="chips" id="cardChips"></div>
-    <div class="chips" id="catChips"></div>
     <div class="active-bar" id="activeBar"></div>
   </section>
 
   <section class="card sumstrip" id="kpis"></section>
 
-  <section class="card chart-card hidden" id="annualCard">
-    <div class="card-head">
-      <h2>연간 사용액</h2>
-      <div class="seg small" id="yearSeg"></div>
-      <span class="hint" id="annualHint"></span>
-    </div>
-    <div class="chart-body" id="annual"></div>
-  </section>
-
   <section class="charts">
+    <div class="card chart-card">
+      <div class="card-head">
+        <h2>카드사</h2>
+        <span class="hint">누르면 필터</span>
+      </div>
+      <div class="chart-body" id="bars"></div>
+    </div>
+
     <div class="card chart-card">
       <div class="card-head">
         <h2>분류</h2>
@@ -603,17 +606,20 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       </div>
     </div>
 
-    <div class="card chart-card">
+    <div class="card chart-card wide hidden" id="annualCard">
       <div class="card-head">
-        <h2>카드사</h2>
-        <span class="hint">누르면 필터</span>
+        <h2>연간 사용액</h2>
+        <div class="seg small" id="yearSeg"></div>
+        <span class="hint" id="annualHint"></span>
       </div>
-      <div class="chart-body" id="bars"></div>
+      <div class="chart-body" id="annual"></div>
     </div>
 
     <div class="card chart-card wide hidden" id="trendCard">
       <div class="card-head">
-        <h2>일자별 추이 <span class="hint" id="peakHint"></span></h2>
+        <h2>일자별 추이</h2>
+        <span class="tm-chip" id="trendMonth"></span>
+        <span class="hint" id="peakHint"></span>
       </div>
       <div class="chart-body" id="trend"></div>
     </div>
@@ -624,6 +630,12 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <h2>상세 내역</h2>
       <span class="hint" id="tableHint"></span>
       <button class="btn" id="btnCapture2" style="padding:5px 10px;font-size:12.5px" title="카드 사용내역 캡처 이미지로 내역 추가">📸 캡처로 추가</button>
+    </div>
+    <div class="detail-search">
+      <div class="searchwrap">
+        <span class="ico">🔍</span>
+        <input id="search" type="search" placeholder="가맹점 · 비고 검색" autocomplete="off" aria-label="가맹점 · 비고 검색">
+      </div>
     </div>
     <div class="detail-filters" id="detailFilters">
       <div class="chips" id="cardChipsDetail"></div>
@@ -833,7 +845,7 @@ function filteredRows(opts){
     if (!o.ignoreMonth && F.month !== 'all' && r.month !== F.month) return false;
     if (!o.ignoreCards && F.cards.length && F.cards.indexOf(r.card) < 0) return false;
     if (!o.ignoreCats && F.categories.length && F.categories.indexOf(r.category) < 0) return false;
-    if (F.date && r.date !== F.date) return false;
+    if (!o.ignoreDate && F.date && r.date !== F.date) return false;
     if (q){
       const hay = ((r.merchant||'') + ' ' + (r.memo||'') + ' ' + (r.card||'')).toLowerCase();
       if (hay.indexOf(q) < 0) return false;
@@ -909,28 +921,17 @@ function renderFilters(){
   mSeg.innerHTML = '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
     ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+mLab(m)+'</button>').join('');
 
-  // card chips — 전체 + 카드사별 (위 필터 카드·상세 내역 패널 두 곳에 같은 상태로)
-  $('#cardChips').innerHTML = cardChipsHtml(false, false);
+  // 카드사·분류 칩과 가맹점 검색은 '상세 내역' 패널에만 있습니다 (상단 필터 카드는 전체/월별만)
   const detailCards = $('#cardChipsDetail');
   if (detailCards) detailCards.innerHTML = cardChipsHtml(false, true);
 
-  // category chips
-  const catNames = S.categories.map(c=>c.name);
-  S.rows.forEach(r=>{ if(catNames.indexOf(r.category)<0) catNames.push(r.category); });
-  $('#catChips').innerHTML = '<span class="lbl">분류</span>' +
-    catNames.map(n=>{
-      const on = F.categories.indexOf(n)>=0;
-      const col = catMeta(n).color;
-      return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+
-        '<span class="dot" style="background:'+col+'"></span>'+esc(n)+'</button>';
-    }).join('') +
-    '<button class="chip add" data-addcat="1" title="새 분류 만들기 · 이름·색 수정">＋ 분류</button>';
-
-  // 상세 내역 패널: 카드사 버튼 + 분류 칩(이름만)
+  // 상세 내역 패널: 카드사 버튼 + 분류 칩(이름만) + 가맹점 검색
   const detailCats = $('#catChipsDetail');
   if (detailCats) detailCats.innerHTML = catChipsDetailHtml();
   const detailBox = $('#detailFilters');
   if (detailBox) detailBox.classList.toggle('hidden', !S.rows.length);
+  const detailSearch = document.querySelector('.detail-search');
+  if (detailSearch) detailSearch.classList.toggle('hidden', !S.rows.length);
 
   // active filters
   const tags = [];
@@ -1326,116 +1327,146 @@ function renderAnnual(){
 }
 
 /* ============================================================
-   TREND (SVG area + line)
+   TREND (일자별 막대 — 가로축은 그 달 1일~말일 고정)
    ============================================================ */
+function trendMonthOf(rows){
+  // 표시할 달: 고른 달 → 고른 날짜의 달 → 내역이 있는 가장 최근 달
+  if (F.month !== 'all') return F.month;
+  if (F.date) return String(F.date).slice(0,7);
+  const ms = monthsIn(rows);
+  return ms.length ? ms[ms.length-1] : null;
+}
 function renderTrend(rows, sum){
   const el = $('#trend');
-  const W = Math.max(280, el.clientWidth || 640), H = 258;
-  const pad = {l:52, r:14, t:14, b:30};
-  const byDate = sum.byDate;
-  const dates = Array.from(byDate.keys()).sort();
   const peakHint = $('#peakHint');
-  if (!dates.length){
+  const monthEl = $('#trendMonth');
+  // 날짜 필터로 표가 한 날짜만 보여도 추이 그래프는 그 달 전체를 그대로 보여 줍니다.
+  const src = filteredRows({ignoreDate:true});
+  const dm = trendMonthOf(src);
+  if (!dm){
     el.innerHTML = '<div class="empty">내역이 없습니다</div>';
-    peakHint.textContent = '';
+    if (monthEl) monthEl.textContent = '';
+    if (peakHint) peakHint.textContent = '';
     return;
   }
-  const t0 = dObj(dates[0]).getTime(), t1 = dObj(dates[dates.length-1]).getTime();
-  const spanMs = Math.max(86400000, t1 - t0);
+  const yyyy = +dm.slice(0,4), mon = +dm.slice(5,7);
+  const days = new Date(yyyy, mon, 0).getDate();          /* 그 달의 말일: 2월 28/29일, 30일, 31일 */
+  const vals = new Array(days).fill(0), cnts = new Array(days).fill(0);
+  src.forEach(r=>{
+    const ds = String(r.date).slice(0,10);
+    if (ds.slice(0,7) !== dm) return;
+    const d = +ds.slice(8,10);
+    if (d < 1 || d > days) return;
+    vals[d-1] += (+r.amount || 0); cnts[d-1]++;
+  });
+  let peakIdx = -1;
+  vals.forEach((v,i)=>{ if (v > 0 && (peakIdx < 0 || v > vals[peakIdx])) peakIdx = i; });
+  const monthTotal = vals.reduce((a,b)=> a + b, 0);
+
+  if (monthEl) monthEl.textContent = (F.month === 'all' ? '최근 ' : '') + monthLabel(dm);
+  if (peakHint) peakHint.textContent = peakIdx >= 0
+    ? '최고 ' + mon + '/' + (peakIdx+1) + ' · ' + fmt(vals[peakIdx]) + '원' : '';
+
+  const W = Math.max(280, el.clientWidth || 640), H = 236;
+  const smallW = W < 430;
+  const pad = {l: smallW ? 34 : 46, r: smallW ? 10 : 14, t: 20, b: 26};
   const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
-  const maxV = Math.max(...dates.map(d=>byDate.get(d)));
-  const niceMax = (function(v){
-    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(1,v))));
-    const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
-    for (const s of steps){ if (v <= pow*s) return pow*s; }
+  const slot = innerW / days;                              /* 1일~말일 하루에 한 칸씩 고정 */
+  const bw = Math.max(2, Math.min(slot * 0.64, 22));
+  const xAt = d => pad.l + (d - 0.5) * slot;               /* d = 1 .. days */
+  const maxV = Math.max(1, ...vals);
+  const niceStep = (function(v){
+    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(1, v))));
+    for (const s of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]){ if (v <= pow*s) return pow*s; }
     return pow*10;
-  })(maxV*1.08);
-  const x = d => pad.l + (t1===t0 ? innerW/2 : (dObj(d).getTime()-t0)/spanMs*innerW);
-  const y = v => pad.t + innerH - (v/niceMax)*innerH;
+  })(maxV * 1.12 / 4);
+  const niceMax = niceStep * 4;              /* 눈금 4칸이 딱 떨어지는 값으로 */
+  const y = v => pad.t + innerH - (Math.max(0, v) / niceMax) * innerH;
 
-  let svg = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="일자별 지출 추이" style="display:block;touch-action:pan-y">';
-  svg += '<defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">'+
-         '<stop offset="0%" stop-color="#2f6fed" stop-opacity=".26"/><stop offset="100%" stop-color="#2f6fed" stop-opacity="0"/></linearGradient></defs>';
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" '+
+    'aria-label="'+esc(monthLabel(dm))+' 일자별 지출 추이, 1일부터 '+days+'일까지" style="display:block;touch-action:pan-y">';
 
-  // y grid
+  /* y 눈금 */
   for (let i=0;i<=4;i++){
-    const v = niceMax*i/4, yy = y(v);
-    svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+yy.toFixed(1)+'" stroke="#eef0f4" stroke-width="1"/>';
-    svg += '<text x="'+(pad.l-8)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="#8b93a1">'+shortKrw(v)+'</text>';
+    const v = niceStep*i, yy = y(v);
+    svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+(i?'#eef0f4':'#e2e6ee')+'" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(yy+3.4).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9.5:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
   }
 
-  // selected date band
-  if (F.date && byDate.has(F.date)){
-    const xx = x(F.date);
-    svg += '<rect x="'+(xx-7).toFixed(1)+'" y="'+pad.t+'" width="14" height="'+innerH+'" fill="#2f6fed" opacity=".08" rx="3"/>';
+  /* 고른 날짜 띠 */
+  const selDay = (F.date && String(F.date).slice(0,7) === dm) ? +String(F.date).slice(8,10) : 0;
+  if (selDay >= 1 && selDay <= days){
+    svg += '<rect x="'+(xAt(selDay)-slot/2).toFixed(1)+'" y="'+pad.t+'" width="'+slot.toFixed(1)+'" height="'+innerH.toFixed(1)+'" fill="#2f6fed" opacity=".10" rx="2"/>';
   }
 
-  // area + line
-  const pts = dates.map(d=>[x(d), y(byDate.get(d))]);
-  let area = 'M'+pts[0][0].toFixed(1)+','+(H-pad.b);
-  pts.forEach(p=> area += ' L'+p[0].toFixed(1)+','+p[1].toFixed(1));
-  area += ' L'+pts[pts.length-1][0].toFixed(1)+','+(H-pad.b)+' Z';
-  svg += '<path d="'+area+'" fill="url(#areaGrad)"/>';
-  let line = 'M'+pts[0][0].toFixed(1)+','+pts[0][1].toFixed(1);
-  pts.slice(1).forEach(p=> line += ' L'+p[0].toFixed(1)+','+p[1].toFixed(1));
-  svg += '<path d="'+line+'" fill="none" stroke="#2f6fed" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+  /* 일자별 막대 — 지출이 없는 날은 자리만 비워 둡니다 */
+  for (let d=1; d<=days; d++){
+    const v = vals[d-1];
+    if (v <= 0) continue;
+    const top = y(v), hgt = Math.max(2, pad.t + innerH - top);
+    const isPeak = (d-1) === peakIdx, on = d === selDay;
+    svg += '<rect x="'+(xAt(d)-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hgt.toFixed(1)+'" rx="'+Math.min(bw/2,3).toFixed(1)+'" fill="'+(isPeak?'#e5484d':'#2f6fed')+'" fill-opacity="'+(on?'.98':(isPeak?'.92':'.8'))+'"'+(on?' stroke="#1d4ed8" stroke-width="1.3"':'')+'/>';
+  }
 
-  // points
-  dates.forEach((d,i)=>{
-    const [xx,yy] = pts[i];
-    const isPeak = sum.peak && d===sum.peak.date;
-    svg += '<circle cx="'+xx.toFixed(1)+'" cy="'+yy.toFixed(1)+'" r="'+(isPeak?4.2:2.9)+'" fill="'+(isPeak?'#e5484d':'#fff')+'" stroke="'+(isPeak?'#e5484d':'#2f6fed')+'" stroke-width="2"/>';
+  /* 가로축 눈금 라벨: 1, 5, 10, 15, 20, 25, 말일 — 겹치지 않게 일부만 */
+  const ticks = [1,5,10,15,20,25,days].filter((d,i,a)=> d>=1 && d<=days && a.indexOf(d)===i);
+  ticks.forEach(d=>{
+    const xx = xAt(d);
+    const anchor = d === 1 ? 'start' : (d === days ? 'end' : 'middle');
+    const tx = d === 1 ? xx - bw/2 : (d === days ? xx + bw/2 : xx);
+    svg += '<text x="'+tx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+anchor+'" font-size="'+(smallW?9.5:10.5)+'" font-weight="600" fill="#8b93a1">'+d+'</text>';
   });
 
-  // x labels (max ~5)
-  const step = Math.max(1, Math.ceil(dates.length/5));
-  dates.forEach((d,i)=>{
-    if (i % step !== 0 && i !== dates.length-1) return;
-    const xx = x(d);
-    svg += '<text x="'+xx.toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="10.5" fill="#8b93a1">'+dMD(d)+'</text>';
-  });
-
-  // peak label
-  if (sum.peak){
-    const px = x(sum.peak.date), py = y(sum.peak.amount);
-    const anchor = px > W*0.72 ? 'end' : 'middle';
-    const tx = anchor==='end' ? px-6 : px;
-    svg += '<text x="'+tx.toFixed(1)+'" y="'+Math.max(11,py-10).toFixed(1)+'" text-anchor="'+anchor+'" font-size="10.5" font-weight="700" fill="#e5484d">최고 '+fmt(sum.peak.amount)+'원</text>';
+  /* 최고 지출 날 표시 */
+  if (peakIdx >= 0){
+    const px = xAt(peakIdx+1), py = y(vals[peakIdx]);
+    const anchor = px > W - pad.r - 44 ? 'end' : (px < pad.l + 44 ? 'start' : 'middle');
+    const tx = anchor === 'end' ? px + bw/2 : (anchor === 'start' ? px - bw/2 : px);
+    svg += '<text x="'+tx.toFixed(1)+'" y="'+Math.max(10, py-6).toFixed(1)+'" text-anchor="'+anchor+'" font-size="'+(smallW?9:10)+'" font-weight="700" fill="#e5484d">최고 '+shortKrw(vals[peakIdx])+'</text>';
   }
 
-  // hover layer
-  svg += '<line id="trendGuide" x1="0" y1="'+pad.t+'" x2="0" y2="'+(H-pad.b)+'" stroke="#2f6fed" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>';
-  svg += '<circle id="trendDot" r="5" fill="#2f6fed" stroke="#fff" stroke-width="2" opacity="0"/>';
-  svg += '<rect id="trendHit" x="'+pad.l+'" y="'+pad.t+'" width="'+innerW+'" height="'+innerH+'" fill="transparent"/>';
+  /* 이 달에 지출이 없을 때 */
+  if (!monthTotal){
+    svg += '<text x="'+(W/2).toFixed(1)+'" y="'+(pad.t+innerH/2).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?11.5:13)+'" font-weight="700" fill="#98a0ad">이 달 내역이 없습니다</text>';
+  }
+
+  /* hover 안내선 */
+  svg += '<line id="trendGuide" x1="0" y1="'+pad.t+'" x2="0" y2="'+(pad.t+innerH).toFixed(1)+'" stroke="#1d4ed8" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>';
+  svg += '<circle id="trendDot" r="4.5" fill="#2f6fed" stroke="#fff" stroke-width="2" opacity="0"/>';
+  svg += '<rect id="trendHit" x="'+pad.l+'" y="'+pad.t+'" width="'+innerW.toFixed(1)+'" height="'+innerH.toFixed(1)+'" fill="transparent"/>';
   svg += '</svg>';
   el.innerHTML = svg;
 
-  peakHint.textContent = sum.peak ? '최고 지출 ' + dMD(sum.peak.date) + ' · ' + fmt(sum.peak.amount) + '원' : '';
-
-  // interaction
+  /* interaction */
   const svgEl = el.querySelector('svg');
   const guide = el.querySelector('#trendGuide'), dot = el.querySelector('#trendDot');
-  let hoverDate = null;
-  function nearest(clientX){
+  const dateOf = d => dm + '-' + String(d).padStart(2,'0');
+  function dayAt(clientX){
     const r = svgEl.getBoundingClientRect();
-    const px = (clientX - r.left) * (W / r.width);
-    let best = dates[0], bd = Infinity;
-    dates.forEach(d=>{ const dd = Math.abs(x(d)-px); if(dd < bd){ bd = dd; best = d; } });
-    return best;
+    const px = (clientX - r.left) * (W / Math.max(1, r.width));
+    return Math.min(days, Math.max(1, Math.round((px - pad.l) / slot + 0.5)));
   }
   function show(ev){
-    const d = nearest(ev.clientX); hoverDate = d;
-    const xx = x(d), yy = y(byDate.get(d));
-    guide.setAttribute('x1', xx); guide.setAttribute('x2', xx); guide.setAttribute('opacity','.55');
-    dot.setAttribute('cx', xx); dot.setAttribute('cy', yy); dot.setAttribute('opacity','1');
-    const cnt = rows.filter(r=>r.date===d).length;
-    showTip('<b>'+dFull(d)+'</b><br><span class="tl-dim">지출</span> <b>'+fmt(byDate.get(d))+'원</b> · '+cnt+'건<br><span class="tl-dim">클릭하면 이 날짜만 봅니다</span>', ev.clientX, ev.clientY);
+    const d = dayAt(ev.clientX);
+    const v = Math.max(0, vals[d-1]), c = cnts[d-1];
+    const xx = xAt(d);
+    guide.setAttribute('x1', xx); guide.setAttribute('x2', xx); guide.setAttribute('opacity','.5');
+    if (v > 0){
+      dot.setAttribute('cx', xx); dot.setAttribute('cy', y(v)); dot.setAttribute('opacity','1');
+    } else {
+      dot.setAttribute('opacity','0');
+    }
+    showTip('<b>'+dFull(dateOf(d))+'</b><br>'+
+      (c ? '<span class="tl-dim">지출</span> <b>'+fmt(v)+'원</b> · '+c+'건<br><span class="tl-dim">클릭하면 이 날짜만 봅니다</span>'
+         : '<span class="tl-dim">이 날은 지출이 없습니다</span>'), ev.clientX, ev.clientY);
   }
   svgEl.addEventListener('mousemove', show);
   svgEl.addEventListener('mouseleave', ()=>{ guide.setAttribute('opacity','0'); dot.setAttribute('opacity','0'); hideTip(); });
   svgEl.addEventListener('click', ev=>{
-    const d = nearest(ev.clientX);
-    F.date = (F.date === d) ? null : d;
+    const d = dayAt(ev.clientX);
+    if (!cnts[d-1]) return;
+    const ds = dateOf(d);
+    F.date = (F.date === ds) ? null : ds;
     renderAll();
     if (F.date) toast(dFull(F.date) + ' 내역만 표시');
   });
@@ -1548,7 +1579,7 @@ function renderAll(){
   const rows = filteredRows();
   const sum = summarize(rows);
   const hasRows = S.rows.length > 0;
-  const showTrend = hasRows && (F.month !== 'all' || !!F.date);
+  const showTrend = hasRows;
   const charts = document.querySelector('.charts');
   if (charts) charts.classList.toggle('hidden', !hasRows);
   const filters = document.querySelector('.filters');
@@ -1631,10 +1662,6 @@ function applyCardChip(c){
   S.ui.limit = 20;
   renderAll();
 }
-$('#cardChips').addEventListener('click', ev=>{
-  const b = ev.target.closest('[data-card]'); if(!b) return;
-  applyCardChip(b.dataset.card);
-});
 $('#cardChipsDetail') && $('#cardChipsDetail').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-card]'); if(!b) return;
   applyCardChip(b.dataset.card);
