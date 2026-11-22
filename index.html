@@ -128,7 +128,7 @@ button.lim-item:hover{border-color:#cfd6e4;background:#fff}
 button.lim-item:active{transform:scale(.99)}
 .lim-item .top{display:flex;align-items:center;gap:6px;font-size:12.3px;font-weight:700;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lim-item .top .dot{width:7px;height:7px;border-radius:50%;flex:none}
-.lim-item .rem{font-size:15px;font-weight:750;letter-spacing:-.02em;line-height:1.25;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.lim-item .rem{font-size:15px;font-weight:750;letter-spacing:-.02em;line-height:1.25;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lim-item .rem small{font-size:11.5px;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
 .lim-item .bar{height:4px;border-radius:3px;background:#e8ebf1;overflow:hidden}
 .lim-item .bar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
@@ -880,7 +880,7 @@ function saveLimits(){
 }
 const parseLimit = s => {
   const n = Number(String(s==null?'':s).replace(/[^0-9]/g, ''));
-  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 9999999999) : 0;
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 99999999) : 0;
 };
 
 /* ---------- derived data ---------- */
@@ -1827,7 +1827,7 @@ $('#limitGrid').addEventListener('click', ev=>{
 $('#limitGrid').addEventListener('input', ev=>{
   const t = ev.target;
   if (t.id !== 'limInput') return;
-  const d = String(t.value).replace(/[^0-9]/g, '').slice(0, 10);
+  const d = String(t.value).replace(/[^0-9]/g, '').slice(0, 8);
   t.value = d ? fmt(Number(d)) : '';
 });
 $('#limitGrid').addEventListener('keydown', ev=>{
