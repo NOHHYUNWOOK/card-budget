@@ -812,6 +812,11 @@ const SYNC_KEY = LS_KEY + '.sync';
 const CARD_COLORS = {'삼성카드':'#1428a0','KB국민카드':'#f0a500','현대카드':'#1f2937','우리카드':'#0067ac','내 카드':'#64748b','기타카드':'#8b93a1'};
 const CARD_SHORT = {'삼성카드':'삼성','KB국민카드':'KB국민','현대카드':'현대','우리카드':'우리'};
 const shortCard = c => CARD_SHORT[c] || c;
+/* 카드사 표시 순서 — 한도 패널·카드사 차트·연간 필터·상세 필터·캡처/수정 선택까지 모든 화면이 이 순서를 따릅니다.
+   목록에 없는 카드사는 뒤에 가나다순으로 붙습니다. */
+const CARD_PREF = ['삼성카드','우리카드','KB국민카드','현대카드'];
+const cardRank = c => { const i = CARD_PREF.indexOf(c); return i < 0 ? 99 : i; };
+const sortCards = list => list.slice().sort((a,b)=> (cardRank(a) - cardRank(b)) || String(a).localeCompare(String(b),'ko'));
 
 /* ---------- small utilities ---------- */
 const $ = (s,el)=> (el||document).querySelector(s);
@@ -941,15 +946,14 @@ function monthsIn(rows){
 function cardsIn(rows){
   const m = new Map();
   rows.forEach(r=> m.set(r.card, (m.get(r.card)||0) + r.amount));
-  return Array.from(m.keys()).sort((a,b)=> (m.get(b)||0)-(m.get(a)||0));
+  return sortCards(Array.from(m.keys()).filter(Boolean));
 }
 function availableCards(){
   const set = new Set();
   S.rows.forEach(r=> set.add(r.card));
   Object.keys(S.dueDates || {}).forEach(m=> Object.keys(S.dueDates[m] || {}).forEach(c=> set.add(c)));
   (S.filtersCards || []).forEach(c=> set.add(c));
-  const tot = c => S.rows.reduce((s,r)=> s + (r.card === c ? r.amount : 0), 0);
-  return Array.from(set).filter(Boolean).sort((a,b)=> tot(b) - tot(a));
+  return sortCards(Array.from(set).filter(Boolean));
 }
 function catMeta(name){
   return S.categories.find(c=>c.name===name) || {name, color:'#cbd5e1'};
@@ -1000,12 +1004,8 @@ function cardChipsHtml(withCount, ordered){
   const counts = new Map();
   if (baseRows) baseRows.forEach(r=> counts.set(r.card, (counts.get(r.card)||0) + 1));
   const cnt = c => (withCount ? '<span class="cnt">'+fmt(c === null ? baseRows.length : (counts.get(c)||0))+'</span>' : '');
-  // 상세 내역 패널은 카드사를 늘 같은 순서로 (삼성·KB국민·현대·우리 → 나머지)
-  const list = ordered ? (function(){
-    const PREF = ['삼성카드','KB국민카드','현대카드','우리카드'];
-    const rank = c => { const i = PREF.indexOf(c); return i < 0 ? 99 : i; };
-    return cards.slice().sort((a,b)=> rank(a) - rank(b));
-  })() : cards;
+  // 카드사는 모든 패널에서 같은 순서 (삼성·우리·KB국민·현대 → 나머지 가나다순)
+  const list = sortCards(cards);
   return '<span class="lbl">카드사</span>' +
     '<button class="chip'+(F.cards.length?'':' on')+'" data-card="" title="모든 카드사 내역 보기">전체'+cnt(null)+'</button>' +
     list.map(c=>{
@@ -1070,16 +1070,10 @@ function renderFilters(){
    카드별 월 한도 — 최상단 필터 패널
    사용액은 고른 달 기준, '전체'일 때는 내역이 있는 가장 최근 달 기준입니다.
    ============================================================ */
-const LIMIT_PREF = ['삼성카드','KB국민카드','현대카드','우리카드'];
 function limitCards(){
-  const known = new Set(LIMIT_PREF);
+  const known = new Set(CARD_PREF);
   availableCards().concat(cardsIn(S.rows)).concat(Object.keys(LIMITS)).forEach(c=>{ if (c) known.add(c); });
-  const rank = c => { const i = LIMIT_PREF.indexOf(c); return i < 0 ? 99 : i; };
-  return Array.from(known).sort((a,b)=>{
-    const ra = rank(a), rb = rank(b);
-    if (ra !== rb) return ra - rb;
-    return String(a).localeCompare(String(b), 'ko');
-  });
+  return sortCards(Array.from(known));
 }
 function limitContext(){
   const ms = monthsIn(S.rows);
@@ -1547,9 +1541,7 @@ function renderAnnual(){
     const yearRows = filteredRows({ignoreCards:true, ignoreMonth:true})
       .filter(r=> String(r.month||'').slice(0,4) === String(year));
     const known = Array.from(new Set(yearRows.map(r=> r.card).concat(F.cards))).filter(Boolean);
-    const PREF = ['삼성카드','KB국민카드','현대카드','우리카드'];
-    const rank = c => { const i = PREF.indexOf(c); return i < 0 ? 99 : i; };
-    const list = known.sort((a,b)=> (rank(a) - rank(b)) || String(a).localeCompare(String(b),'ko'));
+    const list = sortCards(known);
     fc.innerHTML = (list.length > 1 || F.cards.length)
       ? '<span class="lbl">카드사</span>'+
         '<button class="chip'+(F.cards.length?'':' on')+'" data-annual-card="" title="모든 카드사 보기">전체</button>'+
@@ -3402,7 +3394,7 @@ $('#btnSync').addEventListener('click', refreshNow);
    · 이미지는 AI 제공자에게 직접 전송 (API 키는 로컬저장소에만)
    · 같은 달짜·가맹점·금액이 이미 가계부에 있으면 자동 제외
    ============================================================ */
-const CARD_ORDER = ['삼성카드','KB국민카드','현대카드','우리카드'];
+const CARD_ORDER = CARD_PREF;
 const CAP = {files:[], results:[], busy:false, status:'', error:'', ms:0, model:'', card:'', month:''};
 const capPad2 = n => String(n).padStart(2,'0');
 function capNowMonth(){ const d = new Date(); return d.getFullYear() + '-' + capPad2(d.getMonth()+1); }
