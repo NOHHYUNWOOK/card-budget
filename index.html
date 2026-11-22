@@ -637,6 +637,20 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 .mile-edit input:focus{border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
 .mile-edit .unit{font-size:12px;color:var(--muted);font-weight:600;margin-left:-2px}
 .mile-edit .btn.sm{padding:5px 10px;font-size:12.5px;border-radius:9px}
+/* 본인·가족·총합 세 칸 */
+.mile-cells{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:6px 0 3px}
+.mile-cell{display:flex;flex-direction:column;gap:2px;min-width:0;text-align:left;background:#f8fafd;
+  border:1px solid #e9eef7;border-radius:11px;padding:6px 9px;font:inherit;color:inherit}
+.mile-cell .k{font-size:10.5px;color:var(--muted);font-weight:650;letter-spacing:.01em;line-height:1.2}
+.mile-cell .v{font-size:15px;font-weight:750;color:var(--ink);font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mile-cell .v small{font-size:10.5px;font-weight:700;color:var(--muted);margin-left:1px;letter-spacing:0}
+.mile-cell.own{cursor:pointer;transition:.15s}
+.mile-cell.own:hover{border-color:#c9d8f4;background:#f2f7ff}
+.mile-cell.own:active{transform:scale(.99)}
+.mile-cell.own .v{color:var(--ink2)}
+.mile-cell.total{background:linear-gradient(180deg,#f5f9ff,#edf4ff);border-color:#d8e4fb}
+.mile-cell.total .v{font-size:16.5px;font-weight:800;color:#1d4ed8}
 /* 가족 마일리지 한 줄 — 구성원 이름·마일은 넘치면 … 처리해 가로 넘침을 막습니다 */
 .mile-fam-row{padding-top:2px;border-top:1px solid var(--line2);margin-top:4px;gap:4px 8px;flex-wrap:nowrap;min-width:0}
 .mile-fam{display:inline-flex;align-items:baseline;gap:3px;font-size:14px;font-weight:750;color:var(--ink);
@@ -1091,37 +1105,41 @@ function renderMileage(){
   if (!box) return;
   const exp = mileageExpected();
   const has = MILE.skypass != null;
+  const fam = mileFamilySum();
+  const family = fam == null ? 0 : fam;
+  const total = (has ? MILE.skypass : 0) + family;
   const when = MILE.updatedAt ? fmtDateTime(MILE.updatedAt) + ' 기준' : (has ? '직접 입력' : '눌러서 입력');
   const rate = exp ? '<span class="r mile-rate">1,000원당 1마일</span>' : '';
   const lab = exp ? (exp.month === AUTO_MONTH ? '이번 달 예상' : monthLabel(exp.month).replace(/^\d{4}년 /, '') + ' 예상') : '';
-  let head = '<div class="mile-row"><span class="mile-k">대한항공 마일리지</span>' + rate + '</div>';
+  const head = '<div class="mile-row"><span class="mile-k">대한항공 마일리지</span>' + rate + '</div>';
+  const num = n => fmt(n) + '<small>마일</small>';
   let mid, foot = '';
   if (mileEdit){
     mid = '<div class="mile-row"><div class="mile-edit">' +
         '<input id="mileInput" type="text" inputmode="numeric" autocomplete="off" value="' +
-          (has ? fmt(MILE.skypass) : '') + '" placeholder="보유 마일" aria-label="보유 마일리지">' +
+          (has ? fmt(MILE.skypass) : '') + '" placeholder="본인 마일" aria-label="본인 마일리지">' +
         '<span class="unit">마일</span>' +
         '<button class="btn primary sm" data-mileact="save">저장</button>' +
         '<button class="btn ghost sm" data-mileact="cancel">취소</button>' +
       '</div></div>';
   } else {
-    const val = has
-      ? '<button class="mile-val" id="mileVal" title="눌러서 보유 마일리지 입력">' + fmt(MILE.skypass) + '<small>마일</small></button>'
-      : '<button class="mile-val pending" id="mileVal" title="눌러서 보유 마일리지 입력">연동 대기</button>';
-    mid = '<div class="mile-row">' + val +
-      (exp ? '<span class="r mile-exp">' + esc(lab) + ' <b>+' + fmt(exp.miles) + '마일</b></span>' : '') + '</div>';
-    foot = '<div class="mile-row"><span class="mile-sub">' + esc(when) + (MILE.note ? ' · ' + esc(MILE.note) : '') + '</span>' +
-      (exp ? '<span class="r mile-basis">삼성·우리 ' + fmt(exp.spent) + '원</span>' : '') + '</div>';
-    /* 가족 마일리지 — data/mileage.json 의 familyTotal·familyMembers 가 있을 때만 한 줄 */
-    const fsum = mileFamilySum();
-    if (fsum != null){
-      const mem = MILE.familyMembers || [];
-      const names = mem.length
-        ? '<span class="r mile-fam-names" title="' + esc(mem.map(m=> m.name + ' ' + fmt(m.miles)).join(' · ')) + '">' +
-            esc(mem.map(m=> m.name + ' ' + fmt(m.miles)).join(' · ')) + '</span>'
-        : '';
-      foot += '<div class="mile-row mile-fam-row"><span class="mile-k">가족 합산</span>' +
-        '<span class="mile-fam">' + fmt(fsum) + '<small>마일</small></span>' + names + '</div>';
+    /* 본인·가족·총합 세 칸 — 본인 칸을 누르면 직접 수정(가족·총합은 그대로 둠) */
+    mid = '<div class="mile-cells">' +
+        '<button type="button" class="mile-cell own" id="mileVal" title="눌러서 본인 마일리지 입력">' +
+          '<span class="k">본인</span><span class="v">' + (has ? num(MILE.skypass) : '연동 대기') + '</span></button>' +
+        '<div class="mile-cell"><span class="k">가족</span><span class="v">' + num(family) + '</span></div>' +
+        '<div class="mile-cell total"><span class="k">총합</span><span class="v">' + num(total) + '</span></div>' +
+      '</div>';
+    foot = '<div class="mile-row">' +
+      (exp ? '<span class="mile-exp">' + esc(lab) + ' <b>+' + fmt(exp.miles) + '마일</b></span>' : '<span class="mile-sub"></span>') +
+      (exp ? '<span class="r mile-basis">삼성·우리 ' + fmt(exp.spent) + '원</span>' : '') + '</div>' +
+      '<div class="mile-row"><span class="mile-sub">' + esc(when) + (MILE.note ? ' · ' + esc(MILE.note) : '') + '</span></div>';
+    /* 가족 구성원별로는 이름과 마일을 한 줄로만 (가족 칸 위에 중복해 쓰지 않음) */
+    const mem = MILE.familyMembers || [];
+    if (mem.length){
+      const txt = mem.map(m=> m.name + ' ' + fmt(m.miles)).join(' · ');
+      foot += '<div class="mile-row mile-fam-row"><span class="mile-k">가족 구성원</span>' +
+        '<span class="r mile-fam-names" title="' + esc(txt) + '">' + esc(txt) + '</span></div>';
     }
   }
   box.innerHTML = head + mid + foot;
@@ -2466,8 +2484,10 @@ $('#mileCard').addEventListener('click', ev=>{
       const raw = $('#mileInput') ? $('#mileInput').value : '';
       if (!String(raw).replace(/[^0-9]/g, '')){ toast('보유 마일리지를 숫자로 입력해 주세요'); return; }
       const v = Number(String(raw).replace(/[^0-9]/g, ''));
-      MILE = {skypass: Math.max(0, Math.round(v)), updatedAt: new Date().toISOString(),
-              source:'manual', note: MILE.note || ''};
+      MILE.skypass = Math.max(0, Math.round(v));
+      MILE.updatedAt = new Date().toISOString();
+      MILE.source = 'manual';
+      MILE.note = MILE.note || '';
       mileageSave(); mileEdit = false; renderMileage();
       toast('대한항공 마일리지 ' + fmt(MILE.skypass) + '마일로 저장했습니다');
       return;
