@@ -261,6 +261,14 @@ button.lim-item:active{transform:scale(.99)}
 .detail-filters .chips{gap:5px}
 .detail-filters .chip{padding:4px 10px;font-size:12px}
 .detail-filters .chips .lbl{font-size:11.5px;min-width:33px}
+/* 상세 내역 필터 합계 — 필터를 통과해 리스트에 뜬 내역 전체의 금액 합(취소 포함 순합계)과 건수 */
+.detail-sum{display:flex;align-items:baseline;gap:6px;width:fit-content;max-width:calc(100% - 32px);margin:0 16px 10px;
+  padding:6px 11px;border-radius:11px;background:#f6f8fc;border:1px solid #e8edf6;font-variant-numeric:tabular-nums}
+.detail-sum .lbl{font-size:11.5px;color:var(--muted);font-weight:650;white-space:nowrap}
+.detail-sum .v{font-size:15.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em;line-height:1.2}
+.detail-sum .v small{font-size:11.5px;font-weight:700;color:var(--ink2);margin-left:1px;letter-spacing:0}
+.detail-sum .n{font-size:12px;color:var(--ink2);font-weight:650;white-space:nowrap;padding-left:3px}
+.detail-sum .n b{font-weight:800;color:var(--ink)}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 thead th{
@@ -547,6 +555,8 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .aline-chip{padding:3px 9px 3px 7px;font-size:11.5px;min-height:26px}
   .aline-all{font-size:11px;min-height:26px;padding:3px 9px}
   .detail-filters{padding:0 12px 9px;gap:6px}
+  .detail-sum{margin:0 12px 9px;padding:6px 10px;max-width:calc(100% - 24px)}
+  .detail-sum .v{font-size:15px}
   .detail-search{padding:9px 12px 8px}
   .detail-filters .chip{padding:3px 8px;font-size:11.5px}
   .catbtn{font-size:12px;padding:4px 8px;max-width:120px}
@@ -621,6 +631,13 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 .mile-edit input:focus{border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
 .mile-edit .unit{font-size:12px;color:var(--muted);font-weight:600;margin-left:-2px}
 .mile-edit .btn.sm{padding:5px 10px;font-size:12.5px;border-radius:9px}
+/* 가족 마일리지 한 줄 — 구성원 이름·마일은 넘치면 … 처리해 가로 넘침을 막습니다 */
+.mile-fam-row{padding-top:2px;border-top:1px solid var(--line2);margin-top:4px;gap:4px 8px;flex-wrap:nowrap;min-width:0}
+.mile-fam{display:inline-flex;align-items:baseline;gap:3px;font-size:14px;font-weight:750;color:var(--ink);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.mile-fam small{font-size:11.5px;font-weight:700;color:var(--ink2);letter-spacing:0}
+.mile-fam-names{margin-left:auto;min-width:0;font-size:11.5px;color:var(--muted);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -679,6 +696,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 
   <section class="card sumstrip" id="kpis"></section>
 
+  <section class="card mile-card" id="mileCard" aria-label="대한항공 마일리지">
+    <div class="mile-in" id="mileIn"></div>
+  </section>
+
   <section class="charts">
     <div class="card chart-card">
       <div class="card-head">
@@ -723,10 +744,6 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
     </div>
   </section>
 
-  <section class="card mile-card" id="mileCard" aria-label="대한항공 마일리지">
-    <div class="mile-in" id="mileIn"></div>
-  </section>
-
   <section class="card table-card">
     <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
@@ -743,6 +760,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <div class="chips" id="cardChipsDetail"></div>
       <div class="chips" id="catChipsDetail"></div>
     </div>
+    <div class="detail-sum hidden" id="detailSum" aria-live="polite"></div>
     <div class="table-scroll">
       <table id="table">
         <thead>
@@ -829,7 +847,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
    카드 가계부 대시보드 — 단일 파일 / 오프라인 동작
    초기 데이터(SEED)는 아래에 내장. 차트는 순수 SVG로 직접 그림.
    ============================================================ */
-const SEED = {"version":"1.0","rows":[],"categories":[{"name":"생활비","color":"#3b82f6"},{"name":"용돈","color":"#f59e0b"},{"name":"기타","color":"#94a3b8"},{"name":"주유·충전","color":"#10b981"},{"name":"하이패스·통행료","color":"#06b6d4"},{"name":"보험료","color":"#8b5cf6"},{"name":"생활공과금","color":"#f43f5e"}],"rules":[{"category":"주유·충전","keywords":["주유소","주유","충전소","가스충전","전기차충전","EV충전","S-OIL","에쓰오일","GS칼텍스","SK에너지","오일뱅크","한국전력"],"min":null,"max":null},{"category":"하이패스·통행료","keywords":["하이패스","통행료","톨게이트","한국도로공사"],"min":null,"max":null},{"category":"보험료","keywords":["보험"],"min":null,"max":null},{"category":"생활공과금","keywords":["통신요금","유선상품","인터넷","브로드밴드","Netflix","넷플릭스","멤버십","렌탈","정수기","도시가스","전기요금","수도요금","관리비"],"min":null,"max":null},{"category":"기타","keywords":["지방세","국세","관세","세금","지자체세입금"],"min":null,"max":null},{"category":"기타","keywords":["이마트","홈플러스","코스트코","하나로마트","SSG","로켓프레시"],"min":100000,"max":null},{"category":"용돈","keywords":["CU","씨유","GS25","지에스25","세븐일레븐","이마트24","편의점"],"min":null,"max":10000},{"category":"생활비","keywords":["CU","씨유","GS25","지에스25","세븐일레븐","이마트24","편의점"],"min":12000,"max":null},{"category":"용돈","keywords":["주차","파크"],"min":null,"max":null},{"category":"용돈","keywords":["티머니","버스","지하철"],"min":null,"max":null},{"category":"용돈","keywords":["PC방","구글플레이","게임","도서","서점"],"min":null,"max":null},{"category":"생활비","keywords":["쿠팡"],"min":null,"max":99999},{"category":"기타","keywords":["쿠팡"],"min":100000,"max":null},{"category":"생활비","keywords":["식당","음식점","카페","커피","스타벅스","투썸","메가커피","이디야","빽다방","베이커리","파리바게뜨","김밥","치킨","피자","분식","약국","마트","배달","요기요","배민","우아한형제들","쿠팡이츠"],"min":null,"max":null}],"dueDates":{}};
+const SEED = {"version":"1.0","rows":[],"categories":[{"name":"생활비","color":"#3b82f6"},{"name":"용돈","color":"#f59e0b"},{"name":"기타","color":"#94a3b8"},{"name":"주유·충전","color":"#10b981"},{"name":"하이패스/세차","color":"#06b6d4"},{"name":"보험료","color":"#8b5cf6"},{"name":"생활공과금","color":"#f43f5e"}],"rules":[{"category":"주유·충전","keywords":["주유소","주유","충전소","가스충전","전기차충전","EV충전","S-OIL","에쓰오일","GS칼텍스","SK에너지","오일뱅크","한국전력"],"min":null,"max":null},{"category":"하이패스/세차","keywords":["하이패스","통행료","톨게이트","한국도로공사","세차","세차장"],"min":null,"max":null},{"category":"보험료","keywords":["보험"],"min":null,"max":null},{"category":"생활공과금","keywords":["통신요금","유선상품","인터넷","브로드밴드","Netflix","넷플릭스","멤버십","렌탈","정수기","도시가스","전기요금","수도요금","관리비"],"min":null,"max":null},{"category":"기타","keywords":["지방세","국세","관세","세금","지자체세입금"],"min":null,"max":null},{"category":"기타","keywords":["이마트","홈플러스","코스트코","하나로마트","SSG","로켓프레시"],"min":100000,"max":null},{"category":"용돈","keywords":["CU","씨유","GS25","지에스25","세븐일레븐","이마트24","편의점"],"min":null,"max":10000},{"category":"생활비","keywords":["CU","씨유","GS25","지에스25","세븐일레븐","이마트24","편의점"],"min":12000,"max":null},{"category":"용돈","keywords":["주차","파크"],"min":null,"max":null},{"category":"용돈","keywords":["티머니","버스","지하철"],"min":null,"max":null},{"category":"용돈","keywords":["PC방","구글플레이","게임","도서","서점"],"min":null,"max":null},{"category":"생활비","keywords":["쿠팡"],"min":null,"max":99999},{"category":"기타","keywords":["쿠팡"],"min":100000,"max":null},{"category":"생활비","keywords":["식당","음식점","카페","커피","스타벅스","투썸","메가커피","이디야","빽다방","베이커리","파리바게뜨","김밥","치킨","피자","분식","약국","마트","배달","요기요","배민","우아한형제들","쿠팡이츠"],"min":null,"max":null}],"dueDates":{}};
 const PUBLIC_BUILD = true;
 const DEFAULT_SYNC_URLS = [];
 
@@ -903,6 +921,23 @@ function seedState(){
 }
 let S = seedState();
 let F = { month:'all', monthUser:false, cards:[], categories:[], q:'', date:null };
+
+/* 분류 이름 바꿈 — 저장값에 남아 있는 예전 이름을 새 이름으로 옮깁니다.
+   '하이패스' → '하이패스/세차' (공용 기본 시드의 '하이패스·통행료' 도 같은 뜻이라 함께 옮깁니다).
+   색상은 분류 객체에 함께 들어 있어 이름만 바꾸면 그대로 따릅니다. */
+const CAT_RENAMES = {'하이패스':'하이패스/세차', '하이패스·통행료':'하이패스/세차'};
+function migrateCategoryNames(){
+  const map = n => (typeof n === 'string' && CAT_RENAMES[n]) ? CAT_RENAMES[n] : n;
+  let changed = false;
+  S.rows.forEach(r=>{ const n = map(r.category); if (n !== r.category){ r.category = n; changed = true; } });
+  S.categories.forEach(c=>{ const n = map(c.name); if (n !== c.name){ c.name = n; changed = true; } });
+  S.rules.forEach(r=>{ const n = map(r.category); if (n !== r.category){ r.category = n; changed = true; } });
+  // 이름이 같아진 분류가 둘이면 하나만 남깁니다 (머리에 있는 것 = 사용자가 고른 색)
+  const seen = new Set();
+  S.categories = S.categories.filter(c=>{ if (seen.has(c.name)) return false; seen.add(c.name); return true; });
+  if (changed && F && Array.isArray(F.categories)) F.categories = F.categories.map(map);
+  return changed;
+}
 let LS_OK = true;
 
 function saveState(){
@@ -931,6 +966,7 @@ function loadState(){
     if(p.ui && p.ui.year) S.ui.year = p.ui.year;
     if(p.ui && Array.isArray(p.ui.annualOff)) S.ui.annualOff = p.ui.annualOff.slice();
   } catch(e){ /* ignore broken storage */ }
+  migrateCategoryNames();
 }
 
 /* ---------- 카드별 월 한도 (localStorage 전용 — 동기화 토큰은 읽기 전용) ---------- */
@@ -971,16 +1007,30 @@ const parseLimit = s => {
 const MILE_KEY = LS_KEY + '.mileage';
 const MILE_CARDS = ['삼성카드', '우리카드'];   /* 예상 적립 계산 대상 — 삼성 + 우리 */
 const MILE_RATE = 1000;                        /* 1,000원당 1마일 (참고치) */
-let MILE = {skypass:null, updatedAt:null, source:'', note:''};
+const MILE_EMPTY = () => ({skypass:null, familyTotal:null, familyMembers:[], updatedAt:null, source:'', note:''});
+let MILE = MILE_EMPTY();
 let mileEdit = false;
+/* 가족 구성원 목록 — 이름은 짧게, 마일은 0 이상 정수만 */
+function mileFamily(raw){
+  const out = [];
+  (Array.isArray(raw) ? raw : []).forEach(m=>{
+    if (!m || !isFinite(+m.miles)) return;
+    const nm = String(m.name || '').trim().slice(0, 10);
+    if (!nm) return;
+    out.push({name:nm, miles:Math.max(0, Math.round(+m.miles))});
+  });
+  return out.slice(0, 6);
+}
 function mileageLoad(){
-  MILE = {skypass:null, updatedAt:null, source:'', note:''};
+  MILE = MILE_EMPTY();
   try {
     const raw = localStorage.getItem(MILE_KEY);
     if (!raw) return;
     const p = JSON.parse(raw);
     if (!p || typeof p !== 'object') return;
     if (p.skypass != null && isFinite(+p.skypass)) MILE.skypass = Math.max(0, Math.round(+p.skypass));
+    if (p.familyTotal != null && isFinite(+p.familyTotal)) MILE.familyTotal = Math.max(0, Math.round(+p.familyTotal));
+    MILE.familyMembers = mileFamily(p.familyMembers);
     MILE.updatedAt = p.updatedAt || null;
     MILE.source = p.source || '';
     MILE.note = p.note || '';
@@ -994,14 +1044,31 @@ function mileageApply(payload){
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
   const p = (payload.skypass == null && payload.mileage && typeof payload.mileage === 'object') ? payload.mileage : payload;
   const v = p.skypass != null ? p.skypass : (p.miles != null ? p.miles : null);
-  if (v == null || !isFinite(+v)) return false;
+  const fam = mileFamily(p.familyMembers);
+  const famTotal = (p.familyTotal != null && isFinite(+p.familyTotal)) ? Math.max(0, Math.round(+p.familyTotal)) : null;
+  if ((v == null || !isFinite(+v)) && !fam.length && famTotal == null) return false;   /* 마일 값이 아예 없는 파일 */
   const inc = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
   const cur = MILE.updatedAt ? new Date(MILE.updatedAt).getTime() : 0;
   if (MILE.skypass != null && cur && (!inc || inc < cur)) return false;   /* 더 오래된 값은 두고 봅니다 */
-  MILE = {skypass: Math.max(0, Math.round(+v)), updatedAt: p.updatedAt || new Date().toISOString(),
+  const skypass = (v != null && isFinite(+v)) ? Math.max(0, Math.round(+v)) : MILE.skypass;
+  MILE = {skypass: skypass,
+          familyTotal: famTotal != null ? famTotal : (fam.length ? null : MILE.familyTotal),
+          familyMembers: (fam.length || famTotal != null) ? fam : MILE.familyMembers,
+          updatedAt: p.updatedAt || new Date().toISOString(),
           source: p.source || 'sync', note: p.note || ''};
   mileageSave();
   return true;
+}
+/* 가족 합산 — familyTotal 이 있으면 그 값을, 없으면 구성원 합계를 씁니다.
+   0 이거나 비어 있으면 '아직 없음'으로 보고 아예 표시하지 않습니다. */
+function mileFamilySum(){
+  const mem = MILE.familyMembers || [];
+  if (MILE.familyTotal != null && MILE.familyTotal > 0) return MILE.familyTotal;
+  if (mem.length){
+    const s = mem.reduce((a,m)=> a + (+m.miles || 0), 0);
+    if (s > 0) return s;
+  }
+  return null;
 }
 /* 고른 달의 삼성·우리 사용액으로 계산한 예상 적립 (참고치) */
 function mileageExpected(){
@@ -1039,6 +1106,17 @@ function renderMileage(){
       (exp ? '<span class="r mile-exp">' + esc(lab) + ' <b>+' + fmt(exp.miles) + '마일</b></span>' : '') + '</div>';
     foot = '<div class="mile-row"><span class="mile-sub">' + esc(when) + (MILE.note ? ' · ' + esc(MILE.note) : '') + '</span>' +
       (exp ? '<span class="r mile-basis">삼성·우리 ' + fmt(exp.spent) + '원</span>' : '') + '</div>';
+    /* 가족 마일리지 — data/mileage.json 의 familyTotal·familyMembers 가 있을 때만 한 줄 */
+    const fsum = mileFamilySum();
+    if (fsum != null){
+      const mem = MILE.familyMembers || [];
+      const names = mem.length
+        ? '<span class="r mile-fam-names" title="' + esc(mem.map(m=> m.name + ' ' + fmt(m.miles)).join(' · ')) + '">' +
+            esc(mem.map(m=> m.name + ' ' + fmt(m.miles)).join(' · ')) + '</span>'
+        : '';
+      foot += '<div class="mile-row mile-fam-row"><span class="mile-k">가족 합산</span>' +
+        '<span class="mile-fam">' + fmt(fsum) + '<small>마일</small></span>' + names + '</div>';
+    }
   }
   box.innerHTML = head + mid + foot;
   if (mileEdit){
@@ -2111,8 +2189,21 @@ function sortRows(rows){
     return (b.amount - a.amount) * dir;
   });
 }
+/* 상세 내역 필터 합계 — 지금 적용된 필터(월·카드사·분류·날짜·검색)를 통과한 내역 전체의
+   금액 합과 건수. 취소(음수) 금액도 그대로 더한 순합계입니다. 필터를 바꾸면 renderAll → 여기로 다시 들어옵니다. */
+function renderDetailSum(rows){
+  const box = $('#detailSum');
+  if (!box) return;
+  if (!S.rows.length){ box.classList.add('hidden'); box.innerHTML = ''; return; }
+  const total = rows.reduce((s, r)=> s + (+r.amount || 0), 0);
+  box.innerHTML = '<span class="lbl">합계</span>'+
+    '<span class="v">'+fmt(total)+'<small>원</small></span>'+
+    '<span class="n">· 총 <b>'+fmt(rows.length)+'</b>건</span>';
+  box.classList.remove('hidden');
+}
 function renderTable(rows, sum){
   const tbody = $('#tbody');
+  renderDetailSum(rows);
   if (!S.rows.length){
     tbody.innerHTML = '<tr><td colspan="5"><div class="empty">아직 내역이 없습니다.<br><b>⚙ 설정 → 데이터</b>에서 엑셀(.xlsx)이나 CSV를 올려 시작하세요.</div></td></tr>';
     $('#tableFoot').innerHTML = '';
@@ -2122,7 +2213,7 @@ function renderTable(rows, sum){
   if (!rows.length){
     tbody.innerHTML = '<tr><td colspan="5"><div class="empty">필터에 맞는 내역이 없습니다.<br>위의 필터를 풀어보세요.</div></td></tr>';
     $('#tableFoot').innerHTML = '<span class="muted">0건</span>';
-    $('#tableHint').textContent = '0건';
+    $('#tableHint').textContent = '';
     return;
   }
   const sorted = sortRows(rows);
@@ -2151,9 +2242,8 @@ function renderTable(rows, sum){
   if (F.categories.length) fbits.push('분류 ' + F.categories.join('·'));
   if (F.date) fbits.push(dMD(F.date));
   if (F.q) fbits.push('검색 ' + F.q);
-  $('#tableHint').textContent = fbits.length
-    ? fbits.join(' · ') + ' — ' + fmt(sorted.length) + '건 ' + fmt(sum.total) + '원'
-    : '';
+  // 금액 합계·건수는 필터 칩 아래 합계 줄(#detailSum)이 맡고, 헤더 힌트는 어떤 필터인지까지만 적습니다.
+  $('#tableHint').textContent = fbits.length ? fbits.join(' · ') : '';
   $('#tableFoot').innerHTML =
     '<span>표시 <b>'+fmt(view.length)+'</b> / '+fmt(sorted.length)+'건</span>'+
     '<span class="spacer"></span>'+
@@ -3036,12 +3126,18 @@ function bindDataTab(){
             Object.keys(p.limits).forEach(c=>{ const v = Math.round(+p.limits[c]||0); if (v >= 0) LIMITS[c] = v; });
             saveLimits();
           }
-          if (p.mileage && typeof p.mileage === 'object' && p.mileage.skypass != null && isFinite(+p.mileage.skypass)){
-            MILE = {skypass: Math.max(0, Math.round(+p.mileage.skypass)), updatedAt: p.mileage.updatedAt || null,
-                    source: p.mileage.source || 'manual', note: p.mileage.note || ''};
+          if (p.mileage && typeof p.mileage === 'object'){
+            MILE = MILE_EMPTY();
+            if (p.mileage.skypass != null && isFinite(+p.mileage.skypass)) MILE.skypass = Math.max(0, Math.round(+p.mileage.skypass));
+            if (p.mileage.familyTotal != null && isFinite(+p.mileage.familyTotal)) MILE.familyTotal = Math.max(0, Math.round(+p.mileage.familyTotal));
+            MILE.familyMembers = mileFamily(p.mileage.familyMembers);
+            MILE.updatedAt = p.mileage.updatedAt || null;
+            MILE.source = p.mileage.source || 'manual';
+            MILE.note = p.mileage.note || '';
             mileageSave();
           }
           S.mode = S.rows.length ? 'mine' : 'empty';
+          migrateCategoryNames();
           saveState(); renderAll(); closeModal(); toast('백업을 복원했습니다');
         }, false);
       } catch(e){ toast('백업 파일을 읽지 못했습니다: ' + e.message); }
@@ -3052,7 +3148,7 @@ function bindDataTab(){
     askConfirm('저장된 자료를 지울까요?', '이 브라우저의 자동 저장(localStorage)과 화면 자료를 지우고 빈 가계부로 돌아갑니다. 카드별 한도도 함께 지워집니다. CSV 백업을 먼저 받아두세요.', '지우기', ()=>{
       try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); } catch(e){}
       LIMITS = {}; limitEdit = null; FB_AI = null; FB_AI_OFF = null;
-      MILE = {skypass:null, updatedAt:null, source:'', note:''}; mileEdit = false;
+      MILE = MILE_EMPTY(); mileEdit = false;
       S = blankState(true); F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
       saveState(); renderAll(); closeModal(); toast('저장된 자료를 지웠습니다');
     });
@@ -3064,6 +3160,7 @@ function bindDataTab(){
     S.rows = p.rows; S.mode = 'mine';
     if (p.dueDates) S.dueDates = p.dueDates;
     F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
+    migrateCategoryNames();
     saveState(); renderAll(); pendingImport = null; closeModal();
     toast(fmt(p.rows.length) + '건으로 시작합니다');
   });
@@ -3079,6 +3176,7 @@ function bindDataTab(){
       S.rows.push(r); added++;
     });
     S.mode = 'mine';
+    migrateCategoryNames();
     saveState(); renderAll(); pendingImport = null; closeModal();
     toast(added + '건을 추가했습니다' + (p.rows.length - added ? ' (' + (p.rows.length-added) + '건은 중복)' : ''));
   });
@@ -3547,6 +3645,7 @@ function mergePayload(payload, stats){
     Object.keys(payload.dueDates).forEach(m=>{ S.dueDates[m] = Object.assign({}, S.dueDates[m] || {}, payload.dueDates[m]); });
   }
   if (payload && Array.isArray(payload.rules) && payload.rules.length) S.rules = payload.rules;
+  migrateCategoryNames();   /* 동기화 JSON의 예전 분류 이름도 새 이름으로 */
 }
 async function runSync(quiet){
   if (!SYNC.urls.length){
@@ -4155,6 +4254,7 @@ document.addEventListener('keydown', ev=>{
   mileageLoad();
   loadAiConfig();
   loadSyncConfig();
+  migrateCategoryNames();   /* 엑셀 시드에 남은 예전 분류 이름도 새 이름으로 */
   if (PUBLIC_BUILD){
     const seg = $('#modeSeg'); if (seg) seg.style.display = 'none';
     S.mode = S.rows.length ? 'mine' : 'empty';
