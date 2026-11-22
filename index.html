@@ -112,10 +112,10 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .sum-block .side{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);font-weight:600;padding-bottom:3px}
 .sum-block .side b{font-weight:750;color:var(--ink)}
 .sum-block .s-sub{font-size:11.8px;color:var(--muted);font-weight:500}
-.sum-block .side .rem-lim{padding:1px 8px;border-radius:8px;background:#f3f7ff;color:#26406e}
-.sum-block .side .rem-lim b{color:#1d4ed8}
-.sum-block .side .rem-lim.over{background:#fff4f3}
-.sum-block .side .rem-lim.over b{color:var(--danger)}
+/* 전체 남은 한도 — 카드별 한도 타일(.lim-item)과 같은 모양·색·두께의 진행바 */
+.sum-block .all-lim{background:#fff;border-color:#e1e8f5}
+.sum-block .all-lim .top .nm{color:var(--ink2)}
+.sum-block .all-lim .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- filters ---------- */
 .filters{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
@@ -1852,11 +1852,25 @@ function renderKpis(rows, sum){
   subs.push('카드 ' + cards.length + '곳');
   if (dueSet.length) subs.push('결제일 ' + dueSet.slice(0,3).join('·'));
 
-  /* 전체 남은 한도 — 한도가 설정된 카드의 (한도 합 − 그 카드들 사용액) */
+  /* 전체 남은 한도 — 한도가 설정된 카드들의 (한도 합 − 사용액 합) + 사용률 진행바 */
   const lctx = limitContext();
   const limited = limitCards().filter(c=> limitOf(c) > 0);
-  const remLim = limited.length
-    ? limited.reduce((a,c)=> a + limitOf(c) - (lctx.spent.get(c) || 0), 0) : null;
+  const limSum = limited.reduce((a,c)=> a + limitOf(c), 0);
+  const usedSum = limited.reduce((a,c)=> a + (lctx.spent.get(c) || 0), 0);
+  const remLim = limited.length ? limSum - usedSum : null;
+  const limOver = remLim != null && remLim < 0;
+  const limRate = limSum ? usedSum / limSum * 100 : 0;               /* 실제 사용률 — 100을 넘으면 초과 */
+  const limBar = Math.min(100, Math.max(0, limRate));                /* 막대 폭 */
+  const limNear = remLim != null && !limOver && limRate >= 90;
+  const totalLimitTile = remLim == null ? '' :
+    '<div class="lim-item all-lim'+(limOver ? ' over' : (limNear ? ' near' : ''))+'" '+
+      'title="한도가 설정된 카드 '+limited.length+'곳의 사용액 합 기준">'+
+      '<span class="top"><span class="nm">전체 남은 한도</span>'+
+        '<span class="use'+(usedSum ? '' : ' zero')+'">'+fmt(usedSum)+'원</span></span>'+
+      '<span class="rem">'+(limOver ? '−' : '')+fmt(Math.abs(remLim))+'<small>원 '+(limOver ? '초과' : '남음')+'</small></span>'+
+      '<span class="bar"><i style="width:'+limBar+'%"></i></span>'+
+      '<span class="meta">한도 '+shortKrw(limSum)+' · '+pctTxt(usedSum, limSum)+' 사용</span>'+
+    '</div>';
   el.innerHTML =
     '<div class="s-row">'+
       '<div class="s-main">'+
@@ -1864,12 +1878,11 @@ function renderKpis(rows, sum){
         '<div class="v">'+fmt(sum.total)+'<small>원</small></div>'+
       '</div>'+
       '<div class="side">'+
-        (remLim != null ? '<span class="rem-lim'+(remLim < 0 ? ' over' : '')+'">남은 한도 <b>'+
-          (remLim < 0 ? '−' : '')+fmt(Math.abs(remLim))+'</b>원</span>' : '')+
         '<span><b>'+fmt(sum.count)+'</b>건</span>'+
         '<span>건당 <b>'+fmt(Math.round(sum.avgPerItem))+'</b>원</span>'+
       '</div>'+
     '</div>'+
+    totalLimitTile+
     '<div class="s-sub">'+esc(subs.join(' · '))+'</div>';
 }
 
