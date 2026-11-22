@@ -333,26 +333,38 @@ td.cat{white-space:nowrap}
 .capcardhint{margin:6px 0 0;font-size:11.8px;color:var(--ink2);line-height:1.5}
 .table-foot{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap;font-size:13px;color:var(--ink2)}
 .table-foot .spacer{margin-left:auto}
-/* ---------- 상세 내역 · 삭제 모드 (2026-11-22) ---------- */
+/* ---------- 상세 내역 · 편집 모드 (2026-11-22) ---------- */
 .table-card .card-head .head-actions{display:flex;gap:6px;flex:none}
-#btnDelMode.ondel{background:#fff1f1;border-color:#f0c4c6;color:var(--danger)}
-#btnDelMode.ondel:hover{background:#ffe8e9}
+#btnEditMode.onedit{background:#eef4ff;border-color:#c4d6f8;color:#1d4ed8}
+#btnEditMode.onedit:hover{background:#e3edff}
 th.sel,td.sel{display:none}
-body.delmode th.sel,body.delmode td.sel{display:table-cell;width:30px;padding:9px 0 9px 14px;vertical-align:middle}
-body.delmode th.sel{padding:10px 0 10px 14px}
-td.sel input{display:block;width:18px;height:18px;margin:0;accent-color:var(--accent);cursor:pointer}
-body.delmode tbody tr{cursor:pointer}
-body.delmode tbody tr:hover{background:#f7faff}
-body.delmode tbody tr.sel-on{background:#f1f6ff}
-body.delmode tbody tr.sel-on:hover{background:#e9f1ff}
-body.delmode tbody tr .catbtn{pointer-events:none;opacity:.62}
+body.editmode th.sel,body.editmode td.sel{display:table-cell;width:1%;white-space:nowrap;padding:9px 0 9px 12px;vertical-align:middle}
+body.editmode th.sel{padding:10px 0 10px 12px}
+.selwrap{display:flex;align-items:center;gap:7px}
+td.sel input{display:block;width:18px;height:18px;margin:0;flex:none;accent-color:var(--accent);cursor:pointer}
+/* 드래그 핸들 — 편집 모드에서만 보이고, 이 핸들에서만 드래그가 시작됩니다(화면 스크롤과 충돌 없음) */
+.grip{display:none}
+body.editmode .grip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:28px;flex:none;
+  border-radius:6px;color:#b3bbc8;cursor:grab;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.editmode .grip svg{display:block;pointer-events:none}
+body.editmode .grip:hover{background:#eef2f8;color:#8b93a1}
+body.editmode .grip:active{cursor:grabbing;color:#1d4ed8;background:#eaf1ff}
+body.dragactive{-webkit-user-select:none;user-select:none;cursor:grabbing}
+body.editmode tbody tr{cursor:pointer}
+body.editmode tbody tr:hover{background:#f7faff}
+body.editmode tbody tr.sel-on{background:#f1f6ff}
+body.editmode tbody tr.sel-on:hover{background:#e9f1ff}
+body.editmode tbody tr .catbtn{pointer-events:none;opacity:.62}
+body.editmode tbody tr.dragging{background:#fff;box-shadow:0 10px 24px rgba(17,24,39,.16);position:relative;z-index:3}
+body.editmode tbody tr.dragging td{border-bottom-color:transparent}
 .qdel{border:0;background:transparent;padding:2px 4px;margin-left:5px;font-size:12.5px;line-height:1;color:var(--muted);border-radius:7px;vertical-align:middle}
 .qdel:hover{background:#fff1f1;color:var(--danger)}
-.delbar{display:flex;align-items:center;gap:7px;margin:0 16px 10px;padding:6px 10px;border-radius:12px;background:#fff7f7;border:1px solid #f6d9da;flex-wrap:wrap}
-.delbar .cnt{font-size:12.5px;font-weight:650;color:#8a5052;white-space:nowrap}
-.delbar .cnt b{font-weight:800;color:var(--danger);font-variant-numeric:tabular-nums}
-.delbar .btn{padding:5px 10px;font-size:12.5px;border-radius:9px}
-.delbar .spacer{margin-left:auto}
+.editbar{display:flex;align-items:center;gap:7px;margin:0 16px 10px;padding:6px 10px;border-radius:12px;background:#f5f8ff;border:1px solid #dce7fa;flex-wrap:wrap}
+.editbar .cnt{font-size:12.5px;font-weight:650;color:#3c4a63;white-space:nowrap}
+.editbar .cnt b{font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.editbar .btn{padding:5px 10px;font-size:12.5px;border-radius:9px}
+.editbar .spacer{margin-left:auto}
 
 /* ---------- tooltip / toast ---------- */
 .tooltip{
@@ -644,14 +656,16 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .table-card .card-head h2{grid-column:1;grid-row:1}
   .table-card .card-head .head-actions{grid-column:2;grid-row:1;justify-self:end}
   .table-card .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0;text-align:left;line-height:1.4}
-  /* 삭제 모드: 행 왼쪽에 선택 칸, 오른쪽 위에 바로 삭제 */
-  body.delmode tbody tr{grid-template-columns:26px auto auto 1fr auto;
+  /* 편집 모드: 행 왼쪽에 드래그 핸들 + 선택 칸, 오른쪽 위에 바로 삭제 */
+  body.editmode tbody tr{grid-template-columns:auto auto auto 1fr auto;
     grid-template-areas:"s n n n a" "s d k c c"}
-  body.delmode td.sel{grid-area:s;align-self:center;padding:0}
-  body.delmode td.sel input{width:19px;height:19px}
-  .delbar{margin:0 12px 9px;padding:6px 8px;gap:5px}
-  .delbar .cnt{font-size:12px}
-  .delbar .btn{padding:5px 9px;font-size:12px}
+  body.editmode td.sel{grid-area:s;align-self:center;padding:0 2px 0 0}
+  body.editmode .selwrap{gap:5px}
+  body.editmode td.sel input{width:19px;height:19px}
+  body.editmode .grip{width:15px;height:30px;font-size:14px}
+  .editbar{margin:0 12px 9px;padding:6px 8px;gap:5px}
+  .editbar .cnt{font-size:12px}
+  .editbar .btn{padding:5px 9px;font-size:12px}
 }
 @media (max-width:520px){
   .seg button{padding:4px 7px;font-size:12px}
@@ -847,7 +861,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <span class="hint" id="tableHint"></span>
       <div class="head-actions">
         <button class="btn" id="btnCapture2" style="padding:5px 10px;font-size:12.5px" title="카드 사용내역 캡처 이미지로 내역 추가">📸 캡처로 추가</button>
-        <button class="btn" id="btnDelMode" style="padding:5px 10px;font-size:12.5px" title="잘못 들어갔거나 중복된 내역을 골라 지웁니다">삭제 모드</button>
+        <button class="btn" id="btnEditMode" style="padding:5px 10px;font-size:12.5px" title="행을 끌어 순서를 바꾸거나, 골라서 지웁니다">편집 모드</button>
       </div>
     </div>
     <div class="detail-search">
@@ -861,8 +875,8 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <div class="chips" id="catChipsDetail"></div>
     </div>
     <div class="detail-sum hidden" id="detailSum" aria-live="polite"></div>
-    <div class="delbar hidden" id="delBar" aria-live="polite">
-      <span class="cnt" id="delCount"><b>0</b>건 선택</span>
+    <div class="editbar hidden" id="editBar" aria-live="polite">
+      <span class="cnt" id="editCount"><b>0</b>건 선택</span>
       <button type="button" class="btn danger" id="btnSelDel" disabled>선택 삭제</button>
       <button type="button" class="btn ghost" id="btnSelAll">전체 선택</button>
       <span class="spacer"></span>
@@ -1052,7 +1066,8 @@ function saveState(){
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       v:1, mode:S.mode, rows:S.rows, categories:S.categories, rules:S.rules,
-      dueDates:S.dueDates, ui:{barMode:S.ui.barMode, year:S.ui.year, annualOff:(S.ui.annualOff||[])},
+      dueDates:S.dueDates, ui:{barMode:S.ui.barMode, year:S.ui.year, annualOff:(S.ui.annualOff||[]),
+        sortKey:S.ui.sortKey, sortDir:S.ui.sortDir},
       savedAt:new Date().toISOString()
     }));
   } catch(e){ LS_OK = false; }
@@ -1073,6 +1088,8 @@ function loadState(){
     if(p.ui && p.ui.barMode) S.ui.barMode = p.ui.barMode;
     if(p.ui && p.ui.year) S.ui.year = p.ui.year;
     if(p.ui && Array.isArray(p.ui.annualOff)) S.ui.annualOff = p.ui.annualOff.slice();
+    if(p.ui && typeof p.ui.sortKey === 'string' && p.ui.sortKey) S.ui.sortKey = p.ui.sortKey;
+    if(p.ui && (p.ui.sortDir === 'asc' || p.ui.sortDir === 'desc')) S.ui.sortDir = p.ui.sortDir;
   } catch(e){ /* ignore broken storage */ }
   migrateCategoryNames();
 }
@@ -2606,6 +2623,18 @@ function renderTrend(rows, sum){
    TABLE
    ============================================================ */
 function sortRows(rows){
+  /* 편집 모드에서 끌어 정한 순서(manual) — 그 달 안에서 order 값 순서대로, 결제월은 최근 달부터 */
+  if (S.ui.sortKey === 'manual'){
+    const ord = r => hasOrder(r) ? r.order : Number.MAX_SAFE_INTEGER;
+    return rows.slice().sort((a,b)=>{
+      const ma = String(a.month || ''), mb = String(b.month || '');
+      if (ma !== mb) return ma < mb ? 1 : -1;
+      const oa = ord(a), ob = ord(b);
+      if (oa !== ob) return oa - ob;
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.amount - a.amount;
+    });
+  }
   const k = S.ui.sortKey, dir = S.ui.sortDir === 'asc' ? 1 : -1;
   return rows.slice().sort((a,b)=>{
     if (k === 'amount') return (a.amount - b.amount) * dir;
@@ -2629,20 +2658,20 @@ function renderDetailSum(rows){
 function renderTable(rows, sum){
   const tbody = $('#tbody');
   renderDetailSum(rows);
-  if (DELMODE){
+  if (EDITMODE){
     /* 지금 필터에 없는(가려진) 내역은 선택에서 빼 둡니다 */
     const live = new Set(rows.map(r=> r.id));
     Array.from(SELROWS).forEach(id=>{ if (!live.has(id)) SELROWS.delete(id); });
   }
-  renderDelBar(rows.length);
+  renderEditBar(rows.length);
   if (!S.rows.length){
-    tbody.innerHTML = '<tr class="emptyrow"><td colspan="'+(DELMODE?6:5)+'"><div class="empty">아직 내역이 없습니다.<br><b>⚙ 설정 → 데이터</b>에서 엑셀(.xlsx)이나 CSV를 올려 시작하세요.</div></td></tr>';
+    tbody.innerHTML = '<tr class="emptyrow"><td colspan="'+(EDITMODE?6:5)+'"><div class="empty">아직 내역이 없습니다.<br><b>⚙ 설정 → 데이터</b>에서 엑셀(.xlsx)이나 CSV를 올려 시작하세요.</div></td></tr>';
     $('#tableFoot').innerHTML = '';
     $('#tableHint').textContent = '';
     return;
   }
   if (!rows.length){
-    tbody.innerHTML = '<tr class="emptyrow"><td colspan="'+(DELMODE?6:5)+'"><div class="empty">필터에 맞는 내역이 없습니다.<br>위의 필터를 풀어보세요.</div></td></tr>';
+    tbody.innerHTML = '<tr class="emptyrow"><td colspan="'+(EDITMODE?6:5)+'"><div class="empty">필터에 맞는 내역이 없습니다.<br>위의 필터를 풀어보세요.</div></td></tr>';
     $('#tableFoot').innerHTML = '<span class="muted">0건</span>';
     $('#tableHint').textContent = '';
     return;
@@ -2653,10 +2682,16 @@ function renderTable(rows, sum){
   tbody.innerHTML = view.map(r=>{
     const none = !r.category || r.category === '미분류';
     const catName = none ? '미분류' : r.category;
-    const on = DELMODE && SELROWS.has(r.id);
+    const on = EDITMODE && SELROWS.has(r.id);
     return '<tr data-id="'+r.id+'"'+(on?' class="sel-on"':'')+'>'+
-      (DELMODE ? '<td class="sel"><input type="checkbox" data-selrow="'+esc(r.id)+'"'+(on?' checked':'')+
-        ' aria-label="'+esc(r.merchant)+' 선택"></td>' : '')+
+      (EDITMODE ? '<td class="sel"><div class="selwrap">'+
+        '<span class="grip" data-grip="'+esc(r.id)+'" title="끌어서 순서 바꾸기" aria-label="'+esc(r.merchant)+' 순서 바꾸기">'+
+          '<svg viewBox="0 0 8 14" width="8" height="14" aria-hidden="true" focusable="false"><g fill="currentColor">'+
+          '<circle cx="1.7" cy="2" r="1.2"/><circle cx="6.3" cy="2" r="1.2"/>'+
+          '<circle cx="1.7" cy="7" r="1.2"/><circle cx="6.3" cy="7" r="1.2"/>'+
+          '<circle cx="1.7" cy="12" r="1.2"/><circle cx="6.3" cy="12" r="1.2"/></g></svg></span>'+
+        '<input type="checkbox" data-selrow="'+esc(r.id)+'"'+(on?' checked':'')+
+        ' aria-label="'+esc(r.merchant)+' 선택"></div></td>' : '')+
       '<td class="date"><span class="date-full">'+esc(r.date)+'</span><span class="date-short">'+dMD(r.date)+'</span></td>'+
       '<td><button type="button" class="catbtn cardbtn" data-cardedit="'+r.id+'" '+
         'title="카드사 바꾸기 · 이 거래 삭제" aria-label="'+esc(shortCard(r.card))+' — 카드사 변경">'+
@@ -2669,12 +2704,13 @@ function renderTable(rows, sum){
         (none ? '' : '<span class="dot" style="background:'+catMeta(r.category).color+'"></span>')+
         '<span class="nm">'+esc(catName)+'</span><span class="car">▾</span></button></td>'+
       '<td class="num amount'+(r.amount<0?' neg':'')+'">'+fmt(r.amount)+'원'+
-        (DELMODE ? '<button type="button" class="qdel" data-qdel="'+esc(r.id)+'" title="이 거래 바로 삭제" aria-label="'+esc(r.merchant)+' 바로 삭제">🗑</button>' : '')+'</td>'+
+        (EDITMODE ? '<button type="button" class="qdel" data-qdel="'+esc(r.id)+'" title="이 거래 바로 삭제" aria-label="'+esc(r.merchant)+' 바로 삭제">🗑</button>' : '')+'</td>'+
     '</tr>';
   }).join('');
 
   const more = sorted.length - view.length;
   const fbits = [];
+  if (EDITMODE) fbits.push('⠿ 끌어서 순서 변경');
   if (F.month !== 'all') fbits.push(monthLabel(F.month));
   if (F.cards.length) fbits.push('카드 ' + F.cards.map(shortCard).join('·'));
   if (F.categories.length) fbits.push('분류 ' + F.categories.join('·'));
@@ -2690,41 +2726,45 @@ function renderTable(rows, sum){
 }
 
 /* ============================================================
-   상세 내역 · 삭제 모드 (2026-11-22)
-   잘못 들어갔거나 중복된 내역을 골라 한 번에 지웁니다.
-   지운 내역은 한 건 삭제와 같은 방식으로 deleted 기록과 dirtyMonths 에 남기므로
-   GitHub 양방향 동기화(card-budget-data/data/YYYY-MM.json)로 다른 기기에도 함께 반영됩니다.
+   상세 내역 · 편집 모드 (2026-11-22)
+   편집 모드에서는 두 가지를 합니다.
+   1) 행 왼쪽의 ⋮⋮ 핸들을 끌어 위/아래로 옮겨 순서를 바꿉니다.
+      바뀐 순서는 각 행의 order 값으로 기기에 저장되고,
+      같은 달 JSON(card-budget-data/data/YYYY-MM.json)에도 함께 올라가 다른 기기에도 그대로 남습니다.
+   2) 눌러서 고른 뒤 한 번에 지웁니다. 지운 내역은 deleted 기록과 dirtyMonths 에 남겨
+      GitHub 양방향 동기화로 다른 기기에도 함께 반영됩니다.
    ============================================================ */
-let DELMODE = false;
-let SELROWS = new Set();              /* 삭제 모드에서 고른 거래 id */
+let EDITMODE = false;
+let SELROWS = new Set();              /* 편집 모드에서 고른 거래 id */
 
-function setDeleteMode(on){
-  DELMODE = !!on;
+function setEditMode(on){
+  EDITMODE = !!on;
   SELROWS.clear();
-  document.body.classList.toggle('delmode', DELMODE);
+  if (!EDITMODE) cancelGripDrag();
+  document.body.classList.toggle('editmode', EDITMODE);
   renderAll();
-  if (DELMODE){
-    toast('삭제 모드 — 지울 내역을 눌러 고른 뒤 「선택 삭제」');
+  if (EDITMODE){
+    toast('편집 모드 — 행 왼쪽 ⠿를 끌어 순서를 바꾸고, 눌러서 골라 지울 수 있어요', 3600);
     const tc = document.querySelector('.table-card');
     if (tc){ try { tc.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){} }
   } else {
-    toast('삭제 모드를 끝냈습니다');
+    toast('편집 모드를 끝냈습니다');
   }
 }
-/* 삭제 모드 버튼 글자·액션 바(고른 건수·버튼 상태)를 한 곳에서 갱신 */
-function renderDelBar(totalVisible){
-  const bar = $('#delBar');
-  if (bar) bar.classList.toggle('hidden', !DELMODE);
-  const head = $('#btnDelMode');
+/* 편집 모드 버튼 글자·액션 바(고른 건수·버튼 상태)를 한 곳에서 갱신 */
+function renderEditBar(totalVisible){
+  const bar = $('#editBar');
+  if (bar) bar.classList.toggle('hidden', !EDITMODE);
+  const head = $('#btnEditMode');
   if (head){
-    head.textContent = DELMODE ? '완료' : '삭제 모드';
-    head.classList.toggle('ondel', DELMODE);
+    head.textContent = EDITMODE ? '완료' : '편집 모드';
+    head.classList.toggle('onedit', EDITMODE);
     head.disabled = !S.rows.length;
-    head.title = DELMODE ? '삭제 모드를 끝내고 일반 화면으로' : '잘못 들어갔거나 중복된 내역을 골라 지웁니다';
+    head.title = EDITMODE ? '편집을 끝내고 일반 화면으로' : '행을 끌어 순서를 바꾸거나, 골라서 지웁니다';
   }
-  if (!DELMODE) return;
+  if (!EDITMODE) return;
   const n = SELROWS.size;
-  const cnt = $('#delCount');
+  const cnt = $('#editCount');
   if (cnt) cnt.innerHTML = '<b>'+fmt(n)+'</b>건 선택';
   const del = $('#btnSelDel');
   if (del) del.disabled = n === 0;
@@ -2743,10 +2783,10 @@ function syncSelUi(){
     const cb = tr.querySelector('input[data-selrow]');
     if (cb) cb.checked = on;
   });
-  renderDelBar();
+  renderEditBar();
 }
 function setRowSel(id, on){
-  if (!DELMODE || !id) return;
+  if (!EDITMODE || !id) return;
   if (on) SELROWS.add(id); else SELROWS.delete(id);
   syncSelUi();
 }
@@ -2775,8 +2815,8 @@ function deleteRowsByIds(ids){
   const n = before - S.rows.length;
   if (!n) return 0;
   ids.forEach(id=> SELROWS.delete(id));
-  if (!S.rows.length){                  /* 다 지웠으면 삭제 모드도 끝냅니다 */
-    DELMODE = false; SELROWS.clear(); document.body.classList.remove('delmode');
+  if (!S.rows.length){                  /* 다 지웠으면 편집 모드도 끝냅니다 */
+    EDITMODE = false; SELROWS.clear(); document.body.classList.remove('editmode');
   }
   saveState();
   renderAll();
@@ -2784,7 +2824,7 @@ function deleteRowsByIds(ids){
   return n;
 }
 function askDeleteSelected(){
-  if (!DELMODE) return;
+  if (!EDITMODE) return;
   const ids = Array.from(SELROWS);
   if (!ids.length){ toast('지울 내역을 먼저 골라주세요'); return; }
   const rows = S.rows.filter(r=> SELROWS.has(r.id));
@@ -2808,6 +2848,154 @@ function askDeleteOneRow(id){
     r.merchant + ' · ' + fmt(r.amount) + '원 · ' + dMD(r.date) + ' (' + shortCard(r.card) + ')\n' +
     '지운 거래는 다른 기기에서도 함께 사라집니다.',
     '삭제', ()=>{ deleteRowsByIds([id]); toast('내역을 지웠습니다 · 다른 기기에서도 사라집니다'); });
+}
+
+/* ============================================================
+   드래그로 순서 바꾸기 (2026-11-22)
+   · 편집 모드의 ⋮⋮ 핸들에서만 시작합니다 → 화면 스크롤과 부딪치지 않습니다.
+   · 끌고 있는 동안에는 행을 DOM 안에서 옮겨 보여 주고, 손을 떼면 그 자리로 order 값을 정합니다.
+   · order 는 행(row)에 남고 같은 달 JSON 에도 함께 올라가 다른 기기·새로고침 뒤에도 그대로 유지됩니다.
+   ============================================================ */
+function hasOrder(r){ return !!r && typeof r.order === 'number' && isFinite(r.order); }
+function tableViewIds(){ return $$('#tbody tr[data-id]').map(tr=> tr.dataset.id); }
+
+/* 그 달의 순서를 사용자 순서로 확정합니다.
+   아직 order가 없는 행(새로 잡은 캐처·다른 기기에서 온 내역)은 날짜 위치에 끼워 넣고 10·20·30… 으로 다시 매입니다. */
+function materializeMonthOrder(month){
+  if (!month) return false;
+  const rows = S.rows.filter(r=> r.month === month);
+  if (!rows.length) return false;
+  const missing = rows.filter(r=> !hasOrder(r));
+  if (!missing.length) return false;
+  const ordered = rows.filter(hasOrder).sort((a,b)=> a.order - b.order);
+  let seq;
+  if (!ordered.length){
+    seq = sortRows(rows);                       /* 처음 정하는 순서 — 지금 보이는 정렬 그대로 */
+  } else {
+    seq = ordered.slice();
+    missing.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date))).forEach(m=>{
+      let at = seq.length;
+      for (let i = 0; i < seq.length; i++){ if (String(seq[i].date) >= String(m.date)){ at = i; break; } }
+      seq.splice(at, 0, m);
+    });
+  }
+  const t = nowIso();
+  seq.forEach((r, k)=>{
+    const v = (k + 1) * 10;
+    if (r.order !== v){ r.order = v; r.orderAt = t; }
+  });
+  return true;
+}
+
+/* 이 달 안에서 행 하나를 옮깁니다. nextId 앞으로, nextId가 없으면 prevId 뒤로. */
+function reorderMonth(month, movedId, nextId, prevId){
+  if (!month || !movedId) return false;
+  materializeMonthOrder(month);
+  const seq = S.rows.filter(r=> r.month === month)
+    .sort((a,b)=> (hasOrder(a) ? a.order : 1e15) - (hasOrder(b) ? b.order : 1e15));
+  const i = seq.findIndex(r=> r.id === movedId);
+  if (i < 0) return false;
+  const moved = seq.splice(i, 1)[0];
+  let at;
+  if (nextId){
+    at = seq.findIndex(r=> r.id === nextId);
+    if (at < 0) at = seq.length;
+  } else if (prevId){
+    const pi = seq.findIndex(r=> r.id === prevId);
+    at = pi < 0 ? seq.length : pi + 1;
+  } else {
+    at = 0;
+  }
+  seq.splice(at, 0, moved);
+  const t = nowIso();
+  seq.forEach((r, k)=>{
+    const v = (k + 1) * 10;
+    if (r.order !== v){ r.order = v; r.orderAt = t; }
+  });
+  return true;
+}
+
+let GRIP = null;            /* 지금 끌고 있는 행 */
+let GRIP_SKIP_CLICK = false;
+function cancelGripDrag(){
+  if (!GRIP) return;
+  GRIP.tr.classList.remove('dragging');
+  document.body.classList.remove('dragactive');
+  window.removeEventListener('pointermove', onGripMove);
+  window.removeEventListener('pointerup', endGripDrag);
+  window.removeEventListener('pointercancel', endGripDrag);
+  GRIP = null;
+}
+function startGripDrag(ev){
+  if (!EDITMODE || GRIP) return;
+  const grip = ev.target.closest && ev.target.closest('[data-grip]');
+  if (!grip) return;
+  const tr = grip.closest('tr[data-id]');
+  if (!tr) return;
+  const row = S.rows.find(r=> r.id === tr.dataset.id);
+  if (!row) return;
+  ev.preventDefault();
+  GRIP = {id: row.id, month: row.month, tr, startY: ev.clientY, moved: false, ids: tableViewIds()};
+  try { grip.setPointerCapture(ev.pointerId); } catch(e){}
+  window.addEventListener('pointermove', onGripMove, {passive:false});
+  window.addEventListener('pointerup', endGripDrag);
+  window.addEventListener('pointercancel', endGripDrag);
+}
+function onGripMove(ev){
+  if (!GRIP) return;
+  if (!GRIP.moved){
+    if (Math.abs(ev.clientY - GRIP.startY) < 4) return;     /* 살짝 흔들린 것은 누름으로 봅니다 */
+    GRIP.moved = true;
+    GRIP.tr.classList.add('dragging');
+    document.body.classList.add('dragactive');
+  }
+  if (ev.cancelable) ev.preventDefault();
+  const y = ev.clientY;
+  /* 화면 위·아래 끝에 닿으면 따라 내려가도록 */
+  const edge = 76;
+  if (y < edge) window.scrollBy(0, -Math.max(4, (edge - y) / 3));
+  else if (y > window.innerHeight - edge) window.scrollBy(0, Math.max(4, (y - (window.innerHeight - edge)) / 3));
+  const tr = GRIP.tr;
+  let ref = null;
+  $$('#tbody tr[data-id]').forEach(o=>{
+    if (ref || o === tr) return;
+    const rc = o.getBoundingClientRect();
+    if (y < rc.top + rc.height / 2) ref = o;
+  });
+  if (ref){
+    if (tr.nextElementSibling !== ref) tr.parentNode.insertBefore(tr, ref);
+  } else if (tr.nextElementSibling){
+    tr.parentNode.appendChild(tr);
+  }
+}
+function endGripDrag(ev){
+  if (!GRIP) return;
+  const d = GRIP;
+  cancelGripDrag();
+  GRIP_SKIP_CLICK = true;
+  clearTimeout(endGripDrag._t);
+  endGripDrag._t = setTimeout(()=>{ GRIP_SKIP_CLICK = false; }, 400);
+  if (!d.moved){ renderAll(); return; }        /* 누르기만 한 경우 — 아무것도 바꾸지 않습니다 */
+  const ids = tableViewIds();
+  if (ids.join('|') === d.ids.join('|')){       /* 제자리 */
+    renderAll(); return;
+  }
+  const row = S.rows.find(r=> r.id === d.id);
+  if (!row){ renderAll(); return; }
+  const idx = ids.indexOf(d.id);
+  const prevId = idx > 0 ? ids[idx - 1] : null;
+  const nextId = (idx >= 0 && idx < ids.length - 1) ? ids[idx + 1] : null;
+  const p = prevId ? S.rows.find(r=> r.id === prevId) : null;
+  const nx = nextId ? S.rows.find(r=> r.id === nextId) : null;
+  if ((p && p.month !== row.month) || (nx && nx.month !== row.month)){
+    renderAll(); toast('결제월이 다른 내역 사이로는 옮길 수 없어요', 3000); return;
+  }
+  if (!reorderMonth(row.month, d.id, nextId, prevId)){ renderAll(); return; }
+  S.ui.sortKey = 'manual';
+  saveState();
+  renderAll();
+  markDirtyMonth(row.month);
+  toast('순서를 바꿨습니다 · 다른 기기에도 같은 순서로 남습니다', 2600);
 }
 
 /* ============================================================
@@ -3165,8 +3353,10 @@ $('#table').addEventListener('click', ev=>{
     renderAll();
     return;
   }
-  /* 삭제 모드: 행 누름 = 고르기, 🗑 = 한 건 바로 지우기 */
-  if (DELMODE){
+  /* 편집 모드: 행 누름 = 고르기, 🗑 = 한 건 바로 지우기, ⋮⋮ = 끌어서 순서 바꾸기 */
+  if (EDITMODE){
+    if (ev.target.closest('[data-grip]')) return;
+    if (GRIP_SKIP_CLICK){ GRIP_SKIP_CLICK = false; return; }
     const qd = ev.target.closest('[data-qdel]');
     if (qd){ askDeleteOneRow(qd.dataset.qdel); return; }
     const box = ev.target.closest('input[data-selrow]');
@@ -3338,12 +3528,14 @@ $('#tableFoot').addEventListener('click', ev=>{
   if (ev.target.id === 'btnResetLimit'){ S.ui.limit = 20; renderAll(); }
 });
 /* ---------- 삭제 모드 ---------- */
-$('#btnDelMode').addEventListener('click', ()=> setDeleteMode(!DELMODE));
+$('#btnEditMode').addEventListener('click', ()=> setEditMode(!EDITMODE));
 $('#btnSelDel').addEventListener('click', askDeleteSelected);
 $('#btnSelAll').addEventListener('click', toggleSelectAll);
-$('#btnSelCancel').addEventListener('click', ()=> setDeleteMode(false));
+$('#btnSelCancel').addEventListener('click', ()=> setEditMode(false));
+/* ⋮⋮ 핸들에서만 드래그를 시작합니다 (터치·마우스 공통) */
+$('#tbody').addEventListener('pointerdown', startGripDrag);
 document.addEventListener('keydown', ev=>{
-  if (ev.key === 'Escape' && DELMODE && !$('#dialogBackdrop').classList.contains('show')) setDeleteMode(false);
+  if (ev.key === 'Escape' && EDITMODE && !$('#dialogBackdrop').classList.contains('show')) setEditMode(false);
 });
 
 let rsz = null;
@@ -4379,11 +4571,17 @@ async function ghPutFileObj(path, obj, sha, message){
   }
   return {ok:true, status:res.status, json:j};
 }
-/* 저장소에 넣을 행 모양 — 화면 전용 필드(id·편집표시·캡처출처)는 뺍니다 */
+/* 저장소에 넣을 행 모양 — 화면 전용 필드(id·편집표시·캡처출처)는 빼고,
+   편집 모드에서 끌어 정한 순서(order)는 함께 넣습니다. */
 function rowForStore(r){
-  return {month:r.month, card:r.card, date:r.date, merchant:String(r.merchant || '').trim(),
+  const out = {month:r.month, card:r.card, date:r.date, merchant:String(r.merchant || '').trim(),
           amount:Math.round(+r.amount || 0), category:r.category || '', memo:r.memo || '',
           cardName:r.cardName || '', payType:r.payType || ''};
+  if (hasOrder(r)){
+    out.order = Math.round(r.order * 100) / 100;
+    if (r.orderAt) out.orderAt = r.orderAt;
+  }
+  return out;
 }
 /* 이 달의 업로드 내용 — 로컬 행 + (원격에만 있는 행) 을 합칩니다. 삭제한 행은 되살리지 않습니다 */
 function monthPayload(month, remoteJson){
@@ -4616,6 +4814,8 @@ function normalizeRow(raw){
   const merchant = String(raw.merchant || raw.가맹점 || raw.이용가맹점 || '').trim();
   const amount = toAmount(raw.amount != null ? raw.amount : (raw.청구금액 != null ? raw.청구금액 : raw.금액));
   if (!date || !merchant || isNaN(amount)) return null;
+  /* order = 편집 모드에서 끌어 정한 순서. 없으면 null (날짜순으로 보입니다) */
+  const ord = (raw.order !== null && raw.order !== undefined && raw.order !== '' && isFinite(+raw.order)) ? +raw.order : null;
   return {
     id: raw.id || uid(),
     month: raw.month || date.slice(0,7),
@@ -4623,7 +4823,8 @@ function normalizeRow(raw){
     date, merchant, amount,
     category: String(raw.category || raw.분류 || '').trim(),
     memo: String(raw.memo || raw.비고 || '').trim(),
-    cardName: raw.cardName || '', payType: raw.payType || ''
+    cardName: raw.cardName || '', payType: raw.payType || '',
+    order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')
   };
 }
 function mergePayload(payload, stats){
@@ -4645,6 +4846,14 @@ function mergePayload(payload, stats){
       let ch = false;
       if (!ex.edited && r.category && r.category !== ex.category){ ex.category = r.category; ch = true; }
       if (!ex.edited && r.memo && r.memo !== ex.memo){ ex.memo = r.memo; ch = true; }
+      /* 끌어 정한 순서 — 더 최근에 정한 쪽(orderAt)을 따릅니다 */
+      if (r.order != null && isFinite(+r.order)){
+        const ro = +r.order, lo = hasOrder(ex) ? (Date.parse(ex.orderAt || '') || 0) : -1;
+        const ri = Date.parse(r.orderAt || '') || 0;
+        if (!hasOrder(ex) || ri > lo){
+          if (ex.order !== ro){ ex.order = ro; ex.orderAt = r.orderAt || ''; ch = true; }
+        }
+      }
       if (ch) stats.updated++;
     } else {
       if (!r.category){ const c = autoCategory(r.merchant, r.amount, S.rules); r.category = c || '기타'; }
@@ -5256,6 +5465,8 @@ function capAddSelected(){
   });
   const dupN = CAP.results.filter(r=>r.dup && !r.on).length;
   S.mode = 'mine';
+  /* 이 달을 편집 모드에서 끌어 정리해 둔 순서가 있으면, 새로 넣은 내역을 날짜 위치에 끼워 넣습니다 */
+  if (S.rows.some(r=> r.month === month && hasOrder(r))) materializeMonthOrder(month);
   F.month = month; F.date = null; F.monthUser = true; F.cards = []; F.categories = []; $('#search').value = '';
   S.ui.limit = 20;
   saveState(); renderAll(); closeCapture();
