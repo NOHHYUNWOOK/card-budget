@@ -1224,12 +1224,12 @@ function renderAnnual(){
   /* Y축은 '지금 켜져 있는 선'의 최댓값에 맞춰 */
   let graphMax = 0;
   series.forEach(s=>{ if (!isOn(s)) return; s.vals.forEach(v=>{ if (v > graphMax) graphMax = v; }); });
-  const niceMax = (function(v){
+  const niceStep = (function(v){
     const pow = Math.pow(10, Math.floor(Math.log10(Math.max(1,v))));
-    const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
-    for (const st of steps){ if (v <= pow*st) return pow*st; }
+    for (const st of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]){ if (v <= pow*st) return pow*st; }
     return pow*10;
-  })(Math.max(1, graphMax) * 1.1);
+  })(Math.max(1, graphMax) * 1.1 / 4);
+  const niceMax = niceStep * 4;              /* 눈금 4칸이 딱 떨어지는 값으로 (25만·50만·75만 …) */
   const yAt = v => pad.t + innerH - (Math.min(v, niceMax)/niceMax) * innerH;
 
   let body = '';
@@ -1250,7 +1250,7 @@ function renderAnnual(){
       svg += '<line x1="'+xAt(m).toFixed(1)+'" y1="'+pad.t+'" x2="'+xAt(m).toFixed(1)+'" y2="'+(pad.t+innerH).toFixed(1)+'" stroke="#f5f7fb" stroke-width="1"/>';
     }
     // 선을 모두 끈 상태에서도 그래프 틀(격자·0선·달 이름)은 그대로 유지
-    const gy = graphMax ? (smallW ? 3 : 4) : 0;
+    const gy = graphMax ? 4 : 0;
     const gyDiv = gy || 1;
     for (let i=0;i<=gy;i++){
       const v = niceMax*i/gyDiv, yy = yAt(v);
