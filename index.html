@@ -2861,16 +2861,17 @@ function tableViewIds(){ return $$('#tbody tr[data-id]').map(tr=> tr.dataset.id)
 
 /* 그 달의 순서를 사용자 순서로 확정합니다.
    아직 order가 없는 행(새로 잡은 캐처·다른 기기에서 온 내역)은 날짜 위치에 끼워 넣고 10·20·30… 으로 다시 매입니다. */
-function materializeMonthOrder(month){
+function materializeMonthOrder(month, force){
   if (!month) return false;
   const rows = S.rows.filter(r=> r.month === month);
   if (!rows.length) return false;
   const missing = rows.filter(r=> !hasOrder(r));
-  if (!missing.length) return false;
+  if (!missing.length && !force) return false;
   const ordered = rows.filter(hasOrder).sort((a,b)=> a.order - b.order);
   let seq;
-  if (!ordered.length){
-    seq = sortRows(rows);                       /* 처음 정하는 순서 — 지금 보이는 정렬 그대로 */
+  if (force || !ordered.length){
+    /* force: 날짜순·금액순으로 보고 있을 때 핸들을 잡으면 그 화면 순서를 새 순서의 기준으로 삼습니다 */
+    seq = sortRows(rows);
   } else {
     seq = ordered.slice();
     missing.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date))).forEach(m=>{
@@ -2888,9 +2889,9 @@ function materializeMonthOrder(month){
 }
 
 /* 이 달 안에서 행 하나를 옮깁니다. nextId 앞으로, nextId가 없으면 prevId 뒤로. */
-function reorderMonth(month, movedId, nextId, prevId){
+function reorderMonth(month, movedId, nextId, prevId, force){
   if (!month || !movedId) return false;
-  materializeMonthOrder(month);
+  materializeMonthOrder(month, force);
   const seq = S.rows.filter(r=> r.month === month)
     .sort((a,b)=> (hasOrder(a) ? a.order : 1e15) - (hasOrder(b) ? b.order : 1e15));
   const i = seq.findIndex(r=> r.id === movedId);
@@ -2990,7 +2991,9 @@ function endGripDrag(ev){
   if ((p && p.month !== row.month) || (nx && nx.month !== row.month)){
     renderAll(); toast('결제월이 다른 내역 사이로는 옮길 수 없어요', 3000); return;
   }
-  if (!reorderMonth(row.month, d.id, nextId, prevId)){ renderAll(); return; }
+  /* 날짜순·금액순으로 보고 있었다면, 지금 화면 순서를 기준으로 사용자 순서를 새로 정합니다 */
+  const force = S.ui.sortKey !== 'manual';
+  if (!reorderMonth(row.month, d.id, nextId, prevId, force)){ renderAll(); return; }
   S.ui.sortKey = 'manual';
   saveState();
   renderAll();
