@@ -89,6 +89,15 @@ main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-dir
 .annual-filters .lbl{font-size:11.5px;color:var(--muted);font-weight:600;margin-right:1px}
 .annual-filters .chip{padding:2px 8px;font-size:11.5px;min-height:24px;gap:4px}
 .annual-filters .chip .dot{width:7px;height:7px}
+/* 마일리지 전환 칩 — 카드사 필터와 구분되는 모드 버튼 */
+.annual-filters .chip.mile{border-color:#ddd8fd;background:#f6f4ff;color:#5646d6;font-weight:700}
+.annual-filters .chip.mile:hover{border-color:#c7bffb;background:#efeaff}
+.annual-filters .chip.mile.on{background:#6d5efc;border-color:#6d5efc;color:#fff}
+@media (max-width:430px){
+  .annual-filters{gap:4px}
+  .annual-filters .lbl{font-size:11px;margin-right:0}
+  .annual-filters .chip{padding:2px 6px;font-size:11px;gap:3px}
+}
 
 /* ---------- summary strip ---------- */
 .sumstrip{padding:13px 16px;display:flex;flex-direction:column;gap:5px}
@@ -658,6 +667,39 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 .mile-fam small{font-size:11.5px;font-weight:700;color:var(--ink2);letter-spacing:0}
 .mile-fam-names{margin-left:auto;min-width:0;font-size:11.5px;color:var(--muted);font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+/* 목표 마일리지 — 목표·달성률·남은 필요 마일을 한 덩어리로 얇게 */
+.mile-goal{margin-top:7px;padding-top:7px;border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:5px;min-width:0}
+.mile-goal + .mile-row{margin-top:3px}
+.mile-goal-head{display:flex;align-items:baseline;gap:8px;min-width:0}
+.mile-goal-k{border:0;background:transparent;padding:0;font:inherit;cursor:pointer;color:var(--muted);font-size:11.5px;font-weight:650;
+  display:inline-flex;align-items:baseline;gap:3px;min-width:0;white-space:nowrap}
+.mile-goal-k b{font-size:12.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.mile-goal-k:hover b{color:#1d4ed8}
+.mile-goal-pct{margin-left:auto;font-size:11.5px;font-weight:750;color:var(--ink2);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.mile-goal-bar{height:5px;border-radius:99px;background:#e9eef9;overflow:hidden}
+.mile-goal-bar i{display:block;height:100%;min-width:2px;border-radius:99px;
+  background:linear-gradient(90deg,#5b93f6,#2f6fed);transition:width .25s ease}
+.mile-goal-foot{display:flex;align-items:baseline;gap:5px;min-width:0;font-size:11.5px;color:var(--ink2);font-weight:650;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mile-goal-foot b{font-size:13px;font-weight:800;color:#1d4ed8;letter-spacing:-.02em}
+.mile-goal.done .mile-goal-bar i{background:linear-gradient(90deg,#3ecf93,#0ea56c)}
+.mile-goal.done .mile-goal-pct,.mile-goal-foot .spare{color:#0b8f5e}
+.mile-goal-foot .spare{font-weight:750}
+.mile-goal-set{border:0;background:transparent;padding:0;font:inherit;cursor:pointer;color:var(--accent);
+  font-size:11.5px;font-weight:650;text-align:left}
+.mile-goal-set:hover{text-decoration:underline}
+.mile-goal-hint{font-size:10.5px;color:var(--muted);font-weight:500}
+.mile-goal .mile-edit input{width:104px}
+/* 최근 적립 내역 — 한 줄에 한 건씩, 5건까지만 */
+.mile-recent{margin-top:7px;padding-top:7px;border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:3px;min-width:0}
+.mile-recent-h{display:flex;align-items:baseline;gap:6px}
+.mile-recent-h .n{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.mile-rec{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px;align-items:baseline;
+  font-size:11.5px;font-variant-numeric:tabular-nums;line-height:1.35}
+.mile-rec .d{color:var(--muted);font-weight:600;letter-spacing:-.01em}
+.mile-rec .n{color:var(--ink2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mile-rec .m{font-weight:800;color:#0b8f5e;letter-spacing:-.01em}
+.mile-rec.neg .m{color:#c2410c}
 </style>
 </head>
 <body>
@@ -1027,9 +1069,12 @@ const parseLimit = s => {
 const MILE_KEY = LS_KEY + '.mileage';
 const MILE_CARDS = ['삼성카드', '우리카드'];   /* 예상 적립 계산 대상 — 삼성 + 우리 */
 const MILE_RATE = 1000;                        /* 1,000원당 1마일 (참고치) */
-const MILE_EMPTY = () => ({skypass:null, familyTotal:null, familyMembers:[], updatedAt:null, source:'', note:''});
+/* 목표 마일리지 기본값 — 범용 값(제주·유럽 장거리 4인 왕복 정도). 개인 이름·일정은 넣지 않습니다. */
+const MILE_GOAL_DEFAULT = 390000;
+const MILE_EMPTY = () => ({skypass:null, familyTotal:null, familyMembers:[], goal:null, monthlyHistory:{}, recentHistory:[], updatedAt:null, source:'', note:''});
 let MILE = MILE_EMPTY();
 let mileEdit = false;
+let mileGoalEdit = false;
 /* 가족 구성원 목록 — 이름은 짧게, 마일은 0 이상 정수만 */
 function mileFamily(raw){
   const out = [];
@@ -1041,6 +1086,35 @@ function mileFamily(raw){
   });
   return out.slice(0, 6);
 }
+/* 월별 적립 마일 기록 — {"YYYY-MM": {self, family}} 모양만 남깁니다 */
+function mileHistory(raw){
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  Object.keys(raw).forEach(k=>{
+    if (!/^\d{4}-\d{2}$/.test(k)) return;
+    const v = raw[k];
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return;
+    if (v.self == null && v.family == null) return;
+    out[k] = {self: isFinite(+v.self) ? Math.max(0, Math.round(+v.self)) : 0,
+              family: isFinite(+v.family) ? Math.max(0, Math.round(+v.family)) : 0};
+  });
+  return out;
+}
+/* 최근 적립 내역 — [{date, desc, miles}] 최대 8건 저장, 화면에는 5건 */
+function mileRecent(raw){
+  const out = [];
+  (Array.isArray(raw) ? raw : []).forEach(r=>{
+    if (!r || typeof r !== 'object') return;
+    const miles = Math.round(+r.miles);
+    if (!isFinite(miles)) return;
+    const date = String(r.date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const desc = String(r.desc || '').trim().slice(0, 20);
+    out.push({date: date, desc: desc, miles: miles});
+  });
+  out.sort((a,b)=> a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
+  return out.slice(0, 8);
+}
 function mileageLoad(){
   MILE = MILE_EMPTY();
   try {
@@ -1050,6 +1124,9 @@ function mileageLoad(){
     if (!p || typeof p !== 'object') return;
     if (p.skypass != null && isFinite(+p.skypass)) MILE.skypass = Math.max(0, Math.round(+p.skypass));
     if (p.familyTotal != null && isFinite(+p.familyTotal)) MILE.familyTotal = Math.max(0, Math.round(+p.familyTotal));
+    if (p.goal != null && isFinite(+p.goal)) MILE.goal = Math.max(0, Math.round(+p.goal));
+    MILE.monthlyHistory = mileHistory(p.monthlyHistory);
+    MILE.recentHistory = mileRecent(p.recentHistory);
     MILE.familyMembers = mileFamily(p.familyMembers);
     MILE.updatedAt = p.updatedAt || null;
     MILE.source = p.source || '';
@@ -1066,14 +1143,20 @@ function mileageApply(payload){
   const v = p.skypass != null ? p.skypass : (p.miles != null ? p.miles : null);
   const fam = mileFamily(p.familyMembers);
   const famTotal = (p.familyTotal != null && isFinite(+p.familyTotal)) ? Math.max(0, Math.round(+p.familyTotal)) : null;
-  if ((v == null || !isFinite(+v)) && !fam.length && famTotal == null) return false;   /* 마일 값이 아예 없는 파일 */
+  const hist = mileHistory(p.monthlyHistory);
+  const recent = mileRecent(p.recentHistory);
+  if ((v == null || !isFinite(+v)) && !fam.length && famTotal == null && !Object.keys(hist).length && !recent.length) return false;   /* 마일 값이 아예 없는 파일 */
   const inc = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
   const cur = MILE.updatedAt ? new Date(MILE.updatedAt).getTime() : 0;
   if (MILE.skypass != null && cur && (!inc || inc < cur)) return false;   /* 더 오래된 값은 두고 봅니다 */
   const skypass = (v != null && isFinite(+v)) ? Math.max(0, Math.round(+v)) : MILE.skypass;
+  const goal = (p.goal != null && isFinite(+p.goal)) ? Math.max(0, Math.round(+p.goal)) : MILE.goal;
   MILE = {skypass: skypass,
           familyTotal: famTotal != null ? famTotal : (fam.length ? null : MILE.familyTotal),
           familyMembers: (fam.length || famTotal != null) ? fam : MILE.familyMembers,
+          goal: goal,
+          monthlyHistory: Object.keys(hist).length ? hist : (MILE.monthlyHistory || {}),
+          recentHistory: recent.length ? recent : (MILE.recentHistory || []),
           updatedAt: p.updatedAt || new Date().toISOString(),
           source: p.source || 'sync', note: p.note || ''};
   mileageSave();
@@ -1113,6 +1196,38 @@ function renderMileage(){
   const lab = exp ? (exp.month === AUTO_MONTH ? '이번 달 예상' : monthLabel(exp.month).replace(/^\d{4}년 /, '') + ' 예상') : '';
   const head = '<div class="mile-row"><span class="mile-k">대한항공 마일리지</span>' + rate + '</div>';
   const num = n => fmt(n) + '<small>마일</small>';
+  /* 목표 대비 진행 — 목표는 기본값(범용)에서 시작해 숫자를 눌러 바꿀 수 있습니다(0 이면 끔). */
+  const goal = MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT;
+  const goalOn = goal > 0;
+  const need = Math.max(0, goal - total);
+  const done = goalOn && total >= goal;
+  const pctRaw = goalOn ? (total / goal * 100) : 0;
+  const pctBar = Math.min(100, pctRaw);
+  const pctTxt = !goalOn ? '' : (pctRaw >= 100 ? '100%'
+      : (Math.round(pctRaw * 10) / 10).toFixed(1).replace(/\.0$/, '') + '%');
+  let goalHtml = '';
+  if (mileGoalEdit){
+    goalHtml = '<div class="mile-goal"><div class="mile-edit">' +
+        '<input id="mileGoalInput" type="text" inputmode="numeric" autocomplete="off" value="' +
+          (goalOn ? fmt(goal) : '') + '" placeholder="목표 마일" aria-label="목표 마일리지">' +
+        '<span class="unit">마일</span>' +
+        '<button class="btn primary sm" data-mileact="goalsave">저장</button>' +
+        '<button class="btn ghost sm" data-mileact="goalcancel">취소</button>' +
+      '</div><span class="mile-goal-hint">0 이면 목표를 끕니다</span></div>';
+  } else if (goalOn){
+    goalHtml = '<div class="mile-goal' + (done ? ' done' : '') + '">' +
+        '<div class="mile-goal-head">' +
+          '<button type="button" class="mile-goal-k" id="mileGoalBtn" title="눌러서 목표 마일리지 수정">목표 <b>' + fmt(goal) + '</b> 마일</button>' +
+          '<span class="mile-goal-pct">' + pctTxt + '</span>' +
+        '</div>' +
+        '<div class="mile-goal-bar"><i style="width:' + pctBar.toFixed(2) + '%"></i></div>' +
+        '<div class="mile-goal-foot">' + (done
+            ? '<span>목표 달성!</span><span class="spare">(+' + fmt(total - goal) + ' 마일 여유)</span>'
+            : '<b>' + fmt(need) + '</b><span>마일 필요</span>') + '</div>' +
+      '</div>';
+  } else {
+    goalHtml = '<div class="mile-goal"><button type="button" class="mile-goal-set" id="mileGoalBtn">+ 목표 마일리지 정하기</button></div>';
+  }
   let mid, foot = '';
   if (mileEdit){
     mid = '<div class="mile-row"><div class="mile-edit">' +
@@ -1122,6 +1237,7 @@ function renderMileage(){
         '<button class="btn primary sm" data-mileact="save">저장</button>' +
         '<button class="btn ghost sm" data-mileact="cancel">취소</button>' +
       '</div></div>';
+    foot = goalHtml;
   } else {
     /* 본인·가족·총합 세 칸 — 본인 칸을 누르면 직접 수정(가족·총합은 그대로 둠) */
     mid = '<div class="mile-cells">' +
@@ -1130,7 +1246,8 @@ function renderMileage(){
         '<div class="mile-cell"><span class="k">가족</span><span class="v">' + num(family) + '</span></div>' +
         '<div class="mile-cell total"><span class="k">총합</span><span class="v">' + num(total) + '</span></div>' +
       '</div>';
-    foot = '<div class="mile-row">' +
+    foot = goalHtml +
+      '<div class="mile-row">' +
       (exp ? '<span class="mile-exp">' + esc(lab) + ' <b>+' + fmt(exp.miles) + '마일</b></span>' : '<span class="mile-sub"></span>') +
       (exp ? '<span class="r mile-basis">삼성·우리 ' + fmt(exp.spent) + '원</span>' : '') + '</div>' +
       '<div class="mile-row"><span class="mile-sub">' + esc(when) + (MILE.note ? ' · ' + esc(MILE.note) : '') + '</span></div>';
@@ -1141,11 +1258,30 @@ function renderMileage(){
       foot += '<div class="mile-row mile-fam-row"><span class="mile-k">가족 구성원</span>' +
         '<span class="r mile-fam-names" title="' + esc(txt) + '">' + esc(txt) + '</span></div>';
     }
+    /* 최근 적립 내역 — 최근 5건만 한 줄씩 (없으면 숨김) */
+    const rec = (MILE.recentHistory || []).slice(0, 5);
+    if (rec.length){
+      foot += '<div class="mile-recent">' +
+        '<div class="mile-recent-h"><span class="mile-k">최근 적립 내역</span>' +
+          ((MILE.recentHistory || []).length > rec.length ? '<span class="n">최근 ' + rec.length + '건</span>' : '') +
+        '</div>' +
+        rec.map(r=>{
+          const d = /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? dMD(r.date) : '';
+          return '<div class="mile-rec' + (r.miles < 0 ? ' neg' : '') + '">' +
+            '<span class="d">' + esc(d) + '</span>' +
+            '<span class="n">' + esc(r.desc || '적립') + '</span>' +
+            '<span class="m">' + (r.miles >= 0 ? '+' : '') + fmt(r.miles) + '</span></div>';
+        }).join('') +
+      '</div>';
+    }
   }
   box.innerHTML = head + mid + foot;
   if (mileEdit){
     const i = $('#mileInput');
     if (i){ i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){} }
+  } else if (mileGoalEdit){
+    const g = $('#mileGoalInput');
+    if (g){ g.focus(); try { g.setSelectionRange(g.value.length, g.value.length); } catch(e){} }
   }
 }
 
@@ -1894,6 +2030,152 @@ function setAllAnnualSeries(off){
 function annualEmptyBox(txt){
   return '<div class="empty" style="padding:30px 10px">'+txt+'</div>';
 }
+/* ============================================================
+   연간 마일리지 — 카드사 줄의 '마일리지'를 고르면 월별 적립(본인+가족) 꺾은선
+   실제 기록(data/mileage.json 의 monthlyHistory)이 없는 달은
+   그 달 삼성+우리 사용액 ÷ 1,000(내림) 예상 적립으로 채웁니다.
+   ============================================================ */
+let annualMile = false;
+
+/* 카드사 필터 줄 — 이 해 내역이 있는 카드사 + 마일리지 버튼 */
+function annualCardChipsHtml(year){
+  const yearRows = filteredRows({ignoreCards:true, ignoreMonth:true})
+    .filter(r=> String(r.month||'').slice(0,4) === String(year));
+  const known = Array.from(new Set(yearRows.map(r=> r.card).concat(F.cards))).filter(Boolean);
+  const list = sortCards(known);
+  const mile = !!annualMile;
+  return '<span class="lbl">카드사</span>'+
+    '<button class="chip'+((!mile && !F.cards.length)?' on':'')+'" data-annual-card="" title="모든 카드사 보기">전체</button>'+
+    list.map(c=> '<button class="chip'+((!mile && F.cards.indexOf(c)>=0)?' on':'')+'" data-annual-card="'+esc(c)+'" title="'+esc(c)+'만 보기">'+
+      '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</button>').join('')+
+    '<button class="chip mile'+(mile?' on':'')+'" data-annual-mile="1" title="월별 적립 마일리지(본인·가족 합산) 보기">'+
+      '<span class="dot" style="background:'+(mile?'#fff':'#6d5efc')+'"></span>마일리지</button>';
+}
+
+/* 1~12월 값 — 실제 기록 우선, 없으면 삼성·우리 사용액 ÷ 1,000 */
+function mileageMonthly(year){
+  const hist = (MILE.monthlyHistory && typeof MILE.monthlyHistory === 'object') ? MILE.monthlyHistory : {};
+  const vals = new Array(12).fill(null), kind = new Array(12).fill(''), spent = new Array(12).fill(0);
+  for (let m=1;m<=12;m++){
+    const h = hist[year + '-' + String(m).padStart(2,'0')];
+    if (h && (h.self != null || h.family != null)){
+      vals[m-1] = Math.max(0, Math.round((+h.self || 0) + (+h.family || 0)));
+      kind[m-1] = 'real';
+    }
+  }
+  S.rows.forEach(r=>{
+    if (String(r.month||'').slice(0,4) !== String(year)) return;
+    if (MILE_CARDS.indexOf(r.card) < 0) return;
+    const m = +String(r.month||'').slice(5,7);
+    if (!(m >= 1 && m <= 12)) return;
+    spent[m-1] += (+r.amount || 0);
+  });
+  for (let i=0;i<12;i++){
+    if (vals[i] != null) continue;
+    if (spent[i] > 0){ vals[i] = Math.floor(spent[i] / MILE_RATE); kind[i] = 'est'; }
+  }
+  return {vals:vals, kind:kind, spent:spent};
+}
+
+function renderAnnualMileage(year){
+  const el = $('#annual'); if (!el) return;
+  const fc = $('#annualCards'); if (fc) fc.innerHTML = annualCardChipsHtml(year);
+  const M = mileageMonthly(year), vals = M.vals, kind = M.kind, spent = M.spent;
+  const have = [];
+  for (let i=0;i<12;i++) if (vals[i] != null) have.push(i);
+  const total = have.reduce((a,i)=> a + vals[i], 0);
+  const nReal = kind.filter(k=> k === 'real').length, nEst = kind.filter(k=> k === 'est').length;
+  const totEl = $('#annualTotal');
+  if (totEl) totEl.innerHTML = have.length ? '연간 <b>+' + fmt(total) + ' 마일</b>' : '';
+  const hint = $('#annualHint');
+  if (hint) hint.textContent = have.length ? '본인·가족 합산 · 예상 포함' : (year + '년 마일리지 기록 없음');
+  if (!have.length){ el.innerHTML = annualEmptyBox(year + '년 마일리지 기록이 없습니다'); return; }
+
+  const selIdx = (F.month !== 'all' && String(F.month).slice(0,4) === String(year)) ? (+String(F.month).slice(5,7)) - 1 : -1;
+  const W = Math.max(280, el.clientWidth || 640);
+  const smallW = W < 460;
+  const H = smallW ? 212 : 250;
+  const pad = {l: smallW ? 38 : 54, r: smallW ? 12 : 18, t: 20, b: 26};
+  const innerW = Math.max(60, W - pad.l - pad.r), innerH = H - pad.t - pad.b;
+  const xAt = i => pad.l + innerW * (i/11);
+  const xbw = innerW / 11;
+  const maxV = Math.max(1, ...have.map(i=> vals[i]));
+  const niceStep = (function(v){
+    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(1,v))));
+    for (const st of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]){ if (v <= pow*st) return pow*st; }
+    return pow*10;
+  })(Math.max(1, maxV * 1.12 / 4));
+  const niceMax = niceStep * 4;
+  const yAt = v => pad.t + innerH - (Math.min(v, niceMax)/niceMax) * innerH;
+  const i0 = have[0], i1 = have[have.length-1];
+
+  let svg = '<svg viewBox="0 0 '+W.toFixed(0)+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+year+'년 월별 적립 마일리지 꺾은선 그래프 (본인·가족 합산, 예상 포함)" style="display:block;touch-action:pan-y;overflow:visible">';
+  svg += '<style>@keyframes alineIn{from{opacity:0}to{opacity:1}}@keyframes alineDot{from{opacity:0}to{opacity:1}}</style>';
+  for (let m=0;m<12;m++){
+    svg += '<line x1="'+xAt(m).toFixed(1)+'" y1="'+pad.t+'" x2="'+xAt(m).toFixed(1)+'" y2="'+(pad.t+innerH).toFixed(1)+'" stroke="#f5f7fb" stroke-width="1"/>';
+  }
+  for (let i=0;i<=4;i++){
+    const v = niceStep*i, yy = yAt(v);
+    svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+(i?'#eef0f4':'#e3e7ef')+'" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
+  }
+  svg += '<text x="'+(pad.l-7)+'" y="'+(pad.t-6)+'" text-anchor="end" font-size="8.5" fill="#b6bcc6">마일</text>';
+  if (selIdx >= 0 && selIdx < 12 && vals[selIdx] != null){
+    const bw = Math.max(16, xbw*0.78);
+    svg += '<rect x="'+(xAt(selIdx)-bw/2).toFixed(1)+'" y="'+pad.t+'" width="'+bw.toFixed(1)+'" height="'+innerH.toFixed(1)+'" rx="6" fill="#6d5efc" opacity=".07"/>';
+  }
+  /* 데이터가 있는 달만 선으로 잇기 — 기록 없는 달은 끊어 둡니다 */
+  for (let i=0;i<11;i++){
+    if (vals[i] == null || vals[i+1] == null) continue;
+    const est = kind[i] === 'est' || kind[i+1] === 'est';
+    svg += '<line x1="'+xAt(i).toFixed(1)+'" y1="'+yAt(vals[i]).toFixed(1)+'" x2="'+xAt(i+1).toFixed(1)+'" y2="'+yAt(vals[i+1]).toFixed(1)+'" stroke="#6d5efc" stroke-width="2.4" stroke-linecap="round"'+
+      (est?' stroke-dasharray="4 4" stroke-opacity=".5"':'')+' style="animation:alineIn .45s ease-out both"/>';
+  }
+  have.forEach(i=>{
+    const est = kind[i] === 'est', sel = i === selIdx;
+    svg += '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(vals[i]).toFixed(1)+'" r="'+(sel?5:3.8)+'" fill="'+(est?'#fff':'#6d5efc')+'" stroke="#6d5efc" stroke-width="2"'+
+      (est?' stroke-opacity=".5"':'')+' style="animation:alineDot .3s ease-out both"/>';
+  });
+  /* 값 표시 — 최고 달과 고른 달만 */
+  const peakI = have.reduce((b,i)=> (b < 0 || vals[i] > vals[b]) ? i : b, -1);
+  [peakI, selIdx].forEach((i, k)=>{
+    if (i < 0 || i > 11 || vals[i] == null) return;
+    if (k === 1 && i === peakI) return;
+    const lx = Math.min(Math.max(xAt(i), pad.l + 18), W - pad.r - 18);
+    svg += '<text x="'+lx.toFixed(1)+'" y="'+(yAt(vals[i])-7).toFixed(1)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="700" fill="'+(i===selIdx?'#4c3fd6':'#111827')+'" pointer-events="none">+'+shortKrw(vals[i])+'</text>';
+  });
+  for (let m=0;m<12;m++){
+    const on = m === selIdx, outside = (m < i0 || m > i1) || vals[m] == null;
+    svg += '<text x="'+xAt(m).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="'+(on?700:600)+'" fill="'+(on?'#4c3fd6':(outside?'#c8cdd7':'#8b93a1'))+'">'+(m+1)+'월</text>';
+  }
+  for (let m=0;m<12;m++){
+    const x0 = m===0 ? 0 : xAt(m)-xbw/2;
+    const x1 = m===11 ? W : xAt(m)+xbw/2;
+    const ttl = (m+1)+'월 · ' + (vals[m] == null ? '기록 없음'
+      : '+'+fmt(vals[m])+' 마일' + (kind[m]==='est' ? ' (예상 · 삼성·우리 '+fmt(spent[m])+'원 ÷1,000)' : ' (대한항공 기록)'));
+    svg += '<g data-month="'+year+'-'+String(m+1).padStart(2,'0')+'" style="cursor:pointer">'+
+      '<rect x="'+x0.toFixed(1)+'" y="'+pad.t+'" width="'+(x1-x0).toFixed(1)+'" height="'+(H-pad.t-2).toFixed(1)+'" fill="transparent"/>'+
+      '<title>'+esc(ttl)+'</title></g>';
+  }
+  svg += '</svg>';
+
+  const legend = '<div class="aline-legend"><span class="lbl">본인·가족 합산</span>'+
+    '<span class="aline-chip"><i class="bar" style="--c:#6d5efc"></i><span class="nm">실제 '+nReal+'달</span></span>'+
+    '<span class="aline-chip"><i class="dot" style="--c:#c2bcfd"></i><span class="nm">예상 '+nEst+'달</span></span>'+
+    (nEst ? '<span class="lbl" style="font-weight:500">예상 = 삼성·우리 사용액 ÷ 1,000</span>' : '')+'</div>';
+
+  let readout;
+  if (selIdx >= 0 && selIdx < 12){
+    readout = vals[selIdx] == null
+      ? '<span class="mo">'+(selIdx+1)+'월</span><span class="muted">기록 없음</span>'
+      : '<span class="mo">'+(selIdx+1)+'월</span><span class="it"><i class="dot" style="--c:#6d5efc"></i>'+
+        (kind[selIdx]==='est' ? '예상' : '실제')+' <b>+'+fmt(vals[selIdx])+' 마일</b></span>'+
+        '<span class="cnt">'+(kind[selIdx]==='est' ? '삼성·우리 '+fmt(spent[selIdx])+'원' : '대한항공 적립 기록')+'</span>';
+  } else {
+    readout = '<span class="muted">달을 누르면 그 달 마일리지가 보입니다</span>';
+  }
+  el.innerHTML = legend + svg + '<div class="aline-readout">'+readout+'</div>';
+}
 function renderAnnual(){
   const el = $('#annual'); if (!el) return;
   const years = annualYears();
@@ -1905,6 +2187,8 @@ function renderAnnual(){
     '<button data-year-step="-1"'+(yi<=0?' disabled':'')+' title="이전 해">‹</button>'+
     '<span class="yr" style="min-width:58px;text-align:center;font-weight:700;font-size:13px">'+year+'년</span>'+
     '<button data-year-step="1"'+(yi>=years.length-1?' disabled':'')+' title="다음 해">›</button>';
+
+  if (annualMile){ renderAnnualMileage(year); return; }
 
   const rows = filteredRows({ignoreMonth:true}).filter(r=> String(r.month||'').slice(0,4) === String(year));
   const series = annualSeries(rows);
@@ -1926,20 +2210,9 @@ function renderAnnual(){
   const totEl = $('#annualTotal');
   if (totEl) totEl.innerHTML = rows.length ? '총 <b>' + fmt(yearTotal) + '원</b>' : '';
 
-  /* 카드사 필터 — 이 해 내역이 있는 카드사만 (상세 내역과 같은 전역 카드 필터를 씁니다) */
+  /* 카드사 필터 — 이 해 내역이 있는 카드사 + 마일리지 모드 */
   const fc = $('#annualCards');
-  if (fc){
-    const yearRows = filteredRows({ignoreCards:true, ignoreMonth:true})
-      .filter(r=> String(r.month||'').slice(0,4) === String(year));
-    const known = Array.from(new Set(yearRows.map(r=> r.card).concat(F.cards))).filter(Boolean);
-    const list = sortCards(known);
-    fc.innerHTML = (list.length > 1 || F.cards.length)
-      ? '<span class="lbl">카드사</span>'+
-        '<button class="chip'+(F.cards.length?'':' on')+'" data-annual-card="" title="모든 카드사 보기">전체</button>'+
-        list.map(c=> '<button class="chip'+(F.cards.indexOf(c)>=0?' on':'')+'" data-annual-card="'+esc(c)+'" title="'+esc(c)+'만 보기">'+
-          '<span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</button>').join('')
-      : '';
-  }
+  if (fc) fc.innerHTML = annualCardChipsHtml(year);
   $('#annualHint').textContent = rows.length
     ? scope + year + '년 · 최고 ' + (peakIdx+1) + '월 ' + fmt(peakVal) + '원'
     : scope + year + '년 내역 없음';
@@ -2480,6 +2753,16 @@ $('#mileCard').addEventListener('click', ev=>{
   if (act){
     const a = act.dataset.mileact;
     if (a === 'cancel'){ mileEdit = false; renderMileage(); return; }
+    if (a === 'goalcancel'){ mileGoalEdit = false; renderMileage(); return; }
+    if (a === 'goalsave'){
+      const raw = $('#mileGoalInput') ? $('#mileGoalInput').value : '';
+      const d = String(raw).replace(/[^0-9]/g, '');
+      const gv = d ? Math.min(9999999, Math.round(Number(d))) : 0;
+      MILE.goal = gv;
+      mileageSave(); mileGoalEdit = false; renderMileage();
+      toast(gv ? '목표 마일리지를 ' + fmt(gv) + '마일로 저장했습니다' : '목표 마일리지를 꽂습니다');
+      return;
+    }
     if (a === 'save'){
       const raw = $('#mileInput') ? $('#mileInput').value : '';
       if (!String(raw).replace(/[^0-9]/g, '')){ toast('보유 마일리지를 숫자로 입력해 주세요'); return; }
@@ -2494,14 +2777,29 @@ $('#mileCard').addEventListener('click', ev=>{
     }
   }
   if (ev.target.closest('#mileVal')){ mileEdit = true; renderMileage(); }
+  else if (ev.target.closest('#mileGoalBtn')){ mileGoalEdit = true; renderMileage(); }
 });
 $('#mileCard').addEventListener('input', ev=>{
   const t = ev.target;
+  if (t.id === 'mileGoalInput'){
+    const d = String(t.value).replace(/[^0-9]/g, '').slice(0, 7);
+    t.value = d ? fmt(Number(d)) : '';
+    return;
+  }
   if (t.id !== 'mileInput') return;
   const d = String(t.value).replace(/[^0-9]/g, '').slice(0, 8);
   t.value = d ? fmt(Number(d)) : '';
 });
 $('#mileCard').addEventListener('keydown', ev=>{
+  if (ev.target.id === 'mileGoalInput'){
+    if (ev.key === 'Enter'){
+      ev.preventDefault();
+      const b = $('#mileCard [data-mileact="goalsave"]'); if (b) b.click();
+    } else if (ev.key === 'Escape'){
+      ev.preventDefault(); mileGoalEdit = false; renderMileage();
+    }
+    return;
+  }
   if (ev.target.id !== 'mileInput') return;
   if (ev.key === 'Enter'){
     ev.preventDefault();
@@ -2542,7 +2840,13 @@ $('#yearSeg').addEventListener('click', ev=>{
   saveState(); renderAll();
 });
 $('#annualCards') && $('#annualCards').addEventListener('click', ev=>{
+  if (ev.target.closest('[data-annual-mile]')){
+    annualMile = !annualMile;
+    renderAnnual();
+    return;
+  }
   const b = ev.target.closest('[data-annual-card]'); if (!b) return;
+  annualMile = false;
   applyCardChip(b.dataset.annualCard || '');
 });
 $('#annual').addEventListener('click', ev=>{
@@ -3219,6 +3523,9 @@ function bindDataTab(){
             MILE = MILE_EMPTY();
             if (p.mileage.skypass != null && isFinite(+p.mileage.skypass)) MILE.skypass = Math.max(0, Math.round(+p.mileage.skypass));
             if (p.mileage.familyTotal != null && isFinite(+p.mileage.familyTotal)) MILE.familyTotal = Math.max(0, Math.round(+p.mileage.familyTotal));
+            if (p.mileage.goal != null && isFinite(+p.mileage.goal)) MILE.goal = Math.max(0, Math.round(+p.mileage.goal));
+            MILE.monthlyHistory = mileHistory(p.mileage.monthlyHistory);
+            MILE.recentHistory = mileRecent(p.mileage.recentHistory);
             MILE.familyMembers = mileFamily(p.mileage.familyMembers);
             MILE.updatedAt = p.mileage.updatedAt || null;
             MILE.source = p.mileage.source || 'manual';
@@ -3238,6 +3545,7 @@ function bindDataTab(){
       try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); } catch(e){}
       LIMITS = {}; limitEdit = null; FB_AI = null; FB_AI_OFF = null;
       MILE = MILE_EMPTY(); mileEdit = false;
+      mileGoalEdit = false;
       S = blankState(true); F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
       saveState(); renderAll(); closeModal(); toast('저장된 자료를 지웠습니다');
     });
