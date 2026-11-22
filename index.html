@@ -1238,8 +1238,143 @@ function fbCacheGet(){
   catch(e){ return null; }
 }
 function fbCacheSave(o){ try { localStorage.setItem(FB_CACHE_KEY, JSON.stringify(o)); } catch(e){} }
+
+/* ---------- Gemini 모델 자동 탐색 (ListModels) + thinking 설정 안전 처리 ----------
+   구버전 모델명(gemini-1.5-flash 등)이 죽어도, 이 키로 실제 쓸 수 있는 flash 모델을
+   GET v1beta/models 에서 찾아 다시 시도한다. 사용액 분석(fbCallGemini)과 캡처 분석(capCallGemini)이 함께 쓴다. */
+const GM_LAST = {model:''};            // 최근 성공한 모델(안내·표시용)
+let GM_DISCOVERED = null;              // ListModels로 확인한 사용 가능 모델 목록(최신 우선, 세션 캐시)
+const GM_SKIP_NAME = /tts|image|embed|robotics|computer-use|deep-research|native-audio|live|audio|vision|guard|learnlm|aqa|thinking/i;
+const GM_UNAVAILABLE = /not found|not supported|unsupported|does not support|not available|deprecated|unknown model|no such model|invalid model|is not a valid/i;
+function gmId(m){ return String(m || '').trim().replace(/^models\//, ''); }
+function gmVersion(id){ const m = String(id).match(/^gemini-(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; }
+function gmTier(id){ return /flash-lite/.test(id) ? 1 : (/flash/.test(id) ? 2 : 0); }
+function gmSort(list){
+  return list.slice().sort((a, b) => {
+    const va = gmVersion(a), vb = gmVersion(b);
+    if (vb !== va) return vb - va;                                  // 최신 버전 먼저
+    const ta = gmTier(a), tb = gmTier(b);
+    if (tb !== ta) return tb - ta;                                  // 같은 버전이면 flash > flash-lite
+    const pa = /preview|exp/.test(a) ? 1 : 0, pb = /preview|exp/.test(b) ? 1 : 0;
+    if (pa !== pb) return pa - pb;                                  // 안정판 먼저
+    return a < b ? -1 : (a > b ? 1 : 0);
+  });
+}
+async function gmListModels(){          // GET v1beta/models — generateContent가 되는 gemini flash 계열만
+  const found = [];
+  let pageToken = '';
+  const fetchPage = async (qs) => {
+    try { return await fetch('https://generativelanguage.googleapis.com/v1beta/models?' + (qs ? qs + '&' : '') + 'key=' + encodeURIComponent(AI_CFG.key)); }
+    catch(e){ throw new Error('모델 목록을 확인하지 못했습니다(네트워크).'); }
+  };
+  for (let page = 0; page < 3; page++){
+    let qs = (pageToken ? 'pageToken=' + encodeURIComponent(pageToken) + '&' : '') + 'pageSize=200';
+    let res = await fetchPage(qs);
+    if (!res.ok){
+      const msg0 = await capReadError(res);
+      // 키 오류가 아니면 pageSize를 싫어하는 경우가 있으니 빼고 한 번 더
+      if (res.status === 400 && !/API_KEY_INVALID|API key not valid|invalid[_ ]?api[_ ]?key/i.test(msg0)){
+        qs = pageToken ? 'pageToken=' + encodeURIComponent(pageToken) : '';
+        res = await fetchPage(qs);
+        if (!res.ok) throw capApiError(res.status, await capReadError(res));
+      } else throw capApiError(res.status, msg0);
+    }
+    let j;
+    try { j = await res.json(); } catch(e){ throw new Error('모델 목록 응답을 읽지 못했습니다.'); }
+    ((j && j.models) || []).forEach(m => {
+      const id = gmId(m && m.name);
+      if (!/^gemini-/.test(id)) return;
+      if (!/flash/.test(id) || GM_SKIP_NAME.test(id)) return;        // flash 계열만, tts·image·embedding 등 특수 모델 제외
+      // supportedGenerationMethods 가 있으면 generateContent 지원 여부 확인(없으면 이름으로만 판단)
+      if (Array.isArray(m && m.supportedGenerationMethods) && !m.supportedGenerationMethods.includes('generateContent')) return;
+      found.push(id);
+    });
+    pageToken = (j && j.nextPageToken) || '';
+    if (!pageToken) break;
+  }
+  return gmSort(Array.from(new Set(found)));
+}
+function gmGenVariants(model, base){     // thinking 설정이 모델마다 달라, 되는 설정부터 차례로 시도
+  const out = [];
+  if (/^gemini-2\.5/.test(model)) out.push(Object.assign({}, base, {thinkingConfig:{thinkingBudget:0}}));      // 2.5: 생각 끄기(2~5초 안에 답하게)
+  else if (/^gemini-3/.test(model)) out.push(Object.assign({}, base, {thinkingConfig:{thinkingLevel:'low'}})); // 3.x: 생각 최소
+  out.push(Object.assign({}, base));                                                                           // 그래도 거부하면 thinking 없이
+  return out;
+}
+async function gmPost(model, body, gen){
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) +
+    ':generateContent?key=' + encodeURIComponent(AI_CFG.key);
+  const payload = Object.assign({}, body);
+  if (gen) payload.generationConfig = gen;
+  return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+}
+/* 한 모델·한 설정으로 시도. {ok:true,json} 또는 {ok:false,why,retry}, 키·한도·서버 오류는 throw */
+async function gmAttempt(model, body, gen, netMsg){
+  let res;
+  try { res = await gmPost(model, body, gen); }
+  catch(e){ throw new Error(netMsg || '네트워크 오류로 AI에 연결하지 못했습니다.'); }
+  if (res.ok){
+    try { return {ok:true, json: await res.json()}; }
+    catch(e){ throw new Error('AI 응답을 읽지 못했습니다. 다시 시도해 주세요.'); }
+  }
+  const msg = await capReadError(res);
+  // 키·권한·한도·서버 문제는 모델을 바꿔도 같으니 바로 알린다.
+  if (res.status === 401 || res.status === 403 || res.status === 429 || res.status >= 500) throw capApiError(res.status, msg);
+  if (res.status === 400 && /API_KEY_INVALID|API key not valid|invalid[_ ]?api[_ ]?key/i.test(msg)) throw capApiError(400, msg);
+  if (res.status === 400 && gen && gen.thinkingConfig){ return {ok:false, why:'설정 거부(HTTP 400)', retry:true}; }
+  if (res.status === 404 || (res.status === 400 && GM_UNAVAILABLE.test(msg))){ return {ok:false, why:'사용 불가(HTTP ' + res.status + ')', retry:false}; }
+  throw capApiError(res.status, msg);
+}
+/* Gemini 호출 공통: 고정 목록 → (실패 시) ListModels 자동 탐색 → 그래도 없으면 시도 내역을 담아 안내 */
+async function gmCall(body, genBase, opts){
+  opts = opts || {};
+  const tried = [];
+  const seen = Object.create(null);
+  const attempt = async (raw) => {
+    const model = gmId(raw);
+    if (!model || seen[model]) return null;
+    seen[model] = 1;
+    let why = '실패';
+    for (const gen of gmGenVariants(model, genBase)){
+      const r = await gmAttempt(model, body, gen, opts.netMsg);
+      if (r.ok){ GM_LAST.model = model; return {json: r.json, model: model}; }
+      why = r.why;
+      if (!r.retry) break;
+    }
+    tried.push({model: model, why: why});
+    return null;
+  };
+  const first = [];
+  if (AI_CFG.model) first.push(AI_CFG.model);                 // 사용자가 지정한 모델을 가장 먼저
+  AI_PROVIDERS.gemini.models.forEach(m => first.push(m));      // 최신 flash 기본 목록
+  for (const m of first){
+    const got = await attempt(m);
+    if (got) return got;
+  }
+  let listErr = null;
+  try { GM_DISCOVERED = await gmListModels(); }
+  catch(e){ listErr = e; }
+  if (GM_DISCOVERED && GM_DISCOVERED.length){
+    for (const m of GM_DISCOVERED.slice(0, 6)){
+      const got = await attempt(m);
+      if (got) return got;
+    }
+  }
+  // 실패한 모델과 이유를 같은 이유끼리 묶어 짧게 정리 (예: "gemini-2.5-flash·gemini-2.0-flash 사용 불가(HTTP 404)")
+  const byWhy = [];
+  tried.forEach(t => {
+    let g = byWhy.find(x => x.why === t.why);
+    if (!g){ g = {why: t.why, models: []}; byWhy.push(g); }
+    g.models.push(t.model);
+  });
+  const detail = byWhy.map(g => g.models.slice(0, 3).join('·') + (g.models.length > 3 ? ' 외 ' + (g.models.length - 3) + '개' : '') + ' ' + g.why).join(', ');
+  if (listErr) throw new Error(listErr.message + (detail ? ' (시도: ' + detail + ')' : ''));
+  if (!GM_DISCOVERED || !GM_DISCOVERED.length){
+    throw new Error('사용 가능한 Gemini 모델을 찾지 못했습니다. 이 키로 쓸 수 있는 flash 모델이 없습니다. ⚙ 설정에서 모델명을 확인해 주세요.' + (detail ? ' (시도: ' + detail + ')' : ''));
+  }
+  throw new Error('사용 가능한 Gemini 모델을 찾지 못했습니다. ⚙ 설정에서 모델명을 확인해 주세요. (시도: ' + detail + ')');
+}
 async function fbCallGemini(payload){
-  const models = AI_CFG.model ? [AI_CFG.model] : AI_PROVIDERS.gemini.models.slice();
   const prompt = '너는 카드 사용액을 짧게 짚어 주는 조언자다. 아래 자료를 보고 한국어 불릿 2~3줄만 출력한다.\n'+
     '- 줄마다 40자 안팎, 금액은 만원 단위로 간단히\n'+
     '- 1줄: 한도를 넘었거나 근접한 카드와 주요 원인(분류·가맹점 비중)\n'+
@@ -1247,29 +1382,12 @@ async function fbCallGemini(payload){
     '- 3줄(가능하면): 남은 기간 하루 권장 금액\n'+
     '- 기호·머리글자(-, •, *)·설명 문장·인사말 없이 줄바꿈으로만 구분\n'+
     '자료: ' + JSON.stringify(payload);
-  let lastErr = null;
-  for (const model of models){
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) +
-      ':generateContent?key=' + encodeURIComponent(AI_CFG.key);
-    const gen = {temperature:0.2, maxOutputTokens:300};
-    if (/^gemini-2\.5/.test(model)) gen.thinkingConfig = {thinkingBudget:0};
-    let res;
-    try {
-      res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({contents:[{role:'user', parts:[{text:prompt}]}], generationConfig:gen})});
-    } catch(e){ throw new Error('네트워크 오류로 AI에 연결하지 못했습니다.'); }
-    if (!res.ok){
-      const msg = await capReadError(res);
-      if (res.status === 404 || /not found|not supported|unsupported/i.test(msg)){ lastErr = new Error('모델 ' + model + ' 사용 불가'); continue; }
-      throw capApiError(res.status, msg);
-    }
-    const j = await res.json();
-    const cand = (j.candidates || [])[0];
-    const text = cand ? (((cand.content || {}).parts || []).map(p=> p.text || '').join('\n')) : '';
-    if (!String(text).trim()) throw new Error('AI 응답이 비어 있습니다. 다시 시도해 주세요.');
-    return text;
-  }
-  throw lastErr || new Error('사용할 수 있는 Gemini 모델이 없습니다.');
+  const got = await gmCall({contents:[{role:'user', parts:[{text:prompt}]}]},
+    {temperature:0.2, maxOutputTokens:1024}, {netMsg:'네트워크 오류로 AI에 연결하지 못했습니다.'});
+  const cand = (got.json.candidates || [])[0];
+  const text = cand ? ((cand.content || {}).parts || []).filter(p => !p.thought).map(p => p.text || '').join('\n') : '';
+  if (!String(text).trim()) throw new Error('AI 응답이 비어 있습니다. 다시 시도해 주세요.' + (cand && cand.finishReason === 'MAX_TOKENS' ? ' (응답 길이 초과)' : ''));
+  return text;
 }
 function renderFeedback(ctx){
   const box = $('#fbBox'), list = $('#fbList'), btn = $('#fbAi'), tag = $('#fbTag');
@@ -2821,7 +2939,7 @@ function bindDataTab(){
 /* ---------- AI 캡처 설정 탭 ---------- */
 const AI_KEY_LS = LS_KEY + '.ai';
 const AI_PROVIDERS = {
-  gemini: {name:'Google Gemini', models:['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'], keyHint:'AIza…'},
+  gemini: {name:'Google Gemini', models:['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-3-flash-preview','gemini-2.0-flash'], keyHint:'AIza…'},
   openai: {name:'OpenAI (GPT)', models:['gpt-4o-mini'], keyHint:'sk-…'}
 };
 let AI_CFG = {provider:'gemini', key:'', model:''};
@@ -2861,7 +2979,7 @@ function aiTabHtml(){
     '<p class="tiny" style="margin-top:0"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini API 키 발급 ↗</a> · <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI API 키 발급 ↗</a></p>'+
     '<div class="field" style="margin-top:12px"><label>모델 (비우면 자동 선택)</label>'+
       '<input class="txt" id="aiModel2" value="'+esc(AI_CFG.model||'')+'" placeholder="'+esc(prov.models[0])+'" autocomplete="off" spellcheck="false">'+
-      '<p class="tiny">'+(pv==='gemini' ? 'Gemini는 '+prov.models.join(' → ')+' 순서로 자동 시도합니다. 보통 비워 두면 됩니다.' : 'OpenAI는 gpt-4o-mini로 분석합니다. 다른 모델을 쓰려면 직접 입력하세요.')+'</p></div>'+
+      '<p class="tiny">'+(pv==='gemini' ? 'Gemini는 위 목록 순서로 시도하고, 모두 안 되면 이 키로 쓸 수 있는 모델을 직접 찾아 다시 시도합니다. 보통 비워 두면 됩니다.' : 'OpenAI는 gpt-4o-mini로 분석합니다. 다른 모델을 쓰려면 직접 입력하세요.')+'</p></div>'+
     '<div class="syncstate'+(AI_CFG.key?' ok':'')+'" id="aiState2">'+
       (AI_CFG.key ? '키가 저장되어 있습니다. 캡쳐 분석을 바로 쓸 수 있습니다.' : '아직 API 키가 없습니다. 키를 넣고 [저장]을 누르세요.')+'</div>';
 }
@@ -3507,35 +3625,17 @@ function capApiError(status, msg){
   return new Error('AI 요청이 실패했습니다 (HTTP ' + status + ')' + (m ? ': ' + m.slice(0,120) : ''));
 }
 async function capCallGemini(imgs){
-  const models = AI_CFG.model ? [AI_CFG.model] : AI_PROVIDERS.gemini.models.slice();
-  let lastErr = null;
-  for (const model of models){
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) +
-      ':generateContent?key=' + encodeURIComponent(AI_CFG.key);
-    const gen = {temperature:0, responseMimeType:'application/json', maxOutputTokens:8192};
-    if (/^gemini-2\.5/.test(model)) gen.thinkingConfig = {thinkingBudget:0};   // 2~5초 안에 답하게
-    const body = {
-      contents: [{role:'user', parts:[{text:capPrompt()}].concat(imgs.map(im=>({inline_data:{mime_type:im.mime, data:im.b64}})))}],
-      generationConfig: gen
-    };
-    let res;
-    try {
-      res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    } catch(e){ throw new Error('네트워크 오류로 AI에 연결하지 못했습니다. 인터넷 연결이나 광고 차단 앱을 확인해 주세요.'); }
-    if (!res.ok){
-      const msg = await capReadError(res);
-      if (res.status === 404 || /not found|not supported|unsupported|does not support/i.test(msg)){ lastErr = new Error('모델 ' + model + ' 사용 불가'); continue; }
-      throw capApiError(res.status, msg);
-    }
-    const j = await res.json();
-    const cand = (j.candidates || [])[0];
-    if (!cand) throw new Error('AI가 결과를 보내지 않았습니다. 이미지가 흐리면 다시 캡처해 주세요.');
-    if (cand.finishReason === 'MAX_TOKENS') throw new Error('내역이 너무 많아 중간에 끊겼습니다. 이미지를 나눠서 분석해 주세요.');
-    const text = ((cand.content || {}).parts || []).map(p=>p.text || '').join('\n');
-    if (!String(text).trim()) throw new Error('AI 응답이 비어 있습니다. 다시 시도해 주세요. (finish: ' + (cand.finishReason||'-') + ')');
-    return {text, model};
-  }
-  throw lastErr || new Error('사용할 수 있는 Gemini 모델을 찾지 못했습니다. 설정에서 모델을 바꾸거나 OpenAI를 선택해 주세요.');
+  const body = {
+    contents: [{role:'user', parts:[{text:capPrompt()}].concat(imgs.map(im=>({inline_data:{mime_type:im.mime, data:im.b64}})))}]
+  };
+  const got = await gmCall(body, {temperature:0, responseMimeType:'application/json', maxOutputTokens:8192},
+    {netMsg:'네트워크 오류로 AI에 연결하지 못했습니다. 인터넷 연결이나 광고 차단 앱을 확인해 주세요.'});
+  const cand = (got.json.candidates || [])[0];
+  if (!cand) throw new Error('AI가 결과를 보내지 않았습니다. 이미지가 흐리면 다시 캡처해 주세요.');
+  if (cand.finishReason === 'MAX_TOKENS') throw new Error('내역이 너무 많아 중간에 끊겼습니다. 이미지를 나눠서 분석해 주세요.');
+  const text = ((cand.content || {}).parts || []).filter(p => !p.thought).map(p => p.text || '').join('\n');
+  if (!String(text).trim()) throw new Error('AI 응답이 비어 있습니다. 다시 시도해 주세요. (finish: ' + (cand.finishReason||'-') + ')');
+  return {text, model: got.model};
 }
 async function capCallOpenAI(imgs){
   const model = AI_CFG.model || AI_PROVIDERS.openai.models[0];
