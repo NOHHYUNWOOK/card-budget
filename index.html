@@ -389,6 +389,37 @@ body.editmode tbody tr.dragging{background:#fff;box-shadow:0 10px 24px rgba(17,2
 body.editmode tbody tr.dragging td{border-bottom-color:transparent}
 .qdel{border:0;background:transparent;padding:2px 4px;margin-left:5px;font-size:12.5px;line-height:1;color:var(--muted);border-radius:7px;vertical-align:middle}
 .qdel:hover{background:#fff1f1;color:var(--danger)}
+/* 편집 모드 — 이용일자·가맹점·금액 고치기 (2026-11-23) */
+.qedit{border:1px solid #dbe3f1;background:#fff;padding:0;margin-left:6px;width:24px;height:24px;font-size:12.5px;line-height:1;
+  color:#3b5b96;border-radius:8px;vertical-align:middle;display:inline-grid;place-items:center;flex:none}
+.qedit:hover{background:#eef4ff;border-color:#b9cdf7;color:#1d4ed8}
+tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:#f7faff}
+.rowedit-box{display:grid;gap:8px 10px;padding:11px 12px 12px;
+  grid-template-areas:"date amount" "merchant merchant" "act act";grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.rowedit-box .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rowedit-box .fld > span{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.01em}
+.rowedit-box .fld.date{grid-area:date}
+.rowedit-box .fld.merchant{grid-area:merchant}
+.rowedit-box .fld.amount{grid-area:amount;position:relative}
+.rowedit-box .fld.amount input{padding-right:26px;text-align:right;font-variant-numeric:tabular-nums}
+.rowedit-box .fld.amount i{position:absolute;right:10px;bottom:8px;font-style:normal;font-size:12px;color:var(--muted)}
+.rowedit-box input{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:14px;
+  font-weight:650;outline:none;min-width:0;width:100%;color:var(--ink)}
+.rowedit-box input:focus{border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.rowedit-act{grid-area:act;display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.rowedit-act .btn{padding:6px 11px;font-size:12.5px;border-radius:9px}
+@media (min-width:720px){
+  .rowedit-box{grid-template-areas:"date merchant amount act";
+    grid-template-columns:150px minmax(0,1fr) 148px auto;align-items:end}
+  .rowedit-act{padding-bottom:1px}
+}
+@media (max-width:560px){
+  tbody tr.rowedit{display:block}
+  tbody tr.rowedit > td{display:block}
+  .rowedit-box{padding:10px 12px}
+  .rowedit-box input{font-size:15px;padding:8px 10px}
+  .rowedit-act .btn{padding:7px 12px;font-size:13px}
+}
 .editbar{display:flex;align-items:center;gap:7px;margin:0 16px 10px;padding:6px 10px;border-radius:12px;background:#f5f8ff;border:1px solid #dce7fa;flex-wrap:wrap}
 .editbar .cnt{font-size:12.5px;font-weight:650;color:#3c4a63;white-space:nowrap}
 .editbar .cnt b{font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
@@ -2602,16 +2633,15 @@ function renderTrend(rows, sum){
       ' fill="'+((isPeak || on) ? (isPeak ? '#e5484d' : '#1d4ed8') : '#fff')+'" stroke="'+(isPeak ? '#e5484d' : '#2f6fed')+'" stroke-width="1.6"/>';
   }
 
-  /* 가로축 눈금: 전월 13일 → 7일 간격 → 당월 12일 (겹치지 않게) */
-  const ticks = [0,7,14,21,n-1].filter((v,i,a)=> v>=0 && v<n && a.indexOf(v)===i)
-    .filter((v,i,a)=> i === a.length-1 || (a[i+1]-v) >= 4);
-  ticks.forEach((off,i)=>{
-    const d = dateAt(bp, off);
-    const isFirst = i === 0, isLast = i === ticks.length-1;
-    const anchor = isFirst ? 'start' : (isLast ? 'end' : 'middle');
-    const tx = isFirst ? xAt(off) - slot/2 : (isLast ? xAt(off) + slot/2 : xAt(off));
-    svg += '<text x="'+tx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+anchor+'" font-size="'+(smallW?9.5:10.5)+'" font-weight="600" fill="'+(off === selOff ? '#1d4ed8' : '#8b93a1')+'">'+mdtxt(d)+'</text>';
-  });
+  /* 가로축 눈금: 사용기간의 날짜 숫자 — 토요일은 파랑, 일요일은 빨강으로 (2026-11-23 요청) */
+  const dayTxt = smallW ? (slot < 11.5 ? 8 : 9) : 9.5;
+  for (let off = 0; off < n; off++){
+    const d = dateAt(bp, off), wd = d.getDay();
+    const on = off === selOff;
+    const color = wd === 6 ? '#2563eb' : (wd === 0 ? '#dc2626' : (on ? '#1d4ed8' : '#8b93a1'));
+    svg += '<text x="'+xAt(off).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+dayTxt+
+      '" font-weight="'+(on?800:(wd===6||wd===0?700:600))+'" fill="'+color+'"'+(wd===6?' data-wd="sat"':(wd===0?' data-wd="sun"':''))+'>'+d.getDate()+'</text>';
+  }
 
   /* 최고 지출 날 표시 */
   if (peakIdx >= 0){
@@ -2752,8 +2782,9 @@ function renderTable(rows, sum){
         (none ? '' : '<span class="dot" style="background:'+catMeta(r.category).color+'"></span>')+
         '<span class="nm">'+esc(catName)+'</span><span class="car">▾</span></button></td>'+
       '<td class="num amount'+(r.amount<0?' neg':'')+'">'+fmt(r.amount)+'원'+
+        (EDITMODE ? '<button type="button" class="qedit" data-rowedit="'+esc(r.id)+'" title="이용일자·가맹점·금액 수정" aria-label="'+esc(r.merchant)+' 내용 수정">✎</button>' : '')+
         (EDITMODE ? '<button type="button" class="qdel" data-qdel="'+esc(r.id)+'" title="이 거래 바로 삭제" aria-label="'+esc(r.merchant)+' 바로 삭제">🗑</button>' : '')+'</td>'+
-    '</tr>';
+    '</tr>' + (EDITMODE && rowEdit && rowEdit.id === r.id ? rowEditTr(r) : '');
   }).join('');
 
   const more = sorted.length - view.length;
@@ -2785,14 +2816,83 @@ function renderTable(rows, sum){
 let EDITMODE = false;
 let SELROWS = new Set();              /* 편집 모드에서 고른 거래 id */
 
+/* ---------- 편집 모드: 행 하나의 이용일자·가맹점·금액 고치기 (2026-11-23) ----------
+   행의 ✎ 를 누르면 그 행 아래에 입력 줄이 열립니다. 입력 중에는 rowEdit 에 값을 들고 있어서
+   화면이 다시 그려져도(동기화·필터 변경) 치던 내용이 그대로 남습니다. */
+let rowEdit = null;                  /* {id, date, merchant, amount} */
+function rowEditTr(r){
+  const e = rowEdit || {};
+  const date = e.date != null ? e.date : String(r.date || '').slice(0, 10);
+  const merchant = e.merchant != null ? e.merchant : (r.merchant || '');
+  const amount = e.amount != null ? e.amount : fmt(r.amount);
+  return '<tr class="rowedit" data-editrow="'+esc(r.id)+'"><td colspan="'+(EDITMODE?6:5)+'">'+
+    '<div class="rowedit-box">'+
+      '<label class="fld date"><span>이용일자</span>'+
+        '<input type="date" data-refield="date" value="'+esc(date)+'" aria-label="이용일자"></label>'+
+      '<label class="fld merchant"><span>가맹점</span>'+
+        '<input type="text" data-refield="merchant" value="'+esc(merchant)+'" maxlength="40" autocomplete="off" '+
+        'enterkeyhint="done" spellcheck="false" aria-label="가맹점"></label>'+
+      '<label class="fld amount"><span>금액</span>'+
+        '<input type="text" data-refield="amount" inputmode="numeric" value="'+esc(amount)+'" autocomplete="off" aria-label="금액(원)"><i>원</i></label>'+
+      '<div class="rowedit-act">'+
+        '<button type="button" class="btn primary" data-reactsave>저장</button>'+
+        '<button type="button" class="btn ghost" data-reactcancel>취소</button>'+
+      '</div>'+
+    '</div></td></tr>';
+}
+function renderTableNow(){
+  const rows = filteredRows();
+  renderTable(rows, summarize(rows));
+}
+function openRowEdit(id){
+  const r = S.rows.find(x=> x.id === id);
+  if (!r) return;
+  rowEdit = {id: r.id, date: String(r.date || '').slice(0, 10), merchant: r.merchant || '', amount: fmt(r.amount)};
+  renderTableNow();
+  const inp = document.querySelector('tr[data-editrow] [data-refield="merchant"]');
+  if (inp){ inp.focus(); try { inp.setSelectionRange(0, inp.value.length); } catch(e){} }
+}
+function closeRowEdit(){
+  if (!rowEdit) return;
+  rowEdit = null;
+  renderTableNow();
+}
+function focusRefield(name){
+  const el = document.querySelector('tr[data-editrow] [data-refield="'+name+'"]');
+  if (el) el.focus();
+}
+function saveRowEdit(){
+  const d = rowEdit; if (!d) return;
+  const row = S.rows.find(r=> r.id === d.id);
+  if (!row){ rowEdit = null; renderTableNow(); return; }
+  const date = toDateStr(d.date);
+  const merchant = String(d.merchant == null ? '' : d.merchant).replace(/\s+/g,' ').trim();
+  const amount = toAmount(d.amount);
+  if (!date){ toast('이용일자를 넣어주세요'); focusRefield('date'); return; }
+  if (!merchant){ toast('가맹점 이름을 넣어주세요'); focusRefield('merchant'); return; }
+  if (!Number.isFinite(amount) || amount === 0){ toast('금액을 숫자로 넣어주세요 (환불은 -금액)'); focusRefield('amount'); return; }
+  if (date === row.date && merchant === row.merchant && amount === row.amount){
+    rowEdit = null; renderTableNow(); toast('바뀐 내용이 없습니다'); return;
+  }
+  const oldKey = rowKey(row);
+  row.date = date; row.merchant = merchant; row.amount = amount; row.edited = true;
+  if (rowKey(row) !== oldKey) addTomb(oldKey, row.month);   /* 동기화: 예전 값이 다른 기기에 남지 않게 */
+  rowEdit = null;
+  saveState();
+  renderAll();
+  markDirtyMonth(row.month);
+  toast('수정했습니다 · 합계·한도·그래프에 바로 반영되고 다른 기기와도 맞춥니다');
+}
+
 function setEditMode(on){
   EDITMODE = !!on;
   SELROWS.clear();
+  rowEdit = null;
   if (!EDITMODE) cancelGripDrag();
   document.body.classList.toggle('editmode', EDITMODE);
   renderAll();
   if (EDITMODE){
-    toast('편집 모드 — 행 왼쪽 ⠿를 끌어 순서를 바꾸고, 눌러서 골라 지울 수 있어요', 3600);
+    toast('편집 모드 — ✎로 날짜·가맹점·금액을 고치고, ⠿로 순서를 바꾸고, 골라서 지울 수 있어요', 4000);
     const tc = document.querySelector('.table-card');
     if (tc){ try { tc.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){} }
   } else {
@@ -2863,6 +2963,7 @@ function deleteRowsByIds(ids){
   const n = before - S.rows.length;
   if (!n) return 0;
   ids.forEach(id=> SELROWS.delete(id));
+  if (rowEdit && set.has(rowEdit.id)) rowEdit = null;
   if (!S.rows.length){                  /* 다 지웠으면 편집 모드도 끝냅니다 */
     EDITMODE = false; SELROWS.clear(); document.body.classList.remove('editmode');
   }
@@ -2979,6 +3080,7 @@ function startGripDrag(ev){
   if (!EDITMODE || GRIP) return;
   const grip = ev.target.closest && ev.target.closest('[data-grip]');
   if (!grip) return;
+  if (rowEdit){ closeRowEdit(); return; }     /* 행 수정 중에는 먼저 그 입력을 접습니다 */
   const tr = grip.closest('tr[data-id]');
   if (!tr) return;
   const row = S.rows.find(r=> r.id === tr.dataset.id);
@@ -3456,10 +3558,14 @@ $('#table').addEventListener('click', ev=>{
     renderAll();
     return;
   }
-  /* 편집 모드: 행 누름 = 고르기, 🗑 = 한 건 바로 지우기, ⠿ = 끌어서 순서 바꾸기 */
+  /* 편집 모드: 행 누름 = 고르기, ✎ = 이용일자·가맹점·금액 수정, 🗑 = 한 건 바로 지우기, ⠿ = 끌어서 순서 바꾸기 */
   if (EDITMODE){
+    if (ev.target.closest('[data-reactsave]')){ saveRowEdit(); return; }
+    if (ev.target.closest('[data-reactcancel]')){ closeRowEdit(); return; }
     if (ev.target.closest('[data-grip]')) return;
     if (GRIP_SKIP_CLICK){ GRIP_SKIP_CLICK = false; return; }
+    const re = ev.target.closest('[data-rowedit]');
+    if (re){ openRowEdit(re.dataset.rowedit); return; }
     const qd = ev.target.closest('[data-qdel]');
     if (qd){ askDeleteOneRow(qd.dataset.qdel); return; }
     const box = ev.target.closest('input[data-selrow]');
@@ -3472,6 +3578,28 @@ $('#table').addEventListener('click', ev=>{
   if (b){ openCatSheet(b.dataset.catedit); return; }
   const cb = ev.target.closest('[data-cardedit]');
   if (cb){ openCatSheet(cb.dataset.cardedit); return; }
+});
+/* 행 수정 입력 — 치던 값을 rowEdit 에 보관하고, 금액은 천 단위 콤마로 보여 줍니다 */
+$('#table').addEventListener('input', ev=>{
+  const t = ev.target;
+  if (!rowEdit || !t || !t.dataset || !t.dataset.refield) return;
+  const f = t.dataset.refield;
+  if (f === 'amount'){
+    const neg = /^\s*-/.test(t.value);
+    const digits = String(t.value).replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+    const v = digits ? fmt(Number(digits)) : '';
+    t.value = (neg && v ? '-' : '') + v;
+    rowEdit.amount = t.value || (neg ? '-' : '');
+    return;
+  }
+  rowEdit[f] = t.value;
+});
+$('#table').addEventListener('keydown', ev=>{
+  if (!rowEdit) return;
+  const t = ev.target;
+  if (!t || !t.dataset || !t.dataset.refield) return;
+  if (ev.key === 'Enter'){ ev.preventDefault(); ev.stopPropagation(); saveRowEdit(); }
+  else if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); closeRowEdit(); }
 });
 
 /* ---------- 거래 한 건의 분류 선택 시트 (선택 · 추가 · 삭제) ---------- */
@@ -3638,7 +3766,10 @@ $('#btnSelCancel').addEventListener('click', ()=> setEditMode(false));
 /* ⠿ 핸들에서만 드래그를 시작합니다 (터치·마우스 공통) */
 $('#tbody').addEventListener('pointerdown', startGripDrag);
 document.addEventListener('keydown', ev=>{
-  if (ev.key === 'Escape' && EDITMODE && !$('#dialogBackdrop').classList.contains('show')) setEditMode(false);
+  if (ev.key === 'Escape' && EDITMODE && !$('#dialogBackdrop').classList.contains('show')){
+    if (rowEdit){ closeRowEdit(); return; }     /* 행 수정 중이면 그 입력만 먼저 닫기 */
+    setEditMode(false);
+  }
 });
 
 let rsz = null;
@@ -4932,6 +5063,7 @@ function normalizeRow(raw){
 }
 function mergePayload(payload, stats){
   const rows = Array.isArray(payload) ? payload : (payload && payload.rows) || [];
+  const tombs = tombSet();                 /* 이 기기에서 지웠거나 고쳐서 더 이상 없는 건 */
   // 같은 날짜·가맹점·금액의 거래가 여러 건일 수 있으므로 "몇 번째 같은 건"으로 짝을 맞춥니다
   const index = new Map();
   S.rows.forEach(r=>{ const k = rowKey(r); if (!index.has(k)) index.set(k, []); index.get(k).push(r); });
@@ -4959,6 +5091,7 @@ function mergePayload(payload, stats){
       }
       if (ch) stats.updated++;
     } else {
+      if (tombs.has(k)) return;          /* 지웠거나 고친 건은 받아오기로 되살리지 않음 */
       if (!r.category){ const c = autoCategory(r.merchant, r.amount, S.rules); r.category = c || '기타'; }
       if (!S.categories.some(c=> c.name === r.category)) S.categories.push({name:r.category, color:'#64748b'});
       arr.push(r); S.rows.push(r); stats.added++;
