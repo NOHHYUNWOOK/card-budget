@@ -72,6 +72,43 @@ input,select{font:inherit;color:inherit}
 #monthSeg::-webkit-scrollbar{display:none}
 #monthSeg button{flex:none}
 
+/* ---------- 상단 기간 필터: 전체 · 지난달 · 이번달 · 다른 월 ▾ (2026-11-23) ----------
+   1~12월 자료가 모두 들어와도 달 버튼은 위 4개로 고정하고, 그 밖의 달은 팝오버에서 고릅니다. */
+#monthSeg button.mp-trigger{display:inline-flex;align-items:center;gap:3px}
+#monthSeg button.mp-trigger .cv{font-size:8.5px;line-height:1;opacity:.55;transform:translateY(.5px)}
+#monthSeg button.mp-trigger.on .cv{opacity:.85}
+.mp-back{position:fixed;inset:0;background:rgba(15,23,42,.34);z-index:180;display:none;backdrop-filter:blur(1px)}
+.mp-back.show{display:block}
+.mp-pop{position:fixed;z-index:181;display:none;flex-direction:column;gap:9px;width:286px;padding:11px;
+  background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(15,23,42,.22);
+  animation:pop .14s ease-out}
+.mp-pop.show{display:flex}
+.mp-head{display:flex;align-items:center;gap:6px}
+.mp-head .mp-y{width:30px;height:30px;flex:none;border:1px solid var(--line);background:#fff;border-radius:9px;
+  color:var(--ink2);font-size:15px;font-weight:800;line-height:1;display:grid;place-items:center;transition:.13s}
+.mp-head .mp-y:hover{border-color:#cfd6e4;background:#fbfcfe}
+.mp-head .mp-y:disabled{opacity:.3;cursor:default;background:#fff}
+.mp-head .mp-year{flex:1;text-align:center;font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.mp-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.mp-grid button{position:relative;border:1px solid #e6e9f0;background:#fff;border-radius:10px;
+  padding:8px 0;min-height:37px;font:inherit;font-size:13px;font-weight:750;color:var(--ink);
+  font-variant-numeric:tabular-nums;transition:.12s}
+.mp-grid button:hover{border-color:#cfd6e4;background:#fbfcfe}
+.mp-grid button:active{transform:scale(.97)}
+.mp-grid button.nodata{background:#fafbfd;border-color:#f4f6f9;color:#c2c7d1;font-weight:650}
+.mp-grid button.nodata:hover{background:#f4f6fa;color:#a7aeba}
+.mp-grid button.on{background:#e8f0ff;border-color:#a8c3f7;color:#1d4ed8}
+.mp-grid button.on:hover{background:#e3ecff}
+.mp-grid button .m-dot{position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#b7cdf3}
+.mp-grid button.on .m-dot{background:#1d4ed8}
+@media (max-width:640px){
+  .mp-pop{left:10px!important;right:10px!important;top:auto!important;bottom:0!important;width:auto;
+    border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));gap:10px;
+    animation:sheetup .18s cubic-bezier(.3,1.1,.6,1)}
+  .mp-head .mp-y{width:34px;height:34px}
+  .mp-grid button{min-height:45px;font-size:14px}
+}
+
 /* ---------- 상단 고정 바: 월별 필터 · 패널 바로가기 (2026-11-23) ----------
    제목 바로 옆(넓은 화면) / 바로 아래 줄(좁은 화면)에 두고, 스크롤해도 위에 붙어 있습니다. */
 :root{--hdr:72px}
@@ -95,6 +132,8 @@ input,select{font:inherit;color:inherit}
 }
 @media (max-width:560px){
   .topbar-tools{gap:6px;padding-top:7px}
+  .topbar-tools #monthSeg{max-width:none}
+  #monthSeg button{padding:6px 9px;font-size:12.5px}
   .jumpnav{gap:3px}
   .jumpnav button{padding:5px 9px;font-size:12px}
 }
@@ -1037,6 +1076,16 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   </div>
 </div>
 
+<div class="mp-back" id="monthPickBack"></div>
+<div class="mp-pop" id="monthPickPop" role="dialog" aria-label="다른 월 선택">
+  <div class="mp-head">
+    <button type="button" class="mp-y" id="mpPrev" data-mp-step="-1" aria-label="이전 연도">‹</button>
+    <span class="mp-year" id="mpYear"></span>
+    <button type="button" class="mp-y" id="mpNext" data-mp-step="1" aria-label="다음 연도">›</button>
+  </div>
+  <div class="mp-grid" id="mpGrid"></div>
+</div>
+
 <script>
 /* ============================================================
    카드 가계부 대시보드 — 단일 파일 / 오프라인 동작
@@ -1085,6 +1134,13 @@ function billingMonthFor(date){
   return y + '-' + String(m).padStart(2,'0');
 }
 const AUTO_MONTH = billingMonthFor();   // 페이지를 열 때의 기본 결제월 (동기화 뒤에도 이 달을 우선)
+/* 결제월 계산 도우미 — 상단 '지난달·이번달' 버튼과 '다른 월' 팝오버가 함께 씁니다 */
+function ymShift(m, n){
+  const y = +String(m).slice(0,4), mi = +String(m).slice(5,7) - 1 + (n || 0);
+  const d = new Date(y, mi, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
+}
+const LAST_MONTH = ymShift(AUTO_MONTH, -1);   // '지난달' = 현재 결제월의 직전 달
 const cardColor = c => CARD_COLORS[c] || '#64748b';
 
 let toastTimer = null;
@@ -1116,6 +1172,8 @@ function seedState(){
 }
 let S = seedState();
 let F = { month:'all', monthUser:false, cards:[], categories:[], q:'', date:null };
+/* 상단 '다른 월 ▾' 팝오버 상태 */
+let monthPickOpen = false, monthPickYear = null;
 
 /* 분류 이름 바꿈 — 저장값에 남아 있는 예전 이름을 새 이름으로 옮깁니다.
    '하이패스' → '하이패스/세차' (공용 기본 시드의 '하이패스·통행료' 도 같은 뜻이라 함께 옮깁니다).
@@ -1504,22 +1562,33 @@ function catChipsDetailHtml(){
   }).join('');
 }
 function renderFilters(){
-  // month — 사용자가 달을 직접 고르기 전에는 '접속일이 속한 카드 사용기간(전월 13일~당월 12일)'의 결제월을 보여 줍니다
+  // month — 상단에는 '전체 · 지난달 · 이번달 · 다른 월 ▾' 4개만 두고, 나머지 달은 팝오버에서 고른다(2026-11-23)
   const ms = monthsIn(S.rows);
   if (!F.monthUser){
     F.month = (AUTO_MONTH && ms.indexOf(AUTO_MONTH) >= 0)
       ? AUTO_MONTH
       : (ms.length ? ms[ms.length-1] : 'all');
-  } else if (F.month !== 'all' && ms.indexOf(F.month) < 0) F.month = 'all';
+  } else if (!ms.length) F.month = 'all';   /* 자료를 다 지운 경우만 되돌림 — 내역 없는 달을 일부러 고른 것은 유지 */
   const mSeg = $('#monthSeg');
   const yrs = {};
   ms.forEach(m=>{ yrs[String(m).slice(0,4)] = 1; });
+  yrs[String(AUTO_MONTH).slice(0,4)] = 1;
   const oneYear = Object.keys(yrs).length <= 1;
-  const mLab = m => oneYear ? (+String(m).slice(5,7)) + '월' : monthLabel(m);
+  const mNum = m => (+String(m).slice(5,7)) + '월';
+  const mLab = m => oneYear ? mNum(m) : monthLabel(m);
+  const otherSel = F.month !== 'all' && F.month !== AUTO_MONTH && F.month !== LAST_MONTH;
   mSeg.innerHTML = ms.length
     ? '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
-      ms.map(m=>'<button data-month="'+m+'"'+(F.month===m?' class="on"':'')+'>'+mLab(m)+'</button>').join('')
+      '<button data-month="'+LAST_MONTH+'"'+(F.month===LAST_MONTH?' class="on"':'')+
+        ' aria-label="지난달 '+esc(monthLabel(LAST_MONTH))+'" title="지난달 · '+esc(periodTxtOf(LAST_MONTH))+' 결제분">'+mNum(LAST_MONTH)+'</button>' +
+      '<button data-month="'+AUTO_MONTH+'"'+(F.month===AUTO_MONTH?' class="on"':'')+
+        ' aria-label="이번달 '+esc(monthLabel(AUTO_MONTH))+'" title="이번달 · '+esc(periodTxtOf(AUTO_MONTH))+' 결제분">'+mNum(AUTO_MONTH)+'</button>' +
+      '<button type="button" class="mp-trigger'+(otherSel?' on':'')+'" id="monthPickBtn" aria-haspopup="dialog"'+
+        ' aria-expanded="'+(monthPickOpen?'true':'false')+'" title="그 밖의 달 고르기">'+esc(otherSel ? mLab(F.month) : '다른 월')+
+        '<span class="cv" aria-hidden="true">▾</span></button>'
     : '';   /* 자료가 없을 때는 달 선택 줄을 그리지 않음(시작 화면만 깔끔하게) */
+  if (!ms.length) closeMonthPick();
+  else if (monthPickOpen) renderMonthPick();
 
   // 카드사·분류 칩과 가맹점 검색은 '상세 내역' 패널에만 있습니다 (상단 필터 카드는 전체/월별만)
   const detailCards = $('#cardChipsDetail');
@@ -1543,6 +1612,83 @@ function renderFilters(){
     ? tags.join('') + '<button class="clear" id="clearFilters">모두 지우기</button>'
     : '';
   $('#activeBar').classList.toggle('hidden', !tags.length);
+}
+
+/* ============================================================
+   다른 월 팝오버 — 연도 전환 + 1~12월 4×3 격자 (2026-11-23)
+   자료가 있는 달은 점으로 표시하고, 없는 달도 눌러서 고를 수 있습니다.
+   ============================================================ */
+function periodTxtOf(m){
+  try { const bp = billingPeriod(m); return mdtxt(bp.start) + '~' + mdtxt(bp.end); } catch(e){ return ''; }
+}
+function monthPickYears(){
+  const ys = new Set(monthsIn(S.rows).map(m=> +String(m).slice(0,4)));
+  ys.add(+String(AUTO_MONTH).slice(0,4));
+  if (F.month !== 'all') ys.add(+String(F.month).slice(0,4));
+  const list = Array.from(ys).filter(n=> Number.isFinite(n));
+  if (!list.length) list.push(new Date().getFullYear());
+  return {min: Math.min.apply(null, list), max: Math.max.apply(null, list)};
+}
+function renderMonthPick(){
+  const grid = $('#mpGrid'), yearEl = $('#mpYear');
+  if (!grid || !yearEl) return;
+  const yr = monthPickYears();
+  if (monthPickYear == null) monthPickYear = F.month !== 'all' ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
+  monthPickYear = Math.min(yr.max, Math.max(yr.min, monthPickYear));
+  yearEl.textContent = monthPickYear + '년';
+  const prev = $('#mpPrev'), next = $('#mpNext');
+  if (yr.min === yr.max){ prev.classList.add('hidden'); next.classList.add('hidden'); }  /* 한 해뿐이면 연도 전환 버튼을 숨깁니다 */
+  else { prev.classList.remove('hidden'); next.classList.remove('hidden'); }
+  prev.disabled = monthPickYear <= yr.min;
+  next.disabled = monthPickYear >= yr.max;
+  const counts = {};
+  S.rows.forEach(r=>{ counts[r.month] = (counts[r.month] || 0) + 1; });
+  let h = '';
+  for (let i = 1; i <= 12; i++){
+    const m = monthPickYear + '-' + String(i).padStart(2,'0');
+    const cnt = counts[m] || 0;
+    h += '<button type="button" data-pick-month="'+m+'" class="'+(cnt ? 'has' : 'nodata')+(F.month === m ? ' on' : '')+'"'+
+      ' title="'+esc(monthLabel(m))+(cnt ? ' · ' + fmt(cnt) + '건' : ' · 내역 없음')+'"'+
+      ' aria-pressed="'+(F.month === m)+'">'+i+'월'+(cnt ? '<span class="m-dot" aria-hidden="true"></span>' : '')+'</button>';
+  }
+  grid.innerHTML = h;
+}
+function placeMonthPick(){
+  const pop = $('#monthPickPop');
+  if (!pop) return;
+  if (window.innerWidth <= 640){ pop.style.left = ''; pop.style.top = ''; return; }
+  const btn = $('#monthPickBtn'); if (!btn) return;
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth || 286, h = pop.offsetHeight || 250;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+  let top = r.bottom + 8;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  pop.style.left = Math.round(left) + 'px';
+  pop.style.top = Math.round(top) + 'px';
+}
+function openMonthPick(){
+  const pop = $('#monthPickPop');
+  if (!pop || !S.rows.length) return;
+  monthPickYear = F.month !== 'all' ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
+  monthPickOpen = true;
+  pop.classList.add('show');
+  const back = $('#monthPickBack'); if (back) back.classList.toggle('show', window.innerWidth <= 640);
+  renderMonthPick(); placeMonthPick();
+  const btn = $('#monthPickBtn'); if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+function closeMonthPick(){
+  const pop = $('#monthPickPop');
+  if (!pop) return;
+  monthPickOpen = false;
+  pop.classList.remove('show');
+  const back = $('#monthPickBack'); if (back) back.classList.remove('show');
+  const btn = $('#monthPickBtn'); if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+function pickMonth(m, ev){
+  if (ev){ ev.preventDefault(); ev.stopPropagation(); }
+  closeMonthPick();
+  if (!/^\d{4}-\d{2}$/.test(String(m))) return;
+  F.month = m; F.monthUser = true; F.date = null; S.ui.limit = 20; limitEdit = null;
+  renderAll();
 }
 
 /* ============================================================
@@ -3313,9 +3459,37 @@ $('#kpis').addEventListener('click', ev=>{
 });
 
 $('#monthSeg').addEventListener('click', ev=>{
+  const trg = ev.target.closest('#monthPickBtn');
+  if (trg){
+    ev.preventDefault();
+    if (monthPickOpen) closeMonthPick(); else openMonthPick();
+    return;
+  }
   const b = ev.target.closest('button[data-month]'); if(!b) return;
+  closeMonthPick();
   F.month = b.dataset.month; F.monthUser = true; F.date = null; S.ui.limit = 20; limitEdit = null; renderAll();
 });
+/* 다른 월 팝오버: 연도 옮기기 · 달 고르기 (2026-11-23) */
+$('#monthPickPop').addEventListener('click', ev=>{
+  const y = ev.target.closest('[data-mp-step]');
+  if (y){
+    ev.preventDefault();
+    monthPickYear = (monthPickYear == null ? +String(AUTO_MONTH).slice(0,4) : monthPickYear) + (+y.dataset.mpStep);
+    renderMonthPick(); placeMonthPick();
+    return;
+  }
+  const m = ev.target.closest('[data-pick-month]');
+  if (m) pickMonth(m.dataset.pickMonth, ev);
+});
+$('#monthPickBack').addEventListener('click', ()=> closeMonthPick());
+document.addEventListener('click', ev=>{
+  if (!monthPickOpen) return;
+  if (ev.target.closest && (ev.target.closest('#monthPickPop') || ev.target.closest('#monthPickBtn'))) return;
+  closeMonthPick();
+}, true);
+window.addEventListener('keydown', ev=>{ if (ev.key === 'Escape' && monthPickOpen) closeMonthPick(); });
+window.addEventListener('scroll', ()=>{ if (monthPickOpen) placeMonthPick(); }, {passive:true});
+window.addEventListener('resize', ()=>{ if (monthPickOpen) placeMonthPick(); });
 $('#jumpNav').addEventListener('click', ev=>{
   const b = ev.target.closest('button[data-jump]'); if (!b || b.hidden) return;
   jumpTo(b.dataset.jump);
