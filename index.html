@@ -740,12 +740,13 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .logo{width:34px;height:34px;font-size:17px}
   .seg button{padding:5px 9px;font-size:12.5px}
   .card-head{padding:14px 14px 0}
+  .mile-in{padding:6px 14px 0}
   .donut-box{width:116px;height:116px}
 }
 
 /* ---------- 대한항공 스카이패스 마일리지 ---------- */
-.mile-card{padding:11px 16px 12px}
-.mile-in{display:flex;flex-direction:column;gap:1px}
+.mile-card{padding:0 0 12px}
+.mile-in{display:flex;flex-direction:column;gap:1px;padding:6px 16px 0}
 .mile-row{display:flex;align-items:baseline;gap:8px 10px;flex-wrap:wrap}
 .mile-row > .r{margin-left:auto;text-align:right}
 .mile-k{font-size:11.5px;color:var(--muted);font-weight:600}
@@ -876,6 +877,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   </section>
 
   <section class="card mile-card" id="mileCard" aria-label="대한항공 마일리지">
+    <div class="card-head">
+      <h2>대한항공 마일리지</h2>
+      <span class="hint" id="mileRate"></span>
+    </div>
     <div class="mile-in" id="mileIn"></div>
   </section>
 
@@ -1334,9 +1339,10 @@ function renderMileage(){
   const family = fam == null ? 0 : fam;
   const total = (has ? MILE.skypass : 0) + family;
   const when = MILE.updatedAt ? fmtDateTime(MILE.updatedAt) + ' 기준' : (has ? '직접 입력' : '눌러서 입력');
-  const rate = exp ? '<span class="r mile-rate">1,000원당 1마일</span>' : '';
+  /* 환산 기준은 다른 패널의 힌트처럼 제목 줄 오른쪽에 둡니다 */
+  const rateEl = $('#mileRate');
+  if (rateEl) rateEl.textContent = exp ? '1,000원당 1마일' : '';
   const lab = exp ? (exp.month === AUTO_MONTH ? '이번 달 예상' : monthLabel(exp.month).replace(/^\d{4}년 /, '') + ' 예상') : '';
-  const head = '<div class="mile-row"><span class="mile-k">대한항공 마일리지</span>' + rate + '</div>';
   const num = n => fmt(n) + '<small>마일</small>';
   /* 목표 대비 진행 — 목표는 기본값(범용)에서 시작해 숫자를 눌러 바꿀 수 있습니다(0 이면 끔). */
   const goal = MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT;
@@ -1402,7 +1408,7 @@ function renderMileage(){
     }
     /* 최근 적립 내역은 화면에 띄우지 않고 데이터만 보관합니다(2026-11-22 요청) */
   }
-  box.innerHTML = head + mid + foot;
+  box.innerHTML = mid + foot;
   if (mileEdit){
     const i = $('#mileInput');
     if (i){ i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){} }
@@ -2268,9 +2274,9 @@ function renderAnnualMileage(year){
   for (let i=0;i<=4;i++){
     const v = niceStep*i, yy = yAt(v);
     svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+(i?'#eef0f4':'#e3e7ef')+'" stroke-width="1"/>';
-    svg += '<text x="'+(pad.l-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
+    svg += '<text x="'+(pad.l-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#111827">'+shortKrw(v)+'</text>';
   }
-  svg += '<text x="'+(pad.l-7)+'" y="'+(pad.t-6)+'" text-anchor="end" font-size="8.5" fill="#b6bcc6">마일</text>';
+  svg += '<text x="'+(pad.l-7)+'" y="'+(pad.t-6)+'" text-anchor="end" font-size="8.5" fill="#111827">마일</text>';
   if (selIdx >= 0 && selIdx < 12 && vals[selIdx] != null){
     const bw = Math.max(16, xbw*0.78);
     svg += '<rect x="'+(xAt(selIdx)-bw/2).toFixed(1)+'" y="'+pad.t+'" width="'+bw.toFixed(1)+'" height="'+innerH.toFixed(1)+'" rx="6" fill="#6d5efc" opacity=".07"/>';
@@ -2297,7 +2303,8 @@ function renderAnnualMileage(year){
   });
   for (let m=0;m<12;m++){
     const on = m === selIdx, outside = (m < i0 || m > i1) || vals[m] == null;
-    svg += '<text x="'+xAt(m).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="'+(on?700:600)+'" fill="'+(on?'#4c3fd6':(outside?'#c8cdd7':'#8b93a1'))+'">'+(m+1)+'월</text>';
+    /* 축 글씨는 검정으로 (2026-11-23 요청) — 기록 없는 달은 살짝 가는 굵기로만 구분 */
+    svg += '<text x="'+xAt(m).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="'+(on?700:(outside?500:600))+'" fill="'+(on?'#4c3fd6':'#111827')+'">'+(m+1)+'월</text>';
   }
   for (let m=0;m<12;m++){
     const x0 = m===0 ? 0 : xAt(m)-xbw/2;
@@ -2453,7 +2460,7 @@ function renderAnnual(){
     for (let i=0;i<=gy;i++){
       const v = niceMax*i/gyDiv, yy = yAt(v);
       svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+(i?'#eef0f4':'#e3e7ef')+'" stroke-width="1"/>';
-      svg += '<text x="'+(pad.l-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
+      svg += '<text x="'+(pad.l-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9:10.5)+'" fill="#111827">'+shortKrw(v)+'</text>';
     }
     if (selIdx >= 0 && selIdx < 12){
       const bw = Math.max(16, xbw*0.78);
@@ -2501,7 +2508,8 @@ function renderAnnual(){
     for (let m=0;m<12;m++){
       const on = m === selIdx;
       const outside = (m < i0 || m > i1);
-      svg += '<text x="'+xAt(m).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="'+(on?700:600)+'" fill="'+(on?'#1d4ed8':(outside?'#c8cdd7':'#8b93a1'))+'">'+(m+1)+'월</text>';
+      /* 축 글씨는 검정으로 (2026-11-23 요청) — 기록 구간 밖 달은 살짝 가는 굵기로만 구분 */
+      svg += '<text x="'+xAt(m).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+(smallW?9:10.5)+'" font-weight="'+(on?700:(outside?500:600))+'" fill="'+(on?'#1d4ed8':'#111827')+'">'+(m+1)+'월</text>';
     }
     /* 달별 터치·클릭 영역 (달 이름까지 포함해 넓게) */
     for (let m=0;m<12;m++){
@@ -2582,9 +2590,10 @@ function renderTrend(rows, sum){
   if (peakHint) peakHint.textContent = peakIdx >= 0
     ? '최고 ' + mdtxt(dateAt(bp, peakIdx)) + ' · ' + fmt(vals[peakIdx]) + '원' : '';
 
-  const W = Math.max(280, el.clientWidth || 640), H = 236;
+  /* 날짜 숫자 아래 요일 줄까지 들어가도록 아래 여백을 늘림 (2026-11-23) */
+  const W = Math.max(280, el.clientWidth || 640), H = 252;
   const smallW = W < 430;
-  const pad = {l: smallW ? 34 : 46, r: smallW ? 10 : 14, t: 22, b: 26};
+  const pad = {l: smallW ? 34 : 46, r: smallW ? 10 : 14, t: 22, b: 42};
   const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
   const slot = innerW / n;                                 /* 사용기간 하루에 한 칸씩 고정 */
   const xAt = off => pad.l + (off + 0.5) * slot;
@@ -2604,7 +2613,7 @@ function renderTrend(rows, sum){
   for (let i=0;i<=4;i++){
     const v = niceStep*i, yy = y(v);
     svg += '<line x1="'+pad.l+'" y1="'+yy.toFixed(1)+'" x2="'+(W-pad.r).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+(i?'#eef0f4':'#e2e6ee')+'"/>';
-    svg += '<text x="'+(pad.l-6)+'" y="'+(yy+3.4).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9.5:10.5)+'" fill="#8b93a1">'+shortKrw(v)+'</text>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(yy+3.4).toFixed(1)+'" text-anchor="end" font-size="'+(smallW?9.5:10.5)+'" fill="#111827">'+shortKrw(v)+'</text>';
   }
 
   /* 고른 날짜 띠 */
@@ -2632,14 +2641,21 @@ function renderTrend(rows, sum){
       ' fill="'+((isPeak || on) ? (isPeak ? '#e5484d' : '#1d4ed8') : '#fff')+'" stroke="'+(isPeak ? '#e5484d' : '#2f6fed')+'" stroke-width="1.6"/>';
   }
 
-  /* 가로축 눈금: 사용기간의 날짜 숫자 — 토요일은 파랑, 일요일은 빨강으로 (2026-11-23 요청) */
+  /* 가로축 눈금: 날짜 숫자 + 그 아래 요일 — 평일 검정, 토요일 파랑, 일요일 빨강 (2026-11-23 요청) */
   const dayTxt = smallW ? (slot < 11.5 ? 8 : 9) : 9.5;
+  const dowTxt = smallW ? (slot < 11.5 ? 7 : 7.5) : 8.5;
+  const DOW = '일월화수목금토';
   for (let off = 0; off < n; off++){
     const d = dateAt(bp, off), wd = d.getDay();
     const on = off === selOff;
-    const color = wd === 6 ? '#2563eb' : (wd === 0 ? '#dc2626' : (on ? '#1d4ed8' : '#8b93a1'));
-    svg += '<text x="'+xAt(off).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+dayTxt+
-      '" font-weight="'+(on?800:(wd===6||wd===0?700:600))+'" fill="'+color+'"'+(wd===6?' data-wd="sat"':(wd===0?' data-wd="sun"':''))+'>'+d.getDate()+'</text>';
+    const wk = wd === 6 || wd === 0;
+    const color = wd === 6 ? '#2563eb' : (wd === 0 ? '#dc2626' : (on ? '#1d4ed8' : '#111827'));
+    const cx = xAt(off).toFixed(1);
+    const wdAttr = wd===6?' data-wd="sat"':(wd===0?' data-wd="sun"':'');
+    svg += '<text x="'+cx+'" y="'+(H-24)+'" text-anchor="middle" font-size="'+dayTxt+
+      '" font-weight="'+(on?800:(wk?700:600))+'" fill="'+color+'" data-axis="day" data-day="'+d.getDate()+'"'+wdAttr+'>'+d.getDate()+'</text>';
+    svg += '<text x="'+cx+'" y="'+(H-8)+'" text-anchor="middle" font-size="'+dowTxt+
+      '" font-weight="'+(wk?650:500)+'" fill="'+color+'" data-axis="dow" data-day="'+d.getDate()+'"'+wdAttr+'>'+DOW[wd]+'</text>';
   }
 
   /* 최고 지출 날 표시 */
