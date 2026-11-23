@@ -829,10 +829,9 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <nav class="jumpnav" id="jumpNav" aria-label="패널 바로가기">
         <button type="button" data-jump="summaryCard">요약</button>
         <button type="button" data-jump="mileCard">마일리지</button>
-        <button type="button" data-jump="cardChartCard">카드사</button>
-        <button type="button" data-jump="catChartCard">분류</button>
         <button type="button" data-jump="annualCard">연간</button>
         <button type="button" data-jump="trendCard">일자별</button>
+        <button type="button" data-jump="cardChartCard">카드사/분류</button>
         <button type="button" data-jump="detailCard">내역</button>
       </nav>
     </div>
@@ -881,6 +880,27 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   </section>
 
   <section class="charts">
+    <div class="card chart-card wide hidden" id="annualCard">
+      <div class="card-head">
+        <h2>연간 사용액</h2>
+        <div class="seg small" id="yearSeg"></div>
+        <span class="yr-total" id="annualTotal"></span>
+        <span class="yr-total mile" id="annualMileTotal" title="연간 적립 마일리지 (본인+가족 합산)"></span>
+        <span class="hint" id="annualHint"></span>
+      </div>
+      <div class="annual-filters" id="annualCards"></div>
+      <div class="chart-body" id="annual"></div>
+    </div>
+
+    <div class="card chart-card wide hidden" id="trendCard">
+      <div class="card-head">
+        <h2>일자별 추이</h2>
+        <span class="tm-chip" id="trendMonth"></span>
+        <span class="hint" id="peakHint"></span>
+      </div>
+      <div class="chart-body" id="trend"></div>
+    </div>
+
     <div class="card chart-card" id="cardChartCard">
       <div class="card-head">
         <h2>카드사</h2>
@@ -901,27 +921,6 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
         </div>
         <div class="legend" id="donutLegend"></div>
       </div>
-    </div>
-
-    <div class="card chart-card wide hidden" id="annualCard">
-      <div class="card-head">
-        <h2>연간 사용액</h2>
-        <div class="seg small" id="yearSeg"></div>
-        <span class="yr-total" id="annualTotal"></span>
-        <span class="yr-total mile" id="annualMileTotal" title="연간 적립 마일리지 (본인+가족 합산)"></span>
-        <span class="hint" id="annualHint"></span>
-      </div>
-      <div class="annual-filters" id="annualCards"></div>
-      <div class="chart-body" id="annual"></div>
-    </div>
-
-    <div class="card chart-card wide hidden" id="trendCard">
-      <div class="card-head">
-        <h2>일자별 추이</h2>
-        <span class="tm-chip" id="trendMonth"></span>
-        <span class="hint" id="peakHint"></span>
-      </div>
-      <div class="chart-body" id="trend"></div>
     </div>
   </section>
 
