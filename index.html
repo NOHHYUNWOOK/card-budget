@@ -72,6 +72,36 @@ input,select{font:inherit;color:inherit}
 #monthSeg::-webkit-scrollbar{display:none}
 #monthSeg button{flex:none}
 
+/* ---------- 상단 고정 바: 월별 필터 · 패널 바로가기 (2026-11-23) ----------
+   제목 바로 옆(넓은 화면) / 바로 아래 줄(좁은 화면)에 두고, 스크롤해도 위에 붙어 있습니다. */
+:root{--hdr:72px}
+.topbar-tools{order:3;flex:1 1 100%;display:flex;align-items:center;gap:8px;min-width:0;
+  margin-top:2px;padding-top:8px;border-top:1px solid var(--line2)}
+.topnav-sep{flex:none;width:1px;height:16px;background:#dfe3ea;border-radius:1px}
+.topbar-tools #monthSeg{flex:0 0 auto;max-width:56vw}
+#monthSeg:empty + .topnav-sep{display:none}
+.jumpnav{display:flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;overflow-x:auto;
+  scrollbar-width:none;-ms-overflow-style:none;padding:1px 1px 1px 0;scroll-snap-type:x proximity}
+.jumpnav::-webkit-scrollbar{display:none}
+.jumpnav button{flex:none;border:1px solid transparent;background:#eceef3;color:var(--ink2);border-radius:999px;
+  padding:5px 11px;font-size:12.5px;font-weight:650;line-height:1.35;white-space:nowrap;scroll-snap-align:start;
+  transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
+.jumpnav button:hover{background:#e4e7ee;color:var(--ink)}
+.jumpnav button.on{background:#fff;color:#1d4ed8;border-color:#cfe0ff;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.jumpnav button:active{transform:scale(.97)}
+@media (min-width:1100px){
+  .topbar-tools{order:0;flex:0 1 auto;margin-top:0;padding-top:0;border-top:0;gap:10px}
+  .topbar-tools #monthSeg{max-width:none}
+}
+@media (max-width:560px){
+  .topbar-tools{gap:6px;padding-top:7px}
+  .jumpnav{gap:3px}
+  .jumpnav button{padding:5px 9px;font-size:12px}
+}
+/* 바로가기로 이동한 패널을 잠깐 표시 */
+.jumpflash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 1px #b9cdf7!important;transition:box-shadow .25s}
+main > section,main > .card{scroll-margin-top:calc(var(--hdr,72px) + 12px)}
+
 /* ---------- layout ---------- */
 main{max-width:1280px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-direction:column;gap:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
@@ -279,8 +309,7 @@ button.lim-item:active{transform:scale(.99)}
 .empty b{color:var(--ink2)}
 
 /* ---------- table ---------- */
-.table-card{overflow:hidden;scroll-margin-top:74px;transition:box-shadow .25s}
-.table-card.flash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 1px #b9cdf7}
+.table-card{overflow:hidden;scroll-margin-top:calc(var(--hdr,72px) + 12px);transition:box-shadow .25s}
 /* ---------- detail panel filters (카드사 버튼 · 분류 칩: 이름만) ---------- */
 .detail-search{padding:10px 16px 9px}
 .detail-search .searchwrap{flex:none;min-width:0}
@@ -763,6 +792,19 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
         <p id="modeLabel">내 데이터 · 불러오는 중</p>
       </div>
     </div>
+    <div class="topbar-tools">
+      <div class="seg" id="monthSeg" role="group" aria-label="월별 보기"></div>
+      <span class="topnav-sep" aria-hidden="true"></span>
+      <nav class="jumpnav" id="jumpNav" aria-label="패널 바로가기">
+        <button type="button" data-jump="summaryCard">요약</button>
+        <button type="button" data-jump="mileCard">마일리지</button>
+        <button type="button" data-jump="cardChartCard">카드사</button>
+        <button type="button" data-jump="catChartCard">분류</button>
+        <button type="button" data-jump="annualCard">연간</button>
+        <button type="button" data-jump="trendCard">일자별</button>
+        <button type="button" data-jump="detailCard">내역</button>
+      </nav>
+    </div>
     <div class="top-actions">
       <button class="btn" id="btnCapture" title="카드 사용내역 캡처 이미지로 내역 추가" aria-label="캡처로 내역 추가">📸 <span class="syncbtn-txt">캡처</span></button>
       <div class="seg" id="modeSeg" title="데이터 모드 전환">
@@ -777,15 +819,12 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 </header>
 
 <main>
-  <section class="card filters">
+  <section class="card filters" id="summaryCard">
     <div class="syncbar" id="syncbar">
       <span class="dot" id="syncDot"></span>
       <span id="syncInfo">마지막 동기화 —</span>
       <span class="sp"></span>
       <button id="syncSetupBtn">동기화 설정</button>
-    </div>
-    <div class="filter-row">
-      <div class="seg" id="monthSeg"></div>
     </div>
     <div class="active-bar" id="activeBar"></div>
     <div class="sum-block" id="kpis"></div>
@@ -811,7 +850,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   </section>
 
   <section class="charts">
-    <div class="card chart-card">
+    <div class="card chart-card" id="cardChartCard">
       <div class="card-head">
         <h2>카드사</h2>
         <span class="hint">누르면 필터</span>
@@ -819,7 +858,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
       <div class="chart-body" id="bars"></div>
     </div>
 
-    <div class="card chart-card">
+    <div class="card chart-card" id="catChartCard">
       <div class="card-head">
         <h2>분류</h2>
         <span class="hint">누르면 필터</span>
@@ -855,7 +894,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
     </div>
   </section>
 
-  <section class="card table-card">
+  <section class="card table-card" id="detailCard">
     <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
       <span class="hint" id="tableHint"></span>
@@ -1122,8 +1161,18 @@ function saveLimits(){
   catch(e){ toast('한도를 저장하지 못했습니다 (브라우저 저장 공간)'); return false; }
 }
 const parseLimit = s => {
-  const n = Number(String(s==null?'':s).replace(/[^0-9]/g, ''));
-  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 99999999) : 0;
+  /* 입력은 '만원' 단위(예: 200 = 200만원). 소수점도 받아 원 단위로 바꿔 저장합니다. */
+  const t = String(s==null?'':s).replace(/[^0-9.]/g, '');
+  const n = parseFloat(t);
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n * 10000), 99999999) : 0;
+};
+/* 저장된 원 단위 한도를 입력창의 만원 단위 글자로: 1400000 → '140', 5000 → '0.5' */
+const limitManText = v => {
+  const n = (+v || 0) / 10000;
+  if (!(n > 0)) return '';
+  const s = (Math.round(n * 10000) / 10000).toFixed(4).replace(/\.?0+$/, '');
+  const [ip, dp] = s.split('.');
+  return ip.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (dp ? '.' + dp : '');
 };
 
 /* ---------- 대한항공 스카이패스 마일리지 ----------
@@ -1449,9 +1498,8 @@ function renderFilters(){
   const detailSearch = document.querySelector('.detail-search');
   if (detailSearch) detailSearch.classList.toggle('hidden', !S.rows.length);
 
-  // active filters
+  // active filters — 기간(월)은 상단 고정 바의 월 버튼이 보여 주므로 여기서는 빼 둠
   const tags = [];
-  if (F.month!=='all') tags.push('<span class="tag">기간 <b>'+monthLabel(F.month)+'</b></span>');
   F.cards.forEach(c=> tags.push('<span class="tag">카드 <b>'+esc(c)+'</b></span>'));
   F.categories.forEach(c=> tags.push('<span class="tag">분류 <b>'+esc(c)+'</b></span>'));
   if (F.date) tags.push('<span class="tag">날짜 <b>'+dFull(F.date)+'</b></span>');
@@ -1507,8 +1555,8 @@ function limitEditorHtml(c){
   return '<div class="lim-item editing">'+
     '<span class="top"><span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</span>'+
     '<div class="lim-form">'+
-      '<input id="limInput" type="text" inputmode="numeric" autocomplete="off" value="'+(lim ? fmt(lim) : '')+'" placeholder="월 한도 금액" aria-label="'+esc(shortCard(c))+' 월 한도 금액">'+
-      '<span class="won">원</span>'+
+      '<input id="limInput" type="text" inputmode="decimal" autocomplete="off" value="'+(lim ? limitManText(lim) : '')+'" placeholder="예: 200" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원)">'+
+      '<span class="won">만원</span>'+
       '<button class="btn primary sm" data-limact="save">저장</button>'+
       '<button class="btn ghost sm" data-limact="cancel">취소</button>'+
       (lim ? '<button class="lim-x" data-limact="clear">지우기</button>' : '')+
@@ -3063,6 +3111,7 @@ function renderAll(){
   renderMileage();
   renderTable(rows, sum);
   updateModeUi();
+  syncJumpNav();
 }
 function updateModeUi(){
   $$('#modeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.mode === S.mode));
@@ -3073,6 +3122,58 @@ function updateModeUi(){
     return;
   }
   label.textContent = S.mode==='mine' ? '내 데이터' : (n ? '빈 가계부 · ' + fmt(n) + '건' : '빈 가계부 · 공유용');
+}
+
+/* ============================================================
+   상단 고정 바 — 월별 필터 + 패널 바로가기 (2026-11-23)
+   헤더 높이를 --hdr 에 넣어 스크롤 위치·scroll-margin 이 같은 값을 씑니다.
+   ============================================================ */
+function hdrH(){
+  const tb = document.querySelector('.topbar');
+  const h = tb ? Math.round(tb.getBoundingClientRect().height) : 0;
+  return h > 0 ? h : 72;
+}
+function syncHdrVar(){
+  document.documentElement.style.setProperty('--hdr', hdrH() + 'px');
+}
+function jumpPanels(){
+  return $$('#jumpNav button[data-jump]').map(b=>({key: b.dataset.jump, btn: b, el: document.getElementById(b.dataset.jump)}));
+}
+function syncJumpNav(){
+  const list = jumpPanels();
+  list.forEach(p=>{ p.btn.hidden = !p.el || p.el.offsetParent === null; });
+  syncHdrVar();
+  jumpSpy();
+}
+function jumpSpy(){
+  const h = hdrH();
+  const list = jumpPanels().filter(p=> p.el && !p.btn.hidden);
+  let act = list.length ? list[0].key : '';
+  for (const p of list){
+    if (p.el.getBoundingClientRect().top - h - 20 <= 0) act = p.key; else break;
+  }
+  /* 카드사·분류처럼 한 줄에 나란히 있는 패널은 위지가 같아 골라낼 수 없습니다.
+     방금 누른 바로가기를 잠시 그대로 보여 줍니다. */
+  if (jumpLock.key && Date.now() < jumpLock.until && list.some(p=> p.key === jumpLock.key)) act = jumpLock.key;
+  list.forEach(p=> p.btn.classList.toggle('on', p.key === act));
+}
+let jumpLock = {key:'', until:0};
+let jumpSpyQueued = false;
+function onJumpScroll(){
+  if (jumpSpyQueued) return;
+  jumpSpyQueued = true;
+  requestAnimationFrame(()=>{ jumpSpyQueued = false; jumpSpy(); });
+}
+function jumpTo(key){
+  const el = document.getElementById(key); if (!el) return;
+  syncHdrVar();
+  const y = Math.max(0, el.getBoundingClientRect().top + window.scrollY - hdrH() - 10);
+  try { window.scrollTo({top: y, behavior:'smooth'}); } catch(e){ window.scrollTo(0, y); }
+  el.classList.add('jumpflash');
+  clearTimeout(jumpTo._t);
+  jumpTo._t = setTimeout(()=> el.classList.remove('jumpflash'), 1200);
+  jumpLock = {key: key, until: Date.now() + 1400};
+  jumpPanels().forEach(p=> p.btn.classList.toggle('on', p.key === key));
 }
 
 /* ============================================================
@@ -3099,6 +3200,12 @@ $('#monthSeg').addEventListener('click', ev=>{
   const b = ev.target.closest('button[data-month]'); if(!b) return;
   F.month = b.dataset.month; F.monthUser = true; F.date = null; S.ui.limit = 20; limitEdit = null; renderAll();
 });
+$('#jumpNav').addEventListener('click', ev=>{
+  const b = ev.target.closest('button[data-jump]'); if (!b || b.hidden) return;
+  jumpTo(b.dataset.jump);
+});
+window.addEventListener('scroll', onJumpScroll, {passive:true});
+window.addEventListener('resize', ()=>{ syncHdrVar(); jumpSpy(); });
 /* 카드별 한도 — 칸을 누르면 금액 입력, 저장하면 바로 남은 한도 계산 */
 $('#limitGrid').addEventListener('click', ev=>{
   const act = ev.target.closest('[data-limact]');
@@ -3126,8 +3233,11 @@ $('#limitGrid').addEventListener('click', ev=>{
 $('#limitGrid').addEventListener('input', ev=>{
   const t = ev.target;
   if (t.id !== 'limInput') return;
-  const d = String(t.value).replace(/[^0-9]/g, '').slice(0, 8);
-  t.value = d ? fmt(Number(d)) : '';
+  /* 만원 단위 — 숫자와 소수점 하나만, 정수부는 천 단위 콤마로 */
+  const d = String(t.value).replace(/[^0-9.]/g, '').match(/^(\d{0,6})(?:\.(\d?))?/);
+  const ip = (d && d[1]) || '';
+  const dp = d && d[2] != null ? d[2] : null;
+  t.value = (ip ? fmt(Number(ip)) : '') + (dp !== null ? '.' + dp : '');
 });
 $('#limitGrid').addEventListener('keydown', ev=>{
   if (ev.target.id !== 'limInput') return;
@@ -3335,18 +3445,8 @@ $('#bars').addEventListener('click', ev=>{
   const i = F.cards.indexOf(c);
   if (i>=0) F.cards.splice(i,1); else F.cards.push(c);
   S.ui.limit = 20;
-  renderAll();
-  if (F.cards.indexOf(c) >= 0) flashDetail();   // 막대를 누르면 그 카드사 상세내역으로 이동
+  renderAll();   /* 카드사 칸을 눌러도 화면은 제자리(2026-11-23 사용자 요청: 상세 내역으로 자동 이동하지 않음) */
 });
-function flashDetail(){
-  const el = document.querySelector('.table-card'); if (!el) return;
-  try { el.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){ el.scrollIntoView(); }
-  el.classList.remove('flash');
-  void el.offsetWidth;
-  el.classList.add('flash');
-  clearTimeout(flashDetail._t);
-  flashDetail._t = setTimeout(()=> el.classList.remove('flash'), 1600);
-}
 $('#table').addEventListener('click', ev=>{
   const th = ev.target.closest('th[data-sort]');
   if (th){
@@ -5554,6 +5654,10 @@ document.addEventListener('keydown', ev=>{
     S.mode = S.rows.length ? 'mine' : 'empty';
   }
   renderAll();
+  syncHdrVar();
+  const tb = document.querySelector('.topbar');
+  if (tb && window.ResizeObserver) new ResizeObserver(()=>{ syncHdrVar(); jumpSpy(); }).observe(tb);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(()=> syncHdrVar());
   updateSyncLabel();
   scheduleSyncTimer();
   if (SYNC.urls.length && SYNC.autoOn) runSync(true);
