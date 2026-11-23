@@ -83,12 +83,15 @@ input,select{font:inherit;color:inherit}
   background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(15,23,42,.22);
   animation:pop .14s ease-out}
 .mp-pop.show{display:flex}
-.mp-head{display:flex;align-items:center;gap:6px}
-.mp-head .mp-y{width:30px;height:30px;flex:none;border:1px solid var(--line);background:#fff;border-radius:9px;
-  color:var(--ink2);font-size:15px;font-weight:800;line-height:1;display:grid;place-items:center;transition:.13s}
-.mp-head .mp-y:hover{border-color:#cfd6e4;background:#fbfcfe}
-.mp-head .mp-y:disabled{opacity:.3;cursor:default;background:#fff}
-.mp-head .mp-year{flex:1;text-align:center;font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+/* 연도 선택 — 데이터가 있는 연도를 포함해 앞뒤 1년을 칩으로 보여 주고, 누르면 그 해 격자로 바뀝니다 */
+.mp-years{align-self:center;display:inline-flex;max-width:100%;background:#f1f3f7;border-radius:10px;padding:3px;gap:2px;
+  overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.mp-years::-webkit-scrollbar{display:none}
+.mp-years button{flex:none;border:0;background:transparent;border-radius:8px;padding:5px 11px;font:inherit;
+  font-size:12.5px;font-weight:800;color:#a2a9b6;font-variant-numeric:tabular-nums;transition:.13s}
+.mp-years button.has{color:var(--ink2)}
+.mp-years button:hover{color:var(--ink)}
+.mp-years button.on{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px rgba(16,24,40,.13)}
 .mp-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 .mp-grid button{position:relative;border:1px solid #e6e9f0;background:#fff;border-radius:10px;
   padding:8px 0;min-height:37px;font:inherit;font-size:13px;font-weight:750;color:var(--ink);
@@ -105,7 +108,8 @@ input,select{font:inherit;color:inherit}
   .mp-pop{left:10px!important;right:10px!important;top:auto!important;bottom:0!important;width:auto;
     border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));gap:10px;
     animation:sheetup .18s cubic-bezier(.3,1.1,.6,1)}
-  .mp-head .mp-y{width:34px;height:34px}
+  .mp-years{align-self:stretch;justify-content:center}
+  .mp-years button{padding:7px 14px;font-size:13.5px}
   .mp-grid button{min-height:45px;font-size:14px}
 }
 
@@ -1078,11 +1082,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
 
 <div class="mp-back" id="monthPickBack"></div>
 <div class="mp-pop" id="monthPickPop" role="dialog" aria-label="다른 월 선택">
-  <div class="mp-head">
-    <button type="button" class="mp-y" id="mpPrev" data-mp-step="-1" aria-label="이전 연도">‹</button>
-    <span class="mp-year" id="mpYear"></span>
-    <button type="button" class="mp-y" id="mpNext" data-mp-step="1" aria-label="다음 연도">›</button>
-  </div>
+  <div class="mp-years" id="mpYears" role="group" aria-label="연도 선택"></div>
   <div class="mp-grid" id="mpGrid"></div>
 </div>
 
@@ -1570,12 +1570,11 @@ function renderFilters(){
       : (ms.length ? ms[ms.length-1] : 'all');
   } else if (!ms.length) F.month = 'all';   /* 자료를 다 지운 경우만 되돌림 — 내역 없는 달을 일부러 고른 것은 유지 */
   const mSeg = $('#monthSeg');
-  const yrs = {};
-  ms.forEach(m=>{ yrs[String(m).slice(0,4)] = 1; });
-  yrs[String(AUTO_MONTH).slice(0,4)] = 1;
-  const oneYear = Object.keys(yrs).length <= 1;
   const mNum = m => (+String(m).slice(5,7)) + '월';
-  const mLab = m => oneYear ? mNum(m) : monthLabel(m);
+  /* '다른 월' 버튼 라벨: 데이터가 한 해뿐이고 이번달과 같은 해면 '8월', 아니면 '2025년 12월' */
+  const dataYears = new Set(ms.map(m=> String(m).slice(0,4)));
+  const multiYear = dataYears.size > 1;
+  const otherLabel = m => (multiYear || String(m).slice(0,4) !== String(AUTO_MONTH).slice(0,4)) ? monthLabel(m) : mNum(m);
   const otherSel = F.month !== 'all' && F.month !== AUTO_MONTH && F.month !== LAST_MONTH;
   mSeg.innerHTML = ms.length
     ? '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' +
@@ -1584,7 +1583,7 @@ function renderFilters(){
       '<button data-month="'+AUTO_MONTH+'"'+(F.month===AUTO_MONTH?' class="on"':'')+
         ' aria-label="이번달 '+esc(monthLabel(AUTO_MONTH))+'" title="이번달 · '+esc(periodTxtOf(AUTO_MONTH))+' 결제분">'+mNum(AUTO_MONTH)+'</button>' +
       '<button type="button" class="mp-trigger'+(otherSel?' on':'')+'" id="monthPickBtn" aria-haspopup="dialog"'+
-        ' aria-expanded="'+(monthPickOpen?'true':'false')+'" title="그 밖의 달 고르기">'+esc(otherSel ? mLab(F.month) : '다른 월')+
+        ' aria-expanded="'+(monthPickOpen?'true':'false')+'" title="연도·달 고르기">'+esc(otherSel ? otherLabel(F.month) : '다른 월')+
         '<span class="cv" aria-hidden="true">▾</span></button>'
     : '';   /* 자료가 없을 때는 달 선택 줄을 그리지 않음(시작 화면만 깔끔하게) */
   if (!ms.length) closeMonthPick();
@@ -1622,25 +1621,26 @@ function periodTxtOf(m){
   try { const bp = billingPeriod(m); return mdtxt(bp.start) + '~' + mdtxt(bp.end); } catch(e){ return ''; }
 }
 function monthPickYears(){
-  const ys = new Set(monthsIn(S.rows).map(m=> +String(m).slice(0,4)));
-  ys.add(+String(AUTO_MONTH).slice(0,4));
-  if (F.month !== 'all') ys.add(+String(F.month).slice(0,4));
-  const list = Array.from(ys).filter(n=> Number.isFinite(n));
+  const known = monthsIn(S.rows).map(m=> +String(m).slice(0,4));
+  known.push(+String(AUTO_MONTH).slice(0,4));
+  if (F.month !== 'all') known.push(+String(F.month).slice(0,4));
+  const list = known.filter(n=> Number.isFinite(n));
   if (!list.length) list.push(new Date().getFullYear());
-  return {min: Math.min.apply(null, list), max: Math.max.apply(null, list)};
+  const lo = Math.min.apply(null, list), hi = Math.max.apply(null, list);
+  const years = [];
+  for (let y = lo - 1; y <= hi + 1; y++) years.push(y);   /* 데이터가 있는 해 앞뒤 1년까지 — 연도를 직접 고를 수 있게 */
+  return years;
 }
 function renderMonthPick(){
-  const grid = $('#mpGrid'), yearEl = $('#mpYear');
-  if (!grid || !yearEl) return;
-  const yr = monthPickYears();
+  const grid = $('#mpGrid'), yearsEl = $('#mpYears');
+  if (!grid || !yearsEl) return;
+  const years = monthPickYears();
+  const dataYears = new Set(monthsIn(S.rows).map(m=> +String(m).slice(0,4)));
   if (monthPickYear == null) monthPickYear = F.month !== 'all' ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
-  monthPickYear = Math.min(yr.max, Math.max(yr.min, monthPickYear));
-  yearEl.textContent = monthPickYear + '년';
-  const prev = $('#mpPrev'), next = $('#mpNext');
-  if (yr.min === yr.max){ prev.classList.add('hidden'); next.classList.add('hidden'); }  /* 한 해뿐이면 연도 전환 버튼을 숨깁니다 */
-  else { prev.classList.remove('hidden'); next.classList.remove('hidden'); }
-  prev.disabled = monthPickYear <= yr.min;
-  next.disabled = monthPickYear >= yr.max;
+  if (years.indexOf(monthPickYear) < 0) monthPickYear = +String(AUTO_MONTH).slice(0,4);
+  yearsEl.innerHTML = years.map(y =>
+    '<button type="button" data-mp-year="'+y+'" class="'+(y === monthPickYear ? 'on' : '')+((dataYears.has(y)) ? ' has' : '')+'"'+
+    ' aria-pressed="'+(y === monthPickYear)+'" title="'+y+'년'+((dataYears.has(y)) ? '' : ' · 내역 없음')+'">'+y+'</button>').join('');
   const counts = {};
   S.rows.forEach(r=>{ counts[r.month] = (counts[r.month] || 0) + 1; });
   let h = '';
@@ -3469,12 +3469,12 @@ $('#monthSeg').addEventListener('click', ev=>{
   closeMonthPick();
   F.month = b.dataset.month; F.monthUser = true; F.date = null; S.ui.limit = 20; limitEdit = null; renderAll();
 });
-/* 다른 월 팝오버: 연도 옮기기 · 달 고르기 (2026-11-23) */
+/* 다른 월 팝오버: 연도 칩 · 달 고르기 (2026-11-23) */
 $('#monthPickPop').addEventListener('click', ev=>{
-  const y = ev.target.closest('[data-mp-step]');
+  const y = ev.target.closest('[data-mp-year]');
   if (y){
     ev.preventDefault();
-    monthPickYear = (monthPickYear == null ? +String(AUTO_MONTH).slice(0,4) : monthPickYear) + (+y.dataset.mpStep);
+    monthPickYear = +y.dataset.mpYear;
     renderMonthPick(); placeMonthPick();
     return;
   }
