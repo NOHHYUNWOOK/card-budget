@@ -3371,7 +3371,7 @@ function setEditMode(on){
   document.body.classList.toggle('editmode', EDITMODE);
   renderAll();
   if (EDITMODE){
-    toast('편집 모드 — ✎로 날짜·가맹점·금액을 고치고, ⠿로 순서를 바꾸고, 골라서 지울 수 있어요', 4000);
+    toast('편집 모드 — ✎로 날짜·가맹점·금액 수정, ⊘로 결제예정 미반영, ⠿로 순서 바꾸기, 골라서 삭제', 4200);
     const tc = document.querySelector('.table-card');
     if (tc){ try { tc.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){} }
   } else {
