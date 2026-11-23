@@ -2822,7 +2822,7 @@ let SELROWS = new Set();              /* 편집 모드에서 고른 거래 id */
 let rowEdit = null;                  /* {id, date, merchant, amount} */
 function rowEditTr(r){
   const e = rowEdit || {};
-  const date = e.date != null ? e.date : String(r.date || '').slice(0, 10);
+  const date = e.date != null ? e.date : (toDateStr(r.date) || '');
   const merchant = e.merchant != null ? e.merchant : (r.merchant || '');
   const amount = e.amount != null ? e.amount : fmt(r.amount);
   return '<tr class="rowedit" data-editrow="'+esc(r.id)+'"><td colspan="'+(EDITMODE?6:5)+'">'+
@@ -2847,7 +2847,7 @@ function renderTableNow(){
 function openRowEdit(id){
   const r = S.rows.find(x=> x.id === id);
   if (!r) return;
-  rowEdit = {id: r.id, date: String(r.date || '').slice(0, 10), merchant: r.merchant || '', amount: fmt(r.amount)};
+  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: fmt(r.amount)};
   renderTableNow();
   const inp = document.querySelector('tr[data-editrow] [data-refield="merchant"]');
   if (inp){ inp.focus(); try { inp.setSelectionRange(0, inp.value.length); } catch(e){} }
