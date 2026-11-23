@@ -6665,6 +6665,10 @@ function setView(v, quiet){
       F.monthUser = true;
     }
   }
+  /* 다른 탭으로 넘어갈 때는 그 탭의 편집 모드를 끝냅니다(엉뚱한 표가 편집 상태로 남지 않게) */
+  if (v !== 'card' && EDITMODE){ EDITMODE = false; SELROWS.clear(); rowEdit = null; }
+  if (v !== 'bank' && BEDITMODE){ BEDITMODE = false; BSEL.clear(); bRowEdit = null; bankCancelGrip(); }
+  document.body.classList.toggle('editmode', EDITMODE || BEDITMODE);
   renderJumpNav();
   renderAll();
   if (changed && !quiet) window.scrollTo(0, 0);
