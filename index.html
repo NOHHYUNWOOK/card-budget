@@ -6121,11 +6121,12 @@ function capBodyHtml(){
 function capRowHtml(r){
   const i = CAP.results.indexOf(r);
   if (CAP.mode === 'bank'){
-    const acc = r.account || CAP.account || '우리은행';
+    const accVal = r.account || '';
+    const acc = accVal || '우리은행';          /* 항목 후보를 고르기 위한 기본 계좌 */
     const list = bankItemList(CAP.month || capNowMonth(), acc);
     let items = list.in.concat(list.out).filter((v,k,a)=> a.indexOf(v) === k);
     if (r.item && items.indexOf(r.item) < 0) items = [r.item].concat(items);
-    const accOpts = '<option value="">— 계좌 —</option>' + BANK_ACCOUNTS.map(a=> '<option value="'+esc(a)+'"'+(a===acc?' selected':'')+'>'+esc(a)+'</option>').join('');
+    const accOpts = '<option value="">— 계좌 —</option>' + BANK_ACCOUNTS.map(a=> '<option value="'+esc(a)+'"'+(a===accVal?' selected':'')+'>'+esc(a)+'</option>').join('');
     const itemOpts = items.map(n=> '<option value="'+esc(n)+'"'+(n===r.item?' selected':'')+'>'+esc(n)+'</option>').join('');
     return '<div class="caprow'+(r.on?'':' off')+'" data-caprow="'+i+'">'+
       '<input type="checkbox" data-cap-on="'+i+'" '+(r.on?'checked':'')+' aria-label="이 내역 추가">'+
