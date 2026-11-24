@@ -1522,7 +1522,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
     <div class="card-head">
       <h2>정산</h2>
       <span class="tm-chip" id="settleMonthChip"></span>
-      <span class="hint" id="settleHint">예산 칸을 누르면 고칠 수 있습니다 · 집행은 카드·현금 탭에서 자동</span>
+      <span class="hint" id="settleHint">예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동</span>
     </div>
     <div class="setwrap" id="settleTable"></div>
   </section>
@@ -7683,7 +7683,7 @@ function renderSettle(){
   const hint = $('#settleHint');
   if (hint) hint.textContent = sd.copiedFrom
     ? monthLabel(sd.copiedFrom).replace(/^\d{4}년 /, '') + ' 예산을 복사했습니다 · 예산 칸을 눌러 고치세요'
-    : '예산 칸을 누르면 고칠 수 있습니다 · 집행은 카드·현금 탭에서 자동';
+    : '예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동';
   const box = $('#settleTable'); if (!box) return;
   const head = '<div class="setrow head"><span class="nm">항목</span><span class="num">예산</span><span class="num">집행</span><span class="num">차액</span></div>';
   let body = settleRowHtml('salary', 'salary', '월급', sd.salary, salAct, {cls: 'salary', tag: salPlanned ? '예정' : '', tagCls: 'plan'});
