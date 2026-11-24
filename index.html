@@ -386,6 +386,9 @@ button.lim-item:active{transform:scale(.99)}
   .hlbtn{width:17px;height:17px}
   .hlchip,.hlchipinp{font-size:11.5px;padding:4px 9px}
 }
+.chip.accchip{background:var(--acs);border-color:var(--ac);color:var(--acd);font-weight:800}
+.chip.accchip:hover{background:var(--acs);border-color:var(--acd);color:var(--acd)}
+.chip.accchip.on{box-shadow:0 0 0 2px var(--acd) inset;background:var(--acs);color:var(--acd);border-color:var(--acd)}
 /* 상세 내역 필터 합계 — 필터를 통과해 리스트에 뜬 내역 전체의 금액 합(취소 포함 순합계)과 건수 */
 .detail-sum{display:flex;align-items:baseline;gap:6px;width:fit-content;max-width:calc(100% - 32px);margin:0 16px 10px;
   padding:6px 11px;border-radius:11px;background:#f6f8fc;border:1px solid #e8edf6;font-variant-numeric:tabular-nums}
@@ -7138,7 +7141,7 @@ function renderBankSummary(){
       const over = expected < 0 || t.bal < 0;
       return '<button type="button" class="lim-item' + (over ? ' over' : '') + '" data-bankacc="' + esc(a) + '" title="' + esc(a) + ' 내역만 보기">' +
         '<span class="top"><span class="dot" style="background:' + bankAccColor(a) + '"></span>' +
-          '<span class="nm">' + esc(a) + '</span>' +
+          '<span class="nm" style="color:' + (BANK_ACC_DARK[a] || bankAccColor(a)) + '">' + esc(a) + '</span>' +
           '<span class="use' + (t.exp ? '' : ' zero') + '">' + (t.exp ? '−' + fmt(t.exp) : '0') + '</span></span>' +
         '<span class="rem">' + fmt(t.bal) + '<small>원 잔액</small></span>' +
         '<span class="bar"><i style="width:' + r.toFixed(1) + '%"></i></span>' +
@@ -7448,7 +7451,7 @@ function bankSortRows(rows){
 function bankAccChipsHtml(){
   return '<span class="lbl">계좌</span>' +
     '<button type="button" class="chip' + (BANK.ui.account ? '' : ' on') + '" data-bchips="" title="모든 계좌">전체</button>' +
-    BANK_ACCOUNTS.map(a=> '<button type="button" class="chip' + (BANK.ui.account === a ? ' on' : '') + '" data-bchips="' + esc(a) + '">' +
+    BANK_ACCOUNTS.map(a=> '<button type="button" class="chip accchip' + (BANK.ui.account === a ? ' on' : '') + '" style="' + bankAccVars(a) + '" data-bchips="' + esc(a) + '">' +
       '<span class="dot" style="background:' + bankAccColor(a) + '"></span>' + esc(a) + '</button>').join('');
 }
 function bankDirChipsHtml(){
