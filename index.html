@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>카드 가계부</title>
+<title>Finance</title>
 <meta name="description" content="카드 결제예정금액을 한눈에 보는 인터랙티브 가계부 대시보드">
 <meta name="theme-color" content="#f4f5f7">
 <meta name="color-scheme" content="light">
@@ -12,8 +12,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="카드 가계부">
-<meta name="application-name" content="카드 가계부">
+<meta name="apple-mobile-web-app-title" content="Finance">
+<meta name="application-name" content="Finance">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="shortcut icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
@@ -367,6 +367,10 @@ button.lim-item:active{transform:scale(.99)}
 .detail-sum .v small{font-size:11.5px;font-weight:700;color:var(--ink2);margin-left:1px;letter-spacing:0}
 .detail-sum .n{font-size:12px;color:var(--ink2);font-weight:650;white-space:nowrap;padding-left:3px}
 .detail-sum .n b{font-weight:800;color:var(--ink)}
+@media (max-width:560px){
+  .detail-sum{flex-wrap:wrap;row-gap:1px;max-width:calc(100% - 24px);margin:0 12px 10px}
+  .detail-sum .n{padding-left:0;font-size:11.5px}
+}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 thead th{
@@ -970,6 +974,104 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .bitem .lnkchip{font-size:9px;padding:0 3px;margin-left:2px}
 }
 
+/* --- 계좌별 정산 요약 (3계좌 한 표) --- */
+.bsq{padding:2px 16px 14px}
+.bsq-row{display:grid;grid-template-columns:minmax(0,1.25fr) repeat(3,minmax(0,1fr));gap:4px;align-items:center;
+  padding:6px 0;border-bottom:1px solid var(--line2);font-size:12.8px}
+.bsq-row.head{padding:2px 0 6px;border-bottom:1px solid var(--line);font-size:10.5px;font-weight:800;color:var(--muted)}
+.bsq-row.head .nm{font-size:10.5px;color:var(--muted);font-weight:800}
+.bsq-row.head .acc{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bsq-row.head .acc .dot{width:6px;height:6px;border-radius:50%;flex:none}
+.bsq-row .nm{min-width:0;font-weight:650;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bsq-row .c{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.2px;color:var(--ink2)}
+.bsq-row .c.in{color:#0f7a42}
+.bsq-row .c.out{color:#d92d20}
+.bsq-row .c.none{color:#d7dbe3;font-weight:600}
+.bsq-row .c.mut{color:#c2c7d1;font-weight:600}
+.bsq-row .c.bal{color:#1d4ed8;font-weight:800;font-size:13px}
+.bsq-row.tot{padding:6px 0 7px;border-bottom:1px solid var(--line);font-weight:800}
+.bsq-row.tot .nm{font-weight:800;color:var(--ink2);font-size:12.2px}
+.bsq-row.tot .nm.in{color:#0f7a42}
+.bsq-row.tot .nm.out{color:#d92d20}
+.bsq-row.bal{border-top:2px solid var(--ink);border-bottom:0;margin-top:2px;padding:8px 0 2px}
+.bsq-row.bal .nm{font-weight:800;color:var(--ink)}
+.bsq-row .budbtn{border:0;background:transparent;padding:2px 3px;border-radius:7px;font:inherit;font-weight:750;font-size:12.2px;
+  color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.bsq-row .budbtn:hover{background:var(--accent-soft);color:#1d4ed8}
+.bsq-row .budbtn.lnk{color:#1d4ed8}
+.bsq-row .budbtn.on{background:var(--accent-soft);box-shadow:0 0 0 1px #b9cdf7}
+.bsq-row .budbtn.empty{color:#b6bcc7;font-weight:600}
+.bsq-edit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:7px 0 9px;border-bottom:1px solid var(--line2);background:#f7f9fd}
+.bsq-edit .who{font-size:11px;font-weight:800;color:#1d4ed8;flex:none}
+.bsq-edit input{flex:1 1 90px;min-width:80px;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:13.5px;
+  font-weight:700;text-align:right;font-variant-numeric:tabular-nums;outline:none;background:#fff}
+.bsq-edit input:focus{border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.bsq-edit .btn{padding:5px 10px;font-size:12.5px;border-radius:9px;flex:none}
+@media (max-width:560px){
+  .bsq{padding:0 12px 12px}
+  .bsq-row{grid-template-columns:minmax(0,1.15fr) repeat(3,minmax(0,1fr));gap:3px;padding:5px 0;font-size:12px}
+  .bsq-row .nm{font-size:12px}
+  .bsq-row .c{font-size:11.5px}
+  .bsq-row .c.bal{font-size:12px}
+  .bsq-row.head{font-size:9.5px}
+  .bsq-row.head .acc{font-size:9.5px;gap:3px}
+  .bsq-row .budbtn{font-size:11.5px;padding:2px 2px}
+}
+
+/* --- 은행 행 수정/추가 폼 — 폼이 제자리에 놓이도록 그리드에서 풀어 줍니다 --- */
+#bankTable tbody tr.bankedit{display:block;padding:0}
+#bankTable tbody tr.bankedit > td{display:block;padding:6px 0 10px;text-align:left;max-width:none;border:0}
+.bedit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;background:#f7f9fd;border:1px solid #dbe2ee;
+  border-radius:12px;padding:11px;box-shadow:inset 3px 0 0 #b9cdf7}
+.bedit-grid .btop{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#1d4ed8;margin-bottom:1px}
+.bedit-grid .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bedit-grid .fld.wide{grid-column:1/-1}
+.bedit-grid .fld > span{font-size:10.5px;color:var(--muted);font-weight:700}
+.bedit-grid input,.bedit-grid select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:7px 9px;
+  font-size:13px;font-weight:650;font-family:inherit;color:var(--ink);background:#fff;outline:none}
+.bedit-grid input:focus,.bedit-grid select:focus{border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.bedit-grid input[data-bf="amount"]{text-align:right;font-variant-numeric:tabular-nums;font-weight:750}
+.bedit-grid .acts{grid-column:1/-1;display:flex;gap:6px;margin-top:2px}
+.bedit-grid .acts .btn{flex:1;padding:9px 10px;font-size:13.5px;border-radius:10px}
+@media (max-width:560px){
+  .bedit-grid{gap:7px;padding:9px}
+  .bedit-grid input,.bedit-grid select{font-size:13.5px;padding:8px 9px}
+}
+
+/* --- 월간 정산: 현금 / 카드 색 구분 --- */
+.setrow.s-cash{box-shadow:inset 3px 0 0 #14b8a6}
+.setrow.s-card{box-shadow:inset 3px 0 0 #6366f1}
+.setrow.sub.s-cash,.setrow.sub.s-card{border-radius:9px;padding:7px 7px;border-bottom:0}
+.setrow.sub.s-cash{background:#f1fbf8}
+.setrow.sub.s-card{background:#f4f4ff}
+.setgrp .pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 9px}
+.setgrp .pill.s-cash{background:#e6f7f4;color:#0f766e;border:1px solid #b7e7df}
+.setgrp .pill.s-card{background:#eef0fe;color:#4f46e5;border:1px solid #cfd3fb}
+.bsum .bs .x b.cash{color:#0f766e;font-weight:800}
+.bsum .bs .x b.card{color:#4f46e5;font-weight:800}
+/* --- 월간 정산: 차트 --- */
+.schart{padding:6px 14px 14px}
+.schart svg{display:block;width:100%;height:auto}
+.schart .semp{padding:22px 4px;text-align:center;color:var(--muted);font-size:13px}
+.schart .scap{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);font-weight:650;font-variant-numeric:tabular-nums;padding:2px 2px 0}
+.schart .scap .sp{margin-left:auto;color:var(--muted);font-weight:600}
+.scat{display:flex;flex-direction:column;gap:1px;padding:2px 0}
+.scat .srow{display:grid;grid-template-columns:minmax(0,1fr) 62px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line2)}
+.scat .srow:last-child{border-bottom:0}
+.scat .srow .nm{display:flex;align-items:center;gap:6px;min-width:0;font-size:12.8px;font-weight:650;color:var(--ink)}
+.scat .srow .nm .bdg{flex:none;font-size:9.5px;font-weight:800;border-radius:5px;padding:1px 5px}
+.scat .srow .nm .bdg.s-cash{background:#e6f7f4;color:#0f766e}
+.scat .srow .nm .bdg.s-card{background:#eef0fe;color:#4f46e5}
+.scat .srow .nm .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scat .srow .am{text-align:right;font-size:12.8px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+.scat .srow .bb{grid-column:1/-1;height:6px;border-radius:4px;background:#eef1f6;overflow:hidden;margin-top:-2px}
+.scat .srow .bb i{display:block;height:100%;border-radius:4px}
+@media (max-width:560px){
+  .schart{padding:4px 12px 12px}
+  .scat .srow{grid-template-columns:minmax(0,1fr) 68px;padding:5px 0}
+  .scat .srow .nm,.scat .srow .am{font-size:12px}
+}
+
 /* --- 월간 정산 표 --- */
 .setwrap{padding:8px 16px 16px}
 .setrow{display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 92px;gap:6px;align-items:center;
@@ -1021,6 +1123,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 #bankTable td.bname .memo:empty{display:none}
 #bankTable td.bamt{text-align:right;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink)}
 #bankTable td.bamt.inc{color:#0f7a42}
+#bankTable td.bamt.out{color:#d92d20}
 #bankTable td.bamt .car{font-size:9px;font-weight:800;color:#1d4ed8;background:var(--accent-soft);border-radius:5px;padding:1px 4px;margin-left:5px;vertical-align:1px}
 @media (max-width:560px){
   #bankTable{min-width:0;font-size:13px}
@@ -1060,7 +1163,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
     <div class="brand">
       <div class="logo">💳</div>
       <div>
-        <h1>카드 가계부</h1>
+        <h1>Finance</h1>
         <p id="modeLabel">내 데이터 · 불러오는 중</p>
       </div>
     </div>
@@ -1244,7 +1347,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
       <span class="hint" id="bankItemsHint"></span>
     </div>
     <div class="detail-filters" style="padding-top:9px">
-      <div class="chips" id="bankAccChips"></div>
+      <div class="chips" id="bankSumChips"></div>
     </div>
     <div class="bacc-list" id="bankItems"></div>
   </section>
@@ -1307,6 +1410,23 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
       <span class="hint" id="settleHint">예산 칸을 누르면 고칠 수 있습니다 · 집행은 카드·은행 탭에서 자동</span>
     </div>
     <div class="setwrap" id="settleTable"></div>
+  </section>
+
+  <section class="card cv-settle" id="settleAnnualCard">
+    <div class="card-head">
+      <h2>연간 정산 추이</h2>
+      <span class="hint" id="settleAnnualHint"></span>
+      <div class="chips" id="settleAnnualChips"></div>
+    </div>
+    <div class="schart" id="settleAnnual"></div>
+  </section>
+
+  <section class="card cv-settle" id="settleCatCard">
+    <div class="card-head">
+      <h2>분류별 차트</h2>
+      <span class="hint" id="settleCatHint">현금·카드 항목별 집행 순서</span>
+    </div>
+    <div class="schart" id="settleCat"></div>
   </section>
 </main>
 
@@ -1524,10 +1644,18 @@ function loadState(){
 const LIMIT_KEY = LS_KEY + '.limits';
 /* 사용자가 아직 바꾸지 않았을 때의 기본 한도 (현대 0 = 미설정, 직접 입력 가능) */
 const LIMIT_DEFAULTS = {'삼성카드': 2000000, 'KB국민카드': 400000, '우리카드': 300000, '현대카드': 0};
-let LIMITS = {};        // 사용자가 바꾼 값만 { '삼성카드': 1500000, '현대카드': 0 } — 0은 '한도 없음'
+/* 사용자가 정한 값만 담습니다. 숫자(0 포함) = 설정한 한도(원), null = 지운 상태(미설정).
+   0은 '미설정'이 아니라 '0원 한도'입니다 — 쓰는 만큼 남은 한도가 음수로 표시됩니다. */
+let LIMITS = {};        // { '삼성카드': 1500000, '현대카드': 0 } — 0은 0원 한도(설정됨)
 let limitEdit = null;   // 지금 금액을 입력 중인 카드
+function limitOwn(c){ return Object.prototype.hasOwnProperty.call(LIMITS, c); }
+/* 한도가 '설정된' 카드인가 — 0원도 설정된 한도입니다. 지운 카드(null)와 기본값 0만 미설정. */
+function limitIsSet(c){
+  if (limitOwn(c)) return LIMITS[c] !== null && LIMITS[c] !== undefined;
+  return (+LIMIT_DEFAULTS[c] || 0) > 0;
+}
 function limitOf(c){
-  if (Object.prototype.hasOwnProperty.call(LIMITS, c)) return Math.max(0, Math.round(+LIMITS[c] || 0));
+  if (limitOwn(c)) return Math.max(0, Math.round(+LIMITS[c] || 0));
   return Math.max(0, Math.round(+LIMIT_DEFAULTS[c] || 0));
 }
 function loadLimits(){
@@ -1538,8 +1666,10 @@ function loadLimits(){
     const p = JSON.parse(raw);
     if (!p || typeof p !== 'object') return;
     Object.keys(p).forEach(c=>{
-      const v = Math.round(+p[c] || 0);
-      if (v >= 0) LIMITS[c] = v;
+      const raw2 = p[c];
+      if (raw2 === null || raw2 === undefined || raw2 === ''){ LIMITS[c] = null; return; }  /* 지운 한도 */
+      const v = Math.round(+raw2);
+      if (Number.isFinite(v) && v >= 0) LIMITS[c] = v;                                       /* 0도 0원 한도로 유지 */
     });
   } catch(e){ LIMITS = {}; }
 }
@@ -1550,8 +1680,10 @@ function saveLimits(){
 const parseLimit = s => {
   /* 입력은 '만원' 단위(예: 200 = 200만원). 소수점도 받아 원 단위로 바꿔 저장합니다. */
   const t = String(s==null?'':s).replace(/[^0-9.]/g, '');
+  if (!t) return null;                                   /* 빈 입력만 미설정 */
   const n = parseFloat(t);
-  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n * 10000), 99999999) : 0;
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.min(Math.round(n * 10000), 99999999);      /* 0은 0원 한도로 저장 */
 };
 /* 저장된 원 단위 한도를 입력창의 만원 단위 글자로: 1400000 → '140', 5000 → '0.5' */
 const limitManText = v => {
@@ -2026,34 +2158,37 @@ function limitTileHtml(c, ctx){
   const nm = '<span class="dot" style="background:'+cardColor(c)+'"></span>' +
     '<span class="nm">' + esc(shortCard(c)) + '</span>' +
     '<span class="use' + (used ? '' : ' zero') + '">' + fmt(used) + '원</span>';
-  if (!lim){
+  if (!limitIsSet(c)){
     return '<button class="lim-item unset" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 월 한도 설정">'+
       '<span class="top">'+nm+'</span>'+
       '<span class="rem">한도 설정</span>'+
       '<span class="meta">눌러서 한도 입력</span>'+
       '</button>';
   }
-  const rem = lim - used;
+  const rem = lim - used;                     /* 0원 한도면 남은 한도 = −사용액 */
   const over = rem < 0;
-  const p = Math.min(100, Math.max(0, Math.round(used / lim * 1000) / 10));
+  const p = lim > 0 ? Math.min(100, Math.max(0, Math.round(used / lim * 1000) / 10))
+                    : (used > 0 ? 100 : 0);
   const near = !over && p >= 90;
   return '<button class="lim-item'+(over ? ' over' : (near ? ' near' : ''))+'" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 한도 수정">'+
     '<span class="top">'+nm+'</span>'+
     '<span class="rem">'+(over ? '−' : '')+fmt(Math.abs(rem))+'<small>원 '+(over ? '초과' : '남음')+'</small></span>'+
     '<span class="bar"><i style="width:'+p+'%"></i></span>'+
-    '<span class="meta">한도 '+shortKrw(lim)+'</span>'+
+    '<span class="meta">한도 '+(lim ? shortKrw(lim) : '0원')+'</span>'+
     '</button>';
 }
 function limitEditorHtml(c){
   const lim = limitOf(c);
+  const set = limitIsSet(c);
+  const shown = set ? (lim ? limitManText(lim) : '0') : '';   /* 0원 한도도 '0'으로 보이게 */
   return '<div class="lim-item editing">'+
     '<span class="top"><span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</span>'+
     '<div class="lim-form">'+
-      '<input id="limInput" type="text" inputmode="decimal" autocomplete="off" value="'+(lim ? limitManText(lim) : '')+'" placeholder="예: 200" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원)">'+
+      '<input id="limInput" type="text" inputmode="decimal" autocomplete="off" value="'+esc(shown)+'" placeholder="예: 200" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원, 0 = 0원 한도)">'+
       '<span class="won">만원</span>'+
       '<button class="btn primary sm" data-limact="save">저장</button>'+
       '<button class="btn ghost sm" data-limact="cancel">취소</button>'+
-      (lim ? '<button class="lim-x" data-limact="clear">지우기</button>' : '')+
+      (set ? '<button class="lim-x" data-limact="clear">지우기</button>' : '')+
     '</div>'+
     '</div>';
 }
@@ -2111,18 +2246,19 @@ function fbData(ctx){
   if (!ctx || !ctx.month) return null;
   const cards = limitCards().map(c=>{
     const st = cardStats(c, ctx.month);
-    const lim = limitOf(c);
+    const lim = limitOf(c), hasLim = limitIsSet(c);
     return {card:c, name:shortCard(c), used:st.total, count:st.count, cats:st.cats, mers:st.mers,
-            lim, rem: lim ? lim - st.total : null, ratio: lim ? st.total / lim : 0};
-  }).filter(c=> c.lim > 0 || c.used > 0);
+            lim, hasLim, rem: hasLim ? lim - st.total : null,
+            ratio: (hasLim && lim > 0) ? st.total / lim : (hasLim && st.total > 0 ? 1 : 0)};
+  }).filter(c=> c.hasLim || c.used > 0);
   return {month: ctx.month, cards, daysLeft: daysLeftIn(ctx.month)};
 }
 function fbLines(d){
   const out = [];
-  const over = d.cards.filter(c=> c.lim && c.used > c.lim).sort((a,b)=> a.rem - b.rem);
-  const near = d.cards.filter(c=> c.lim && c.used <= c.lim && c.ratio >= 0.85).sort((a,b)=> b.ratio - a.ratio);
-  const tight = d.cards.filter(c=> c.lim && c.used > 0).sort((a,b)=> a.rem - b.rem)[0]
-    || d.cards.filter(c=> c.lim).sort((a,b)=> a.rem - b.rem)[0];
+  const over = d.cards.filter(c=> c.hasLim && c.used > c.lim).sort((a,b)=> a.rem - b.rem);
+  const near = d.cards.filter(c=> c.hasLim && c.lim > 0 && c.used <= c.lim && c.ratio >= 0.85).sort((a,b)=> b.ratio - a.ratio);
+  const tight = d.cards.filter(c=> c.hasLim && c.used > 0).sort((a,b)=> a.rem - b.rem)[0]
+    || d.cards.filter(c=> c.hasLim).sort((a,b)=> a.rem - b.rem)[0];
   /* 1) 상태 */
   if (over.length){
     out.push({warn:true, html: over.slice(0,2).map(c=> '<b>'+esc(c.name)+'</b> 한도 초과 <b>'+fmt(-c.rem)+'원</b>').join(' · ')});
@@ -2147,15 +2283,15 @@ function fbLines(d){
     out.push({warn:false, html:s});
   }
   /* 3) 다음 달 관리 */
-  if (t && t.lim && t.used > t.lim){
+  if (t && t.hasLim && t.used > t.lim){
     const cut = Math.ceil((-t.rem) / 1000) * 1000;
     const base = t.cats[0];
     out.push({warn:true, html: base
       ? '다음 달 '+esc(base.name)+'에서 <b>'+fmt(cut)+'원</b>만 줄이면 한도 안'
       : '다음 달 지출을 <b>'+fmt(cut)+'원</b>만 줄이면 한도 안'});
-  } else if (t && t.lim && d.daysLeft > 0){
+  } else if (t && t.hasLim && d.daysLeft > 0){
     out.push({warn:false, html:'남은 '+d.daysLeft+'일 하루 <b>'+fmt(Math.max(0, Math.floor(t.rem / d.daysLeft / 100) * 100))+'원</b>까지 쓰면 한도 안'});
-  } else if (t && t.lim && t.rem >= 0){
+  } else if (t && t.hasLim && t.rem >= 0){
     out.push({warn:false, html:'이 기간은 한도 안에서 마무리됐습니다'});
   }
   return out.slice(0,3);
@@ -2199,11 +2335,12 @@ function fbAiPayload(d){
     })(),
     cards: d.cards.map(c=>({
       card: c.name,
-      limit: c.lim || 0,                                  /* 0 = 한도 미설정 */
+      limit: c.hasLim ? c.lim : null,                     /* null = 한도 미설정, 0 = 0원 한도(설정됨) */
+      hasLimit: c.hasLim,
       spent: c.used, count: c.count,
-      state: !c.lim ? '한도없음' : (c.used > c.lim ? '초과' : (c.ratio >= 0.85 ? '근접' : '여유')),
-      usedPct: pct(c.used, c.lim),
-      remaining: c.lim ? c.lim - c.used : null,
+      state: !c.hasLim ? '한도없음' : (c.used > c.lim ? '초과' : (c.lim > 0 && c.ratio >= 0.85 ? '근접' : '여유')),
+      usedPct: c.hasLim ? (c.lim > 0 ? pct(c.used, c.lim) : (c.used > 0 ? 100 : 0)) : 0,
+      remaining: c.hasLim ? c.lim - c.used : null,
       topCategories: c.cats.slice(0, 5).map(x=>({name: x.name, amount: x.amt, sharePct: pct(x.amt, c.used)})),
       topMerchants: c.mers.slice(0, 5).map(x=>({name: x.name, count: x.n, amount: x.amt, sharePct: pct(x.amt, c.used)}))
     })),
@@ -2366,7 +2503,7 @@ async function fbCallGemini(payload){
     '- 소제목은 ①~④ 각각 한 줄, 내용은 그 아래 1~2줄. 모두 합쳐 8~14줄.',
     '- 각 줄은 90자 안팎. 줄바꿈으로만 나누고 마크다운 기호(*, #, |, **)는 쓰지 않는다.',
     '- 금액은 "421,397원"처럼 원 단위로 정확히. 자료에 없는 숫자·가맹점은 만들지 않는다.',
-    '- 한도(limit)가 0인 카드는 "한도 없음"으로 다룬다. 인사말·맺음말 없이 본문만.',
+    '- 한도는 hasLimit로 구분한다. hasLimit가 false면 "한도 없음", hasLimit가 true이고 limit가 0이면 "0원 한도(설정됨)"으로 다루고 남은 한도는 0에서 사용액을 뺀 음수(예: 사용 366,410원 → −366,410원)로 말한다. 인사말·맺음말 없이 본문만.',
     '',
     '자료: ' + JSON.stringify(payload)
   ].join('\n');
@@ -2456,13 +2593,13 @@ function renderKpis(rows, sum){
 
   /* 전체 남은 한도 — 한도가 설정된 카드들의 (한도 합 − 사용액 합) + 사용률 진행바 */
   const lctx = limitContext();
-  const limited = limitCards().filter(c=> limitOf(c) > 0);
+  const limited = limitCards().filter(c=> limitIsSet(c));   /* 0원 한도도 설정된 한도로 합산 */
   const limSum = limited.reduce((a,c)=> a + limitOf(c), 0);
   const usedSum = limited.reduce((a,c)=> a + (lctx.spent.get(c) || 0), 0);
   const remLim = limited.length ? limSum - usedSum : null;
   const limOver = remLim != null && remLim < 0;
   const limRate = limSum ? usedSum / limSum * 100 : 0;               /* 실제 사용률 — 100을 넘으면 초과 */
-  const limBar = Math.min(100, Math.max(0, limRate));                /* 막대 폭 */
+  const limBar = limOver ? 100 : Math.min(100, Math.max(0, limRate)); /* 막대 폭 — 초과면 100%에서 멈춤 */
   const limNear = remLim != null && !limOver && limRate >= 90;
   const totalLimitTile = remLim == null ? '' :
     '<div class="lim-item all-lim'+(limOver ? ' over' : (limNear ? ' near' : ''))+'" '+
@@ -2471,7 +2608,7 @@ function renderKpis(rows, sum){
         '<span class="use'+(usedSum ? '' : ' zero')+'">'+fmt(usedSum)+'원</span></span>'+
       '<span class="rem">'+(limOver ? '−' : '')+fmt(Math.abs(remLim))+'<small>원 '+(limOver ? '초과' : '남음')+'</small></span>'+
       '<span class="bar"><i style="width:'+limBar+'%"></i></span>'+
-      '<span class="meta">한도 '+shortKrw(limSum)+' · '+pctTxt(usedSum, limSum)+' 사용</span>'+
+      '<span class="meta">한도 '+(limSum ? shortKrw(limSum)+' · '+pctTxt(usedSum, limSum)+' 사용' : '0원')+'</span>'+
     '</div>';
   el.innerHTML =
     '<div class="s-row">'+
@@ -3826,16 +3963,18 @@ $('#limitGrid').addEventListener('click', ev=>{
     const a = act.dataset.limact;
     if (a === 'cancel'){ limitEdit = null; renderLimits(); return; }
     if (a === 'clear'){
-      LIMITS[card] = 0; saveLimits(); limitEdit = null; renderAll();
+      LIMITS[card] = null; saveLimits(); limitEdit = null; renderAll();   /* null = 미설정 */
       markSettingsDirty();
       toast(shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
     if (a === 'save'){
-      const v = parseLimit($('#limInput') ? $('#limInput').value : '');
+      const v = parseLimit($('#limInput') ? $('#limInput').value : '');   /* null = 빈 입력 */
       LIMITS[card] = v; saveLimits(); limitEdit = null; renderAll();
       markSettingsDirty();
-      toast(v ? shortCard(card) + ' 월 한도 ' + won(v) : shortCard(card) + ' 월 한도를 지웠습니다');
+      toast(v === null ? shortCard(card) + ' 월 한도를 지웠습니다'
+        : (v ? shortCard(card) + ' 월 한도 ' + won(v)
+             : shortCard(card) + ' 월 한도를 0원으로 설정 — 쓰는 만큼 초과로 표시됩니다'));
       return;
     }
   }
@@ -4747,7 +4886,12 @@ function bindDataTab(){
           if (p.dueDates) S.dueDates = p.dueDates;
           if (p.limits && typeof p.limits === 'object'){
             LIMITS = {};
-            Object.keys(p.limits).forEach(c=>{ const v = Math.round(+p.limits[c]||0); if (v >= 0) LIMITS[c] = v; });
+            Object.keys(p.limits).forEach(c=>{
+              const raw = p.limits[c];
+              if (raw === null || raw === undefined || raw === ''){ LIMITS[c] = null; return; }
+              const v = Math.round(+raw);
+              if (Number.isFinite(v) && v >= 0) LIMITS[c] = v;      /* 0원 한도도 숫자 0으로 유지 */
+            });
             saveLimits();
           }
           if (p.mileage && typeof p.mileage === 'object'){
@@ -5439,7 +5583,12 @@ function applyRemoteSettings(p){
   let changed = 0;
   if (p.limits && typeof p.limits === 'object' && !Array.isArray(p.limits)){
     const next = Object.assign({}, LIMITS);   /* 이 기기에만 있던 값은 남기고 원격 값으로 덮어씀 */
-    Object.keys(p.limits).forEach(c=>{ const v = Math.round(+p.limits[c]); if (v >= 0) next[c] = v; });
+    Object.keys(p.limits).forEach(c=>{
+      const raw = p.limits[c];
+      if (raw === null || raw === undefined || raw === ''){ next[c] = null; return; }   /* 지운 한도 */
+      const v = Math.round(+raw);
+      if (Number.isFinite(v) && v >= 0) next[c] = v;                 /* 0원 한도도 숫자 0으로 유지 */
+    });
     LIMITS = next; saveLimits(); changed++;
   }
   if (p.mileageGoal != null && isFinite(+p.mileageGoal)){
@@ -6440,7 +6589,7 @@ const SETTLE_CARD_ROWS = [
   {key: '기타', label: '기타', cats: ['기타']}
 ];
 const BANK_KEY = LS_KEY + '.bank';
-const BANK_EMPTY = () => ({v: 1, months: {}, ui: {account: '', dir: '', q: ''}});
+const BANK_EMPTY = () => ({v: 1, months: {}, ui: {account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}});
 let BANK = BANK_EMPTY();
 let VIEW = 'card';                                  /* card | bank | settle */
 let bankBudgetEdit = null;                          /* {acc,item} 예산 입력 중 */
@@ -6455,7 +6604,7 @@ function bankLoad(){
     const raw = localStorage.getItem(BANK_KEY);
     if (raw){
       const p = JSON.parse(raw);
-      if (p && p.ui && typeof p.ui === 'object') BANK.ui = {account: p.ui.account || '', dir: p.ui.dir || '', q: p.ui.q || ''};
+      if (p && p.ui && typeof p.ui === 'object') BANK.ui = Object.assign({account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}, p.ui);
       if (p && p.months && typeof p.months === 'object'){
         Object.keys(p.months).forEach(m=>{
           if (!/^\d{4}-\d{2}$/.test(m)) return;
@@ -6630,7 +6779,7 @@ const JUMP_SETS = {
   card: [['summaryCard', '요약'], ['mileCard', '마일리지'], ['annualCard', '연간'], ['trendCard', '일자별'],
          ['cardChartCard', '카드사/분류'], ['detailCard', '내역']],
   bank: [['bankSummary', '요약'], ['bankItemsCard', '계좌별'], ['bankDetailCard', '내역']],
-  settle: [['settleSummary', '요약'], ['settleCard', '정산표']]
+  settle: [['settleSummary', '요약'], ['settleCard', '정산표'], ['settleAnnualCard', '연간'], ['settleCatCard', '분류']]
 };
 function viewMonths(){
   if (VIEW === 'bank'){
@@ -6682,7 +6831,7 @@ function bankCurrentMonth(){
 }
 function bankMoney(v){ return (v < 0 ? '−' : '') + fmt(Math.abs(v)); }
 function bankAmountCell(r){
-  return r.amount > 0 ? '+' + fmt(r.amount) + '원' : fmt(-r.amount) + '원';
+  return r.amount > 0 ? '+' + fmt(r.amount) + '원' : '−' + fmt(-r.amount) + '원';
 }
 function renderBank(){
   renderBankSummary();
@@ -6756,69 +6905,98 @@ function renderBankSummary(){
     bar.classList.toggle('hidden', !bits.length);
   }
 }
+function bankSumMode(){ return BANK.ui.sumMode === 'bud' ? 'bud' : 'act'; }
+function bankSumChipsHtml(){
+  const m = bankSumMode();
+  return '<span class="lbl">보기</span>' +
+    '<button type="button" class="chip' + (m === 'act' ? ' on' : '') + '" data-bsummode="act" title="실제 거래 금액">실행</button>' +
+    '<button type="button" class="chip' + (m === 'bud' ? ' on' : '') + '" data-bsummode="bud" title="예산 — 금액을 눌러 고칩니다">예산</button>';
+}
 function renderBankItems(){
   const month = bankCurrentMonth();
   const box = $('#bankItems'); if (!box) return;
+  const chipBox = $('#bankSumChips'); if (chipBox) chipBox.innerHTML = bankSumChipsHtml();
+  const hint = $('#bankItemsHint');
   if (!bankMonths().length){
-    box.innerHTML = '<div class="bacc"><div class="empty" style="padding:26px 4px">아직 은행·현금 자료가 없습니다.<br>' +
+    box.innerHTML = '<div class="empty" style="padding:26px 4px">아직 은행·현금 자료가 없습니다.<br>' +
       '<b>📸 캡처로 추가</b>로 은행 앱 거래내역 화면을 올리거나 <b>+ 직접 추가</b>로 시작하세요.<br>' +
-      '<span class="muted" style="font-size:12px">자료는 이 브라우저와 비공개 저장소에만 저장되고, 카드 탭과 자동으로 이어집니다.</span></div></div>';
-    const hint0 = $('#bankItemsHint'); if (hint0) hint0.textContent = '';
+      '<span class="muted" style="font-size:12px">자료는 이 브라우저와 비공개 저장소에만 저장되고, 카드 탭과 자동으로 이어집니다.</span></div>';
+    if (hint) hint.textContent = '';
     return;
   }
-  const accs = BANK.ui.account ? [BANK.ui.account] : BANK_ACCOUNTS;
-  box.innerHTML = accs.map(acc=>{
-    const list = bankItemList(month, acc);
-    const t = bankTotals(month, acc);
-    const head = '<div class="bacc-head">' +
-      '<span class="nm"><span class="dot" style="background:' + bankAccColor(acc) + '"></span>' + esc(acc) + '</span>' +
-      '<span class="sub">수입 ' + fmt(t.inc) + ' · 지출 ' + fmt(t.exp) + ' · 잔액 ' + fmt(t.bal) + '</span>' +
-      '<button type="button" class="lnk" data-bankacc="' + esc(acc) + '">내역 보기</button></div>';
-    const block = (dir, items, title)=>{
-      if (!items.length) return '';
-      let budSum = 0, actSum = 0;
-      const rows = items.map(it=>{
-        const bud = bankBudget(month, acc, it);
-        const raw = bankItemActual(month, acc, it);
-        const act = Math.abs(raw);
-        budSum += bud; actSum += act;
-        return bankItemRowHtml(month, acc, it, dir, bud, act);
-      }).join('');
-      return '<div class="bgroup"><span>' + title + '</span><span class="num">예산</span><span class="num">실행</span><span class="num">차액</span></div>' +
-        rows +
-        '<div class="bitem" style="border-bottom:0;padding-top:7px"><span class="nm" style="color:var(--ink2)">' + title + ' 합계</span>' +
-          '<span class="num">' + fmt(budSum) + '</span><span class="num"><b>' + fmt(actSum) + '</b></span>' +
-          '<span class="dif' + (budSum - actSum < 0 ? ' over' : '') + '">' + (budSum ? bankMoney(budSum - actSum) : '—') + '</span></div>';
-    };
-    return '<div class="bacc" data-acc="' + esc(acc) + '">' + head +
-      block('in', list.in, '수입') + block('out', list.out, '지출') + '</div>';
-  }).join('');
-  const hint = $('#bankItemsHint');
-  if (hint) hint.textContent = bankCardLinked(month) ? '카드요금 예산은 카드 탭 총액과 실시간' : '카드요금을 직접 정한 달입니다';
-}
-function bankItemRowHtml(month, acc, item, dir, bud, act){
-  const diff = bud - act;
-  const memo = bankItemMemo(month, acc, item);
-  const linked = acc === '우리은행' && item === '카드요금' && bankCardLinked(month);
-  const editing = bankBudgetEdit && bankBudgetEdit.acc === acc && bankBudgetEdit.item === item;
-  const key = acc + '|' + item;
-  let h = '<div class="bitem" data-bit="' + esc(key) + '">' +
-    '<span class="nm" title="' + esc(item) + (memo ? ' · ' + esc(memo) : '') + '">' + esc(item) +
-      (memo ? '<i>' + esc(memo) + '</i>' : '') + '</span>' +
-    '<span class="num"><button type="button" class="budbtn' + (bud ? '' : ' empty') + (linked ? ' lnk' : '') + '" data-bud="' + esc(key) + '" title="예산 고치기">' +
-      (bud ? fmt(bud) : '—') + (linked ? '<span class="lnkchip">연동</span>' : '') + '</button></span>' +
-    '<span class="num' + (act ? '' : ' zero') + '"><b>' + (act ? fmt(act) : '—') + '</b></span>' +
-    '<span class="dif' + (diff < 0 ? ' over' : (diff > 0 ? ' good' : '')) + '">' + (bud ? bankMoney(diff) : '—') + '</span>';
-  if (editing){
-    h += '<div class="bedit">' +
-      '<input id="bbudInput" type="text" inputmode="numeric" value="' + (bud ? fmt(bud) : '') + '" aria-label="' + esc(item) + ' 예산" placeholder="예산(원)">' +
-      '<span class="hint">원</span>' +
-      '<button type="button" class="btn primary" data-buds="' + esc(key) + '">저장</button>' +
-      '<button type="button" class="btn ghost" data-budc="1">취소</button>' +
-      (linked ? '' : '<button type="button" class="btn" data-budlink="1" title="카드 탭 총액과 다시 연결">카드 탭 연동</button>') +
+  const mode = bankSumMode();
+  const L = {}, T = {};
+  BANK_ACCOUNTS.forEach(a=>{ L[a] = bankItemList(month, a); T[a] = bankTotals(month, a); });
+  /* 항목 줄은 세 계좌의 항목 이름을 순서대로 합쳐 한 번씩만 만듭니다 — 새 이름의 거래도 바로 줄이 생깁니다. */
+  const union = dir => {
+    const out = [];
+    BANK_ACCOUNTS.forEach(a=> L[a][dir].forEach(it=>{ if (out.indexOf(it) < 0) out.push(it); }));
+    return out;
+  };
+  const budSumOf = (a, dir) => L[a][dir].reduce((s, it)=> s + bankBudget(month, a, it), 0);
+  const cell = (acc, item, dir) => {
+    const inList = L[acc][dir].indexOf(item) >= 0;
+    const act = bankItemActual(month, acc, item);
+    const abs = Math.abs(act);
+    const bud = bankBudget(month, acc, item);
+    if (!inList && !abs && !bud) return '<span class="c none">·</span>';
+    if (mode === 'bud'){
+      const linked = acc === '우리은행' && item === '카드요금' && bankCardLinked(month);
+      const on = bankBudgetEdit && bankBudgetEdit.acc === acc && bankBudgetEdit.item === item;
+      return '<span class="c"><button type="button" class="budbtn' + (bud ? '' : ' empty') + (linked ? ' lnk' : '') + (on ? ' on' : '') +
+        '" data-bud="' + esc(acc + '|' + item) + '" title="' + esc(item) + ' 예산 고치기">' + (bud ? fmt(bud) : '—') + '</button></span>';
+    }
+    if (!abs) return '<span class="c ' + dir + ' mut">—</span>';
+    return '<span class="c ' + dir + '">' + (act > 0 ? '+' : '−') + fmt(abs) + '</span>';
+  };
+  const itemRow = (item, dir) => {
+    let h = '<div class="bsq-row"><span class="nm" title="' + esc(item) + '">' + esc(item) + '</span>' +
+      BANK_ACCOUNTS.map(a=> cell(a, item, dir)).join('') + '</div>';
+    if (bankBudgetEdit && bankBudgetEdit.item === item && L[bankBudgetEdit.acc] &&
+        L[bankBudgetEdit.acc][dir].indexOf(item) >= 0){
+      h += bankBudgetEditorHtml(bankBudgetEdit.acc, item);
+    }
+    return h;
+  };
+  const totRow = dir => {
+    const vals = BANK_ACCOUNTS.map(a=>{
+      if (mode === 'bud'){ const s = budSumOf(a, dir); return s ? fmt(s) : '—'; }
+      const v = dir === 'in' ? T[a].inc : T[a].exp;
+      return v ? (dir === 'in' ? '+' : '−') + fmt(v) : '—';
+    });
+    return '<div class="bsq-row tot"><span class="nm ' + dir + '">' + (dir === 'in' ? '수입' : '지출') + (mode === 'bud' ? ' 예산' : ' 합계') + '</span>' +
+      vals.map(v=> '<span class="c ' + dir + (v === '—' ? ' mut' : '') + '">' + v + '</span>').join('') + '</div>';
+  };
+  const balRow = () => {
+    const vals = BANK_ACCOUNTS.map(a=>{
+      const v = mode === 'bud' ? (budSumOf(a, 'in') - budSumOf(a, 'out')) : T[a].bal;
+      return (v < 0 ? '−' : '') + fmt(Math.abs(v));
+    });
+    return '<div class="bsq-row bal"><span class="nm">' + (mode === 'bud' ? '예산 잔액' : '잔액') + '</span>' +
+      vals.map(v=> '<span class="c bal">' + v + '</span>').join('') + '</div>';
+  };
+  const head = '<div class="bsq-row head"><span class="nm">항목</span>' +
+    BANK_ACCOUNTS.map(a=> '<span class="acc"><i class="dot" style="background:' + bankAccColor(a) + '"></i>' + esc(a) + '</span>').join('') +
     '</div>';
+  box.innerHTML = '<div class="bsq">' + head +
+    union('in').map(it=> itemRow(it, 'in')).join('') + totRow('in') +
+    union('out').map(it=> itemRow(it, 'out')).join('') + totRow('out') + balRow() + '</div>';
+  if (hint){
+    hint.textContent = mode === 'bud' ? '금액을 눌러 예산을 고칩니다'
+      : (bankCardLinked(month) ? '카드요금 예산은 카드 탭과 연동' : '');
   }
-  return h + '</div>';
+}
+function bankBudgetEditorHtml(acc, item){
+  const month = bankCurrentMonth();
+  const bud = bankBudget(month, acc, item);
+  const linked = acc === '우리은행' && item === '카드요금' && bankCardLinked(month);
+  return '<div class="bsq-edit">' +
+    '<span class="who">' + esc(bankAccShort(acc)) + ' · ' + esc(item) + '</span>' +
+    '<input id="bbudInput" type="text" inputmode="numeric" value="' + (bud ? fmt(bud) : '') + '" aria-label="' + esc(item) + ' 예산" placeholder="예산(원)">' +
+    '<button type="button" class="btn primary" data-buds="' + esc(acc + '|' + item) + '">저장</button>' +
+    '<button type="button" class="btn ghost" data-budc="1">취소</button>' +
+    (linked ? '' : '<button type="button" class="btn" data-budlink="1" title="카드 탭 총액과 다시 연결">카드 연동</button>') +
+    '</div>';
 }
 
 /* ---------------- 은행 상세 내역 ---------------- */
@@ -6859,8 +7037,7 @@ function bankDirChipsHtml(){
 }
 function renderBankDetail(){
   const month = bankCurrentMonth();
-  const c1 = $('#bankAccChips'), c2 = $('#bankAccChips2'), c3 = $('#bankDirChips');
-  if (c1) c1.innerHTML = bankAccChipsHtml();
+  const c2 = $('#bankAccChips2'), c3 = $('#bankDirChips');
   if (c2) c2.innerHTML = bankAccChipsHtml();
   if (c3) c3.innerHTML = bankDirChipsHtml();
   const tbody = $('#btbody'); if (!tbody) return;
@@ -6873,7 +7050,7 @@ function renderBankDetail(){
     rows.forEach(r=>{ if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
     sumBox.innerHTML = '<span class="lbl">합계</span>' +
       '<span class="lbl" style="color:#0f7a42">입금</span><span class="v" style="color:#0f7a42">+' + fmt(inc) + '<small>원</small></span>' +
-      '<span class="lbl">출금</span><span class="v">−' + fmt(exp) + '<small>원</small></span>' +
+      '<span class="lbl">출금</span><span class="v" style="color:#d92d20">−' + fmt(exp) + '<small>원</small></span>' +
       '<span class="n">· <b>' + fmt(rows.length) + '</b>건 · 잔액 ' + fmt(inc - exp) + '원</span>';
     sumBox.classList.toggle('hidden', !rows.length);
   }
@@ -6882,11 +7059,13 @@ function renderBankDetail(){
     Array.from(BSEL).forEach(id=>{ if (!live.has(id)) BSEL.delete(id); });
   }
   renderBankEditBar(rows.length);
+  /* + 직접 추가 — 아직 저장되지 않은 새 줄의 입력 폼을 표 맨 위에 그립니다 */
+  const newTr = (BEDITMODE && bRowEdit && bRowEdit.isNew) ? bankRowEditTr({id: '__new__', account: bRowEdit.account}) : '';
   if (!rows.length){
-    tbody.innerHTML = '<tr class="emptyrow"><td colspan="' + (BEDITMODE ? 6 : 5) + '"><div class="empty">' +
+    tbody.innerHTML = newTr + '<tr class="emptyrow"><td colspan="' + (BEDITMODE ? 6 : 5) + '"><div class="empty">' +
       esc(monthLabel(month)) + '에 은행·현금 내역이 없습니다.<br><b>📸 캡처로 추가</b>하거나 <b>+ 직접 추가</b>로 넣어 보세요.</div></td></tr>';
   } else {
-    tbody.innerHTML = rows.map(r=>{
+    tbody.innerHTML = newTr + rows.map(r=>{
       const on = BEDITMODE && !r.virtual && BSEL.has(r.id);
       const sel = BEDITMODE ? '<td class="sel">' + (r.virtual ? '' : '<div class="selwrap">' +
           '<span class="grip" data-bgrip="' + esc(r.id) + '" title="끌어서 순서 바꾸기" aria-label="순서 바꾸기">' +
@@ -6905,7 +7084,7 @@ function renderBankDetail(){
         '<td class="bacc"><span class="acc"><span class="dot" style="background:' + bankAccColor(r.account) + '"></span>' + esc(bankAccShort(r.account)) + '</span></td>' +
         '<td class="bname"><span class="nm" title="' + esc(r.name) + '">' + esc(r.name || r.item) + '</span>' +
           '<span class="memo" title="' + esc(memo) + '">' + esc(memo) + '</span></td>' +
-        '<td class="bamt' + (r.amount > 0 ? ' inc' : '') + '">' + bankAmountCell(r) + badges + '</td>' +
+        '<td class="bamt ' + (r.amount > 0 ? 'inc' : 'out') + '">' + bankAmountCell(r) + badges + '</td>' +
       '</tr>' + (BEDITMODE && bRowEdit && bRowEdit.id === r.id && !r.virtual ? bankRowEditTr(r) : '');
     }).join('');
   }
@@ -6929,14 +7108,17 @@ function bankRowEditTr(r){
   let items = list.in.concat(list.out).filter((v,i,a)=> a.indexOf(v) === i);
   if (d.item && items.indexOf(d.item) < 0) items = [d.item].concat(items);
   const accOpts = BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
-  const itemOpts = items.map(it=> '<option value="' + esc(it) + '"' + (it === d.item ? ' selected' : '') + '>' + esc(it) + '</option>').join('');
+  const itemOpts = items.map(it=> '<option value="' + esc(it) + '"></option>').join('');
+  const isNew = r.id === '__new__';
   return '<tr class="bankedit" data-editrow="' + esc(r.id) + '"><td colspan="' + (BEDITMODE ? 6 : 5) + '">' +
+    '<datalist id="bankItemNames">' + itemOpts + '</datalist>' +
     '<div class="bedit-grid">' +
+      (isNew ? '<div class="btop">＋ 새 내역 — 항목에 새 이름을 써도 정산 요약에 그 이름으로 바로 줄이 생깁니다</div>' : '') +
       '<label class="fld"><span>날짜</span><input type="date" data-bf="date" value="' + esc(d.date || '') + '"></label>' +
       '<label class="fld"><span>계좌</span><select data-bf="account">' + accOpts + '</select></label>' +
-      '<label class="fld"><span>항목</span><select data-bf="item">' + itemOpts + '</select></label>' +
-      '<label class="fld wide"><span>내용</span><input type="text" data-bf="name" maxlength="60" value="' + esc(d.name || '') + '" placeholder="적요·거래 내용"></label>' +
+      '<label class="fld"><span>항목</span><input type="text" data-bf="item" list="bankItemNames" maxlength="24" value="' + esc(d.item || '') + '" placeholder="항목 (새 이름도 입력 가능)" autocomplete="off"></label>' +
       '<label class="fld"><span>금액(원)</span><input type="text" data-bf="amount" inputmode="numeric" value="' + esc(d.amount || '') + '" placeholder="출금 -, 입금 +"></label>' +
+      '<label class="fld wide"><span>내용</span><input type="text" data-bf="name" maxlength="60" value="' + esc(d.name || '') + '" placeholder="적요·거래 내용 (비우면 항목 이름)"></label>' +
       '<label class="fld wide"><span>메모(비고)</span><input type="text" data-bf="memo" maxlength="80" value="' + esc(d.memo || '') + '" placeholder="거래할 때 남긴 메모"></label>' +
       '<div class="acts"><button type="button" class="btn primary" data-bsave="1">저장</button>' +
         '<button type="button" class="btn ghost" data-bcancel="1">취소</button></div>' +
@@ -7057,7 +7239,7 @@ function renderSettle(){
       '<div class="bs in"><span class="k">월급</span><span class="v">' + fmt(sd.salary) + '<small>원</small></span>' +
         '<span class="x">집행 ' + (salAct ? fmt(salAct) + '원' + (salPlanned ? ' (예정)' : '') : '—') + '</span></div>' +
       '<div class="bs out"><span class="k">총 예상 지출</span><span class="v">' + fmt(outBud) + '<small>원</small></span>' +
-        '<span class="x">현금 ' + fmt(cashBud) + ' + 카드 ' + fmt(cardBud) + '</span></div>' +
+        '<span class="x">현금 <b class="cash">' + fmt(cashBud) + '</b> + 카드 <b class="card">' + fmt(cardBud) + '</b></span></div>' +
       '<div class="bs bal"><span class="k">예상 잔액</span><span class="v">' + fmt(balBud) + '<small>원</small></span>' +
         '<span class="x">실제 집행 기준 ' + fmt(balAct) + '원</span></div>' +
     '</div>' +
@@ -7076,15 +7258,149 @@ function renderSettle(){
   const box = $('#settleTable'); if (!box) return;
   const head = '<div class="setrow head"><span class="nm">항목</span><span class="num">예산</span><span class="num">집행</span><span class="num">차액</span></div>';
   let body = settleRowHtml('salary', 'salary', '월급', sd.salary, salAct, {cls: 'salary', tag: salPlanned ? '예정' : '', tagCls: 'plan'});
-  body += '<div class="setgrp"><span>현금</span><span class="num"></span><span class="num"></span><span class="num"></span></div>';
-  body += cashRows.map(r=> settleRowHtml('cash', r.key, r.label, r.bud, r.act, {indent: true})).join('');
-  body += settleRowHtml('cash', '__total', '현금 총액', cashBud, cashAct, {cls: 'sub', edit: false});
-  body += '<div class="setgrp"><span>카드</span><span class="num"></span><span class="num"></span><span class="num"></span></div>';
-  body += cardRows.map(r=> settleRowHtml('card', r.key, r.label, r.bud, r.act, {indent: true})).join('');
-  body += settleRowHtml('card', '__total', '카드 총액', cardBud, cardAct, {cls: 'sub', edit: false});
+  body += '<div class="setgrp"><span><span class="pill s-cash">현금</span></span><span class="num"></span><span class="num"></span><span class="num"></span></div>';
+  body += cashRows.map(r=> settleRowHtml('cash', r.key, r.label, r.bud, r.act, {indent: true, cls: 's-cash'})).join('');
+  body += settleRowHtml('cash', '__total', '현금 총액', cashBud, cashAct, {cls: 'sub s-cash', edit: false});
+  body += '<div class="setgrp"><span><span class="pill s-card">카드</span></span><span class="num"></span><span class="num"></span><span class="num"></span></div>';
+  body += cardRows.map(r=> settleRowHtml('card', r.key, r.label, r.bud, r.act, {indent: true, cls: 's-card'})).join('');
+  body += settleRowHtml('card', '__total', '카드 총액', cardBud, cardAct, {cls: 'sub s-card', edit: false});
   body += settleRowHtml('total', '__bal', '잔액', balBud, balAct, {cls: 'total', edit: false});
   box.innerHTML = head + body;
+  renderSettleCharts();
 }
+
+/* ============================================================
+   월간 정산 — 연간 추이 · 항목별 차트 (2026-11-24)
+   현금 = 은행·현금 탭의 정산 항목, 카드 = 카드 탭 분류
+   ============================================================ */
+function settleSplit(month){
+  let cash = 0, card = 0;
+  SETTLE_CASH_ROWS.forEach(r=>{ cash += settleCashActual(month, r.key); });
+  SETTLE_CARD_ROWS.forEach(r=>{ card += settleCardActual(month, r.cats); });
+  return {cash: cash, card: card, total: cash + card};
+}
+function settleSeriesState(){
+  const s = BANK.ui.series;
+  const out = {total: true, cash: true, card: true};
+  if (s && typeof s === 'object'){ ['total', 'cash', 'card'].forEach(k=>{ if (s[k] === false) out[k] = false; }); }
+  return out;
+}
+function settleYears(){
+  const set = new Set();
+  bankMonths().forEach(m=> set.add(String(m).slice(0, 4)));
+  monthsIn(S.rows).forEach(m=> set.add(String(m).slice(0, 4)));
+  set.add(String(new Date().getFullYear()));
+  return Array.from(set).filter(y=> /^\d{4}$/.test(y)).sort();
+}
+function settleYear(){
+  const ys = settleYears();
+  const want = String(BANK.ui.syear || '');
+  if (ys.indexOf(want) >= 0) return want;
+  const cur = String(bankCurrentMonth() || '').slice(0, 4);
+  return ys.indexOf(cur) >= 0 ? cur : ys[ys.length - 1];
+}
+function settleAnnualChipsHtml(year, years, ser){
+  const yc = years.length > 1
+    ? '<span class="lbl">연도</span>' + years.map(y=> '<button type="button" class="chip' + (y === year ? ' on' : '') + '" data-syear="' + y + '">' + y + '년</button>').join('')
+    : '';
+  const sc = [['total', '전체', '#111827'], ['cash', '현금', '#0d9488'], ['card', '카드', '#6366f1']].map(([k, nm, col])=>{
+    const on = ser[k] !== false;
+    return '<button type="button" class="chip' + (on ? ' on' : '') + '" data-sserie="' + k + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+      '<span class="dot" style="background:' + col + '"></span>' + nm + '</button>';
+  }).join('');
+  return (yc ? yc + '<span class="topnav-sep" aria-hidden="true"></span>' : '') + '<span class="lbl">합계</span>' + sc;
+}
+function renderSettleAnnual(){
+  const box = $('#settleAnnual'); if (!box) return;
+  const years = settleYears();
+  const year = settleYear();
+  BANK.ui.syear = year;
+  const ser = settleSeriesState();
+  const chipBox = $('#settleAnnualChips');
+  if (chipBox) chipBox.innerHTML = settleAnnualChipsHtml(year, years, ser);
+  const hint = $('#settleAnnualHint');
+  const months = [];
+  for (let i = 1; i <= 12; i++){
+    const m = year + '-' + String(i).padStart(2, '0');
+    months.push(Object.assign({month: m}, settleSplit(m)));
+  }
+  const sumCash = months.reduce((s, x)=> s + x.cash, 0);
+  const sumCard = months.reduce((s, x)=> s + x.card, 0);
+  if (hint) hint.textContent = year + '년 합계 ' + fmt(sumCash + sumCard) + '원';
+  if (!sumCash && !sumCard){
+    box.innerHTML = '<div class="semp">' + year + '년 정산 집행 내역이 없습니다.</div>';
+    return;
+  }
+  const W = Math.max(260, Math.round(box.clientWidth || 600));
+  const small = W < 420;
+  const H = small ? 176 : 206;
+  const P = {l: small ? 42 : 52, r: small ? 8 : 12, t: 14, b: 22};
+  const iw = W - P.l - P.r, ih = H - P.t - P.b;
+  const use = months.map(x=>({cash: ser.cash ? x.cash : 0, card: ser.card ? x.card : 0, total: ser.total ? x.total : 0}));
+  const maxV = Math.max(1, ...use.map(u=> Math.max(u.total, u.cash, u.card)));
+  const niceMax = (function(v){
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    const n = v / p;
+    const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    const step = steps.find(s=> n <= s) || 10;
+    return step * p;
+  })(maxV);
+  const xAt = i => P.l + (iw * i / 11);
+  const yAt = v => P.t + ih - (v / niceMax) * ih;
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + year + '년 월별 정산 추이">';
+  [0, 0.5, 1].forEach(k=>{
+    const v = niceMax * k, y = yAt(v);
+    svg += '<line x1="' + P.l + '" y1="' + y.toFixed(1) + '" x2="' + (W - P.r) + '" y2="' + y.toFixed(1) + '" stroke="#e8ebf1" stroke-width="1"/>';
+    svg += '<text x="' + (P.l - 6) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="' + (small ? 9 : 10) + '" fill="#111827">' + shortKrw(v) + '</text>';
+  });
+  months.forEach((x, i)=>{
+    const lab = String(i + 1);
+    svg += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="' + (small ? 9 : 10) + '" fill="#111827" font-weight="' + (x.total ? 700 : 500) + '">' + lab + '</text>';
+  });
+  const line = (key, color, width) => {
+    const pts = months.map((x, i)=> xAt(i).toFixed(1) + ',' + yAt(use[i][key]).toFixed(1));
+    let out = '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="' + width + '" stroke-linejoin="round" stroke-linecap="round"/>';
+    months.forEach((x, i)=>{
+      const v = use[i][key];
+      if (!v) return;
+      out += '<circle cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(v).toFixed(1) + '" r="' + (key === 'total' ? 3.2 : 2.4) + '" fill="' + color + '"><title>' + (i + 1) + '월 ' + fmt(v) + '원</title></circle>';
+    });
+    return out;
+  };
+  if (ser.cash) svg += line('cash', '#0d9488', 1.9);
+  if (ser.card) svg += line('card', '#6366f1', 1.9);
+  if (ser.total) svg += line('total', '#111827', 2.5);
+  svg += '</svg>';
+  box.innerHTML = svg + '<div class="scap"><span>현금 ' + fmt(sumCash) + '원</span><span>카드 ' + fmt(sumCard) + '원</span>' +
+    '<span class="sp">' + (ser.total ? '합계 ' + fmt(sumCash + sumCard) + '원' : '선을 골라 보세요') + '</span></div>';
+}
+function renderSettleCat(){
+  const box = $('#settleCat'); if (!box) return;
+  const month = bankCurrentMonth();
+  const rows = [];
+  SETTLE_CASH_ROWS.forEach(r=> rows.push({name: r.label, kind: 'cash', amt: settleCashActual(month, r.key)}));
+  SETTLE_CARD_ROWS.forEach(r=> rows.push({name: r.label, kind: 'card', amt: settleCardActual(month, r.cats)}));
+  const list = rows.filter(x=> x.amt > 0).sort((a, b)=> b.amt - a.amt);
+  const hint = $('#settleCatHint');
+  if (hint) hint.textContent = esc(monthLabel(month)) + ' 집행 기준';
+  if (!list.length){
+    box.innerHTML = '<div class="semp">' + esc(monthLabel(month)) + '에 집행된 정산 항목이 없습니다.</div>';
+    return;
+  }
+  const total = list.reduce((s, x)=> s + x.amt, 0);
+  const max = list[0].amt;
+  box.innerHTML = '<div class="scat">' + list.map(x=>{
+    const col = x.kind === 'cash' ? '#14b8a6' : '#6366f1';
+    return '<div class="srow">' +
+      '<span class="nm"><span class="bdg s-' + x.kind + '">' + (x.kind === 'cash' ? '현금' : '카드') + '</span>' +
+        '<span class="t" title="' + esc(x.name) + '">' + esc(x.name) + '</span>' +
+        '<span class="muted" style="font-size:11px;flex:none">' + pctTxt(x.amt, total) + '</span></span>' +
+      '<span class="am">' + fmt(x.amt) + '<small style="font-size:10px;font-weight:700;color:var(--muted)">원</small></span>' +
+      '<span class="bb"><i style="width:' + (x.amt / max * 100).toFixed(1) + '%;background:' + col + '"></i></span>' +
+      '</div>';
+  }).join('') + '</div>';
+}
+function renderSettleCharts(){ renderSettleAnnual(); renderSettleCat(); }
 
 /* ============================================================
    은행·현금 양방향 동기화 (2026-11-23)
@@ -7397,9 +7713,12 @@ $('#bankItems').addEventListener('keydown', ev=>{
   if (ev.key === 'Enter'){ ev.preventDefault(); const b = $('#bankItems [data-buds]'); if (b) b.click(); }
   else if (ev.key === 'Escape'){ ev.preventDefault(); bankBudgetEdit = null; renderBankItems(); }
 });
-$('#bankAccChips').addEventListener('click', ev=>{
-  const b = ev.target.closest('[data-bchips]'); if (!b) return;
-  bankFilterByAccount(b.dataset.bchips);
+$('#bankSumChips').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-bsummode]'); if (!b) return;
+  BANK.ui.sumMode = b.dataset.bsummode === 'bud' ? 'bud' : 'act';
+  bankBudgetEdit = null;
+  bankSave();
+  renderBankItems();
 });
 $('#bankAccChips2').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-bchips]'); if (!b) return;
@@ -7482,8 +7801,11 @@ function openBankNew(){
   BEDITMODE = true;
   document.body.classList.add('editmode');
   renderBank();
-  const inp = document.querySelector('#btbody [data-editrow="__new__"] [data-bf="name"]');
+  const el = $('#bankDetailCard');
+  if (el){ try { el.scrollIntoView({behavior: 'smooth', block: 'start'}); } catch(e){} }
+  const inp = document.querySelector('#btbody [data-editrow="__new__"] [data-bf="item"]');
   if (inp) inp.focus();
+  toast('새 내역 — 항목·금액을 넣고 저장하세요 (항목은 새 이름도 됩니다)', 3200);
 }
 function bankNewOrder(doc){
   const ords = doc.rows.filter(hasBOrder).map(r=> r.order);
@@ -7493,14 +7815,15 @@ function bankNewOrder(doc){
 }
 function saveBankRow(){
   const d = bRowEdit; if (!d) return;
-  const name = String(d.name || '').trim();
+  const itemRaw = String(d.item || '').trim();
+  const name = String(d.name || '').trim() || itemRaw;
   let amount = Math.round(Number(String(d.amount || '').replace(/[^0-9]/g, '')) || 0);
-  if (!name){ toast('내용을 넣어주세요'); return; }
+  if (!name){ toast('항목이나 내용을 넣어주세요'); return; }
   if (!amount){ toast('금액을 넣어주세요 (출금은 −, 입금은 +)'); return; }
   if (d.neg) amount = -amount;
   const month = d.month || bankCurrentMonth();
   const account = normBankAccount(d.account) || d.account || '우리은행';
-  const item = String(d.item || '').trim() || '기타';
+  const item = itemRaw || '기타';
   const date = d.date ? toDateStr(d.date) : '';
   const memo = String(d.memo || '').trim().slice(0, 80);
   const doc = ensureBankDoc(month);
@@ -7690,6 +8013,18 @@ $('#settleTable').addEventListener('click', ev=>{
     if (settleEdit) settleSet(settleEdit.kind, settleEdit.key, v);
     else renderSettle();
   }
+});
+$('#settleAnnualChips').addEventListener('click', ev=>{
+  const y = ev.target.closest('[data-syear]');
+  if (y){ BANK.ui.syear = y.dataset.syear || ''; bankSave(); renderSettleAnnual(); return; }
+  const s = ev.target.closest('[data-sserie]');
+  if (!s) return;
+  const ser = settleSeriesState();
+  const k = s.dataset.sserie;
+  ser[k] = ser[k] === false;                 /* 켜짐 → 꺼짐, 꺼짐 → 켜짐 */
+  BANK.ui.series = ser;
+  bankSave();
+  renderSettleAnnual();
 });
 $('#settleTable').addEventListener('input', ev=>{
   if (ev.target.id !== 'setBudInput') return;
