@@ -1087,10 +1087,9 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 }
 
 /* --- 정산 요약: 계좌별 한 표 + 계좌 고유 색 (2026-11-24) --- */
-.sc2{padding:4px 16px 16px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr);gap:0;align-items:start}
-.scg{min-width:0;padding:0 14px 4px}
-.scg:first-child{padding-left:0}
-.scg:last-child{padding-right:0}
+/* 3계좌 칸은 위 「계좌별 잔액」 3개 박스와 같은 폭·간격으로 정확히 3등분 (2026-11-24) */
+.sc2{padding:4px 16px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:start}
+.scg{min-width:0;padding:0 0 4px}
 .scg + .scg{border-left:3px solid var(--ac)}
 .scg-h{display:flex;align-items:center;gap:7px;padding:5px 0 8px;border-bottom:2px solid var(--ac);margin-bottom:1px}
 .scg-h .dot{width:10px;height:10px;border-radius:4px;background:var(--ac);flex:none}
@@ -1172,8 +1171,8 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .sc-edit .fld > span{font-size:10px;color:var(--muted);font-weight:700}
 .sc-edit .fld input,.sc-edit .fld select{flex:1 1 auto;min-width:0;width:100%}
 @media (max-width:900px){
-  .sc2{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)}
-  .scg{padding:0 9px 4px}
+  .sc2{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .scg{padding:0 0 4px}
   .scg.w3{--actw:84px;--budw:84px}
   .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 84px 84px}
   .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 84px}
@@ -1182,7 +1181,9 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .scg-h .nm{font-size:14px}
 }
 @media (max-width:620px){
-  .sc2{display:block;padding:2px 12px 12px}
+  .sc2{display:block;padding:2px 16px 12px}
+  /* 좁은 화면에서는 위 「계좌별 잔액」 박스도 한 줄씩(전체 폭) — 아래 정산 요약 칸과 폭·좌우 끝선을 맞춤 */
+  #bankAccGrid{grid-template-columns:1fr}
   .scg{padding:2px 0 10px}
   .scg + .scg{border-left:0;border-top:1px solid var(--line2);margin-top:8px;padding-top:6px}
   .scg{padding-left:9px;border-left:4px solid var(--ac)}
@@ -3643,6 +3644,15 @@ function sortRows(rows){
     if (k === 'amount') return (a.amount - b.amount) * dir;
     const da = a.date, db = b.date;
     if (da !== db) return (da < db ? -1 : 1) * dir;
+    /* 같은 날짜 — order(캡처 이미지 위→아래 순서 · 편집 모드에서 끌어 정한 순서)를 먼저 따릅니다.
+       order 가 없는 건(카드사 동기화로 들어온 내역)은 같은 날짜 안에서 뒤로 둡니다. */
+    const oa = hasOrder(a) ? a.order : null, ob = hasOrder(b) ? b.order : null;
+    if (oa !== null || ob !== null){
+      if (oa === null) return 1;
+      if (ob === null) return -1;
+      if (oa !== ob) return oa - ob;
+      return 0;
+    }
     return (b.amount - a.amount) * dir;
   });
 }
@@ -3957,9 +3967,11 @@ function materializeMonthOrder(month, force){
     seq = sortRows(rows);
   } else {
     seq = ordered.slice();
+    /* 날짜가 같은 여러 건이 한 번에 들어와도(캡처·동기화) 서로 뒤집히지 않게
+       같은 날짜 안에서는 들어온 순서를 그대로 두고, 이미 순서가 있는 같은 날짜 행 뒤에 붙입니다. */
     missing.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date))).forEach(m=>{
       let at = seq.length;
-      for (let i = 0; i < seq.length; i++){ if (String(seq[i].date) >= String(m.date)){ at = i; break; } }
+      for (let i = 0; i < seq.length; i++){ if (String(seq[i].date) < String(m.date)){ at = i; break; } }
       seq.splice(at, 0, m);
     });
   }
@@ -6426,14 +6438,15 @@ function capPrompt(){
     '규칙:',
     '1) 이미지에 실제로 보이는 거래만 추출한다. 보이지 않는 거래를 추측해 만들지 않는다.',
     '2) 합계·소계·총액·잔액·포인트·카드번호·공지·버튼 줄은 거래가 아니므로 제외한다.',
-    '3) 각 거래의 필드:',
+    '3) 순서: 반드시 이미지 위에서 아래로 보이는 순서 그대로 transactions 배열에 담는다. 화면의 날짜가 위아래로 섞여 있거나 오래된 내역이 아래에 있어도 절대 날짜순으로 다시 정렬하거나 뒤집지 말고, 눈에 보이는 순서를 그대로 유지한다. 여러 장을 주면 준 순서(첫 번째 이미지 위→아래, 그다음 두 번째 이미지 위→아래 …)대로 이어 붙인다.',
+    '4) 각 거래의 필드:',
     '   - date: 이용일자(거래일)를 YYYY-MM-DD 로. 연도가 없으면 화면에 보이는 연도를 쓰고, 그것도 없으면 ' + new Date().getFullYear() + '년으로 본다.',
     '   - merchant: 가맹점명(이용가맹점)을 원문 그대로.',
     '   - amount: 청구·이용 금액을 정수(원)로. 취소·환불·마이너스 표시는 음수.',
     '   - card: ' + (fixed ? '항상 "' + fixed + '".' : '카드사를 알 수 있으면 "삼성"·"KB국민"·"현대"·"우리" 중 하나, 모르면 빈 문자열.'),
     '   - note: 할부 개월, 취소·승인구분 등 비고. 없으면 빈 문자열.',
-    '4) 중복 제거: 같은 이미지 안에서, 그리고 여러 장을 함께 볼 때 겹쳐 보이는 같은 거래(날짜·가맹점·금액이 같음)는 반드시 1건만 남긴다. 스크롤이 겹쳐 찍혀 같은 거래가 두 번 보여도 한 번만 넣는다.',
-    '5) 응답은 아래 형식의 JSON 객체 하나만. 설명·마크다운·코드블록 없이 JSON만 출력한다.',
+    '5) 중복 제거: 같은 이미지 안에서, 그리고 여러 장을 함께 볼 때 겹쳐 보이는 같은 거래(날짜·가맹점·금액이 같음)는 반드시 1건만 남긴다. 스크롤이 겹쳐 찍혀 같은 거래가 두 번 보여도 한 번만 넣고, 어느 쪽을 남길지는 이미지에서 위에 있는 쪽으로 한다.',
+    '6) 응답은 아래 형식의 JSON 객체 하나만. 설명·마크다운·코드블록 없이 JSON만 출력한다.',
     '{"transactions":[{"date":"2026-11-19","merchant":"쿠팡","amount":16400,"card":"삼성","note":""}]}',
     '거래가 없으면 {"transactions":[]} 로 응답한다.'
   ].join('\n');
@@ -6488,7 +6501,7 @@ async function capCallOpenAI(imgs){
         temperature: 0,
         response_format: {type:'json_object'},
         messages: [
-          {role:'system', content:'너는 카드 사용내역 캡처 이미지를 읽어 JSON만 출력하는 도우미다. 항상 {"transactions":[...]} 형식의 JSON 객체 하나만 출력한다.'},
+          {role:'system', content:'너는 카드 사용내역 캡처 이미지를 읽어 JSON만 출력하는 도우미다. 항상 {"transactions":[...]} 형식의 JSON 객체 하나만 출력하고, 거래는 이미지 위에서 아래로 보이는 순서 그대로 담는다.'},
           {role:'user', content: content}
         ]
       })
@@ -6802,12 +6815,38 @@ async function capRun(){
     if (anchor) setTimeout(()=> anchor.scrollIntoView({block:'start', behavior:'smooth'}), 80);
   }
 }
+/* 캡처로 추가한 내역에 이미지 위→아래 순서를 order 로 남깁니다 (2026-11-24).
+   · newRows 는 AI 응답 순서 = 이미지 위→아래 순서(여러 장이면 올린 순서대로 이어진 순서)입니다.
+   · 그 달에 사용자가 드래그로 정한 순서(order)가 있으면 그 사이 날짜 자리에 이미지 순서대로 끼워 넣고,
+     없으면 캡처 항목에만 10·20·30… 을 줍니다. 상세내역은 「날짜 내림차순 + 같은 날짜는 order 순서」로 보입니다.
+   · order·orderAt 은 localStorage 와 그 달 JSON 에 함께 저장돼 새로고침·다른 기기에서도 같은 순서로 남습니다. */
+function capAssignOrder(month, newRows){
+  if (!month || !newRows || !newRows.length) return;
+  const t = nowIso();
+  const ordered = S.rows.filter(r=> r.month === month && hasOrder(r) && newRows.indexOf(r) < 0);
+  if (!ordered.length){
+    newRows.forEach((r,k)=>{ const v = (k+1)*10; if (r.order !== v){ r.order = v; r.orderAt = t; } });
+    return;
+  }
+  const pos = new Map(newRows.map((r,i)=>[r,i]));
+  const seq = ordered.concat(newRows).sort((a,b)=>{
+    const da = String(a.date || ''), db = String(b.date || '');
+    if (da !== db) return da < db ? 1 : -1;              /* 날짜 내림차순(최신이 위) */
+    const ia = pos.has(a) ? pos.get(a) : -1, ib = pos.has(b) ? pos.get(b) : -1;
+    if (ia >= 0 && ib >= 0) return ia - ib;               /* 캡처끼리는 이미지 위→아래 순서 그대로 */
+    if (ia >= 0) return -1;                               /* 캡처는 같은 날짜의 기존 순서 앞에 */
+    if (ib >= 0) return 1;
+    return a.order - b.order;                             /* 기존 내역끼리는 사용자가 정한 순서 그대로 */
+  });
+  seq.forEach((r,k)=>{ const v = (k+1)*10; if (r.order !== v){ r.order = v; r.orderAt = t; } });
+}
 function capAddSelected(){
   if (CAP.mode === 'bank'){ capAddBank(); return; }
   const sel = CAP.results.filter(r=>r.on && String(r.merchant||'').trim() && r.date && +r.amount);
   if (!sel.length){ toast('추가할 내역이 없습니다'); return; }
   const month = CAP.month || capNowMonth();
   let added = 0;
+  const newRows = [];
   sel.forEach(it=>{
     let cat = String(it.category||'').trim();
     if (!cat) cat = autoCategory(it.merchant, it.amount, S.rules) || '기타';
@@ -6818,13 +6857,14 @@ function capAddSelected(){
       category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture'
     };
     S.rows.push(row);
+    newRows.push(row);
     clearTomb(rowKey(row));   /* 같은 거래를 일부러 다시 넣었으면 삭제 기록을 풉니다 */
     added++;
   });
   const dupN = CAP.results.filter(r=>r.dup && !r.on).length;
   S.mode = 'mine';
-  /* 이 달을 편집 모드에서 끌어 정리해 둔 순서가 있으면, 새로 넣은 내역을 날짜 위치에 끼워 넣습니다 */
-  if (S.rows.some(r=> r.month === month && hasOrder(r))) materializeMonthOrder(month);
+  /* 이미지 위→아래 순서를 order 로 남깁니다 — 예전에는 push 만 해서 같은 날짜가 금액순으로 뒤집혔습니다 */
+  capAssignOrder(month, newRows);
   F.month = month; F.date = null; F.monthUser = true; F.cards = []; F.categories = []; $('#search').value = '';
   S.ui.limit = 20;
   saveState(); renderAll(); closeCapture();
