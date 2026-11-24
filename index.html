@@ -2424,8 +2424,20 @@ function pickMonth(m, ev){
   if (ev){ ev.preventDefault(); ev.stopPropagation(); }
   closeMonthPick();
   if (!/^\d{4}-\d{2}$/.test(String(m))) return;
-  F.month = m; F.monthUser = true; F.date = null; S.ui.limit = 20; limitEdit = null;
+  F.month = m; F.monthUser = true;
+  resetPanelFilters();   /* 달을 옮기면 상세 패널 필터는 초기화 */
   renderAll();
+}
+/* 달을 옮길 때 상세 패널 필터를 모두 지웁니다 — 카드사·분류·계좌·구분·하이라이트 색·검색어 (2026-11-24) */
+function resetPanelFilters(){
+  F.cards = []; F.categories = []; F.q = ''; F.hl = ''; F.date = null;
+  BANK.ui.account = ''; BANK.ui.dir = ''; BANK.ui.q = ''; BANK.ui.hl = '';
+  S.ui.limit = 20;
+  limitEdit = null; scEdit = null; bRowEdit = null;
+  const s1 = $('#search'); if (s1) s1.value = '';
+  const s2 = $('#bankSearch'); if (s2) s2.value = '';
+  hlPruneFilters();
+  bankSave();
 }
 
 /* ============================================================
@@ -4221,7 +4233,9 @@ $('#monthSeg').addEventListener('click', ev=>{
   }
   const b = ev.target.closest('button[data-month]'); if(!b) return;
   closeMonthPick();
-  F.month = b.dataset.month; F.monthUser = true; F.date = null; S.ui.limit = 20; limitEdit = null; scEdit = null; bRowEdit = null; renderAll();
+  F.month = b.dataset.month; F.monthUser = true;
+  resetPanelFilters();   /* 달을 옮기면 상세 패널 필터는 초기화 */
+  renderAll();
 });
 /* 다른 월 팝오버: 연도 칩 · 달 고르기 (2026-11-23) */
 $('#monthPickPop').addEventListener('click', ev=>{
@@ -4406,7 +4420,7 @@ $('#annual').addEventListener('click', ev=>{
   const m = g.dataset.month;
   F.month = (F.month === m) ? 'all' : m;
   F.monthUser = true;
-  F.date = null; S.ui.limit = 20;
+  resetPanelFilters();   /* 달을 옮기면 상세 패널 필터는 초기화 */
   renderAll();
 });
 /* 카드사 칩 — 위 필터 카드와 상세 내역 패널 두 곳에서 같은 상태를 바꿉니다 */
