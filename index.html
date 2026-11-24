@@ -6968,11 +6968,12 @@ function renderBankItems(){
       vals.map(v=> '<span class="c ' + dir + (v === '—' ? ' mut' : '') + '">' + v + '</span>').join('') + '</div>';
   };
   const balRow = () => {
+    if (mode === 'bud') return '';                 /* 예산 보기에는 수입 예산이 없는 달이 많아 순잔액을 보이지 않습니다 */
     const vals = BANK_ACCOUNTS.map(a=>{
-      const v = mode === 'bud' ? (budSumOf(a, 'in') - budSumOf(a, 'out')) : T[a].bal;
+      const v = T[a].bal;
       return (v < 0 ? '−' : '') + fmt(Math.abs(v));
     });
-    return '<div class="bsq-row bal"><span class="nm">' + (mode === 'bud' ? '예산 잔액' : '잔액') + '</span>' +
+    return '<div class="bsq-row bal"><span class="nm">잔액</span>' +
       vals.map(v=> '<span class="c bal">' + v + '</span>').join('') + '</div>';
   };
   const head = '<div class="bsq-row head"><span class="nm">항목</span>' +
