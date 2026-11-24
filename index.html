@@ -7333,7 +7333,7 @@ function bankSetItemActual(month, acc, item, target, dir){
   const act = bankItemActual(month, acc, item);
   const delta = signed - act;
   if (!delta) return 0;
-  d.rows.push({id: uid(), month: month, account: acc, date: todayStr(), item: item, name: item + ' (정산 조정)',
+  d.rows.push({id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: item, name: item + ' (정산 조정)',
     amount: delta, memo: '정산 요약에서 직접 입력', order: bankNewOrder(d), orderAt: nowIso()});
   d.updatedAt = nowIso();
   return delta;
@@ -7381,7 +7381,7 @@ function scSave(){
     const d = ensureBankDoc(month);
     if (bud){ if (!d.budgets[acc]) d.budgets[acc] = {}; d.budgets[acc][name] = bud; }
     if (amt){
-      d.rows.push({id: uid(), month: month, account: acc, date: todayStr(), item: name, name: name,
+      d.rows.push({id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: name, name: name,
         amount: dir === 'in' ? amt : -amt, memo: '', order: bankNewOrder(d), orderAt: nowIso()});
     }
     d.updatedAt = nowIso();
@@ -8220,6 +8220,9 @@ function openBankNew(){
   const inp = document.querySelector('#bankEditPanel [data-bf="item"]');
   if (inp) inp.focus();
   toast('새 내역 — 항목·금액을 넣고 저장하세요 (금액은 50000+30000 수식도 됩니다)', 3200);
+}
+function bankDateForMonth(month){
+  return String(month || '') === todayStr().slice(0, 7) ? todayStr() : '';
 }
 function bankNewOrder(doc){
   const ords = doc.rows.filter(hasBOrder).map(r=> r.order);
