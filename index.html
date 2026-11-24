@@ -1099,10 +1099,18 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   padding:3px 8px;font-size:11.5px;font-weight:800;white-space:nowrap;font-family:inherit;cursor:pointer}
 .scg-h .add:hover{background:var(--acs)}
 .scg-cols,.scg-row{display:grid;gap:4px;align-items:center}
-.scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 74px 80px}
-.scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 80px}
-.scg-cols{padding:7px 0 5px;font-size:10.5px;font-weight:800;color:var(--muted)}
+.scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 88px 86px}
+.scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 86px}
+.scg-cols{padding:7px 0 5px;font-size:10.5px;font-weight:800;color:#111827}
 .scg-cols .num{text-align:right;padding-right:2px}
+/* 예산 열을 조금 왼쪽으로(여백) 당기고, 예산·실행 사이에 세로줄 (2026-11-24) */
+.scg.w3{--actw:86px}
+.scg.w3 .scg-cols .num.bud,.scg.w3 .scg-row .num.bud{padding-right:12px}
+.scg.w3 .scg-cols .num.act,.scg.w3 .scg-row .num.act{padding-left:12px;border-radius:0}
+.scg.w3 .scg-row .num.act{align-self:stretch;display:flex;align-items:center;justify-content:flex-end}
+.scg.w3 .scg-cols,.scg.w3 .scg-row{position:relative}
+.scg.w3 .scg-cols::after,.scg.w3 .scg-row::after{content:'';position:absolute;top:0;bottom:0;right:calc(var(--actw) + 2px);
+  width:1px;background:#dfe4ee;pointer-events:none}
 .scg-row{padding:5px 0;border-bottom:1px solid var(--line2);font-size:12.8px}
 .scg-row:last-child{border-bottom:0}
 .scg-row .inm{min-width:0;text-align:left;border:0;background:transparent;padding:1px 2px;border-radius:6px;font:inherit;
@@ -1112,11 +1120,21 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   text-align:right;font-variant-numeric:tabular-nums;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .scg-row button.num:hover{background:var(--acs);color:var(--acd)}
 .scg-row .num.bud{color:var(--ink)}
+.scg-row .num.bud.in{color:#0f7a42}
+.scg-row .num.bud.out{color:#d92d20}
 .scg-row .num.bud.zero{color:#b6bcc7;font-weight:600}
 .scg-row .num.act.in{color:#0f7a42}
 .scg-row .num.act.out{color:#d92d20}
 .scg-row .num.act.none{color:#c2c7d1;font-weight:600}
 .scg-row .num b{font-weight:800}
+/* 항목 이름 — 수입 항목은 초록, 지출 항목은 붉게 */
+.scg-row .inm.in{color:#0f7a42}
+.scg-row .inm.out{color:#c8251c}
+/* 맨 아래 총합 — 예산 합(우리은행)·실행 합을 수입·지출 합산 순합계로 */
+.scg-row.total{border-top:1px solid #d7dde8;border-bottom:0;padding-top:7px;font-weight:800}
+.scg-row.total .inm{color:var(--ink);font-weight:800;cursor:default}
+.scg-row.total .inm:hover{background:transparent;color:var(--ink)}
+.scg-row.total .num{font-weight:800}
 .scg-row.secs .inm{color:var(--muted);font-size:10.5px;font-weight:800;letter-spacing:.02em;cursor:default;padding:0}
 .scg-row.secs .inm:hover{background:transparent;color:var(--muted)}
 .scg-foot{display:flex;flex-wrap:wrap;gap:2px 9px;padding:8px 0 0;margin-top:3px;border-top:1px solid var(--line);
@@ -1147,8 +1165,9 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 @media (max-width:900px){
   .sc2{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)}
   .scg{padding:0 9px 4px}
-  .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 66px 74px}
-  .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 74px}
+  .scg.w3{--actw:84px}
+  .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 84px 84px}
+  .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 84px}
   .scg-row{font-size:12px}
   .scg-row button.num{font-size:12px}
   .scg-h .nm{font-size:14px}
@@ -1162,10 +1181,13 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .scg-h{padding:3px 0 7px}
   .scg-h .nm{font-size:15.5px}
   .scg-h .add{font-size:11.5px;padding:4px 9px}
-  .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 74px 84px}
-  .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 84px}
+  .scg.w3{--actw:82px}
+  .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 82px 82px}
+  .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 82px}
+  .scg.w3 .scg-cols .num.bud,.scg.w3 .scg-row .num.bud{padding-right:8px}
+  .scg.w3 .scg-cols .num.act,.scg.w3 .scg-row .num.act{padding-left:8px}
   .scg-row{font-size:12.8px;padding:6px 0}
-  .scg-row button.num{font-size:12.8px}
+  .scg-row button.num{font-size:12px}
   .scg-cols{font-size:10px}
   .scg-foot{font-size:11px;gap:2px 8px}
   .sc-edit{padding:8px 8px 9px}
@@ -7304,14 +7326,31 @@ function bankSumItemRows(month, acc){
 }
 function bankSumRowHtml(month, acc, row, wide){
   const bud = row.bud, act = row.act;
+  /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24) */
   const budCell = wide
-    ? '<button type="button" class="num bud' + (bud ? '' : ' zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' 예산 고치기">' + (bud ? fmt(bud) : '—') + '</button>'
+    ? '<button type="button" class="num bud ' + (bud ? (row.dir === 'in' ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' 예산 고치기">' +
+      (bud ? (row.dir === 'in' ? '+' : '−') + fmt(bud) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="실행 합계 직접 입력">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="실행 합계 직접 입력">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
   return '<div class="scg-row">' +
-    '<button type="button" class="inm" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(row.item) + '</button>' +
+    '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(row.item) + '</button>' +
     budCell + actCell + '</div>';
+}
+/* 계좌 표 맨 아래 총합 행 — 예산 합(우리은행)·실행 합을 수입·지출 합산 순합계로 (2026-11-24) */
+function bankSumTotalHtml(month, acc){
+  const wide = acc === '우리은행';
+  const rows = bankSumItemRows(month, acc);
+  let budNet = 0, actNet = 0;
+  rows.forEach(r=>{
+    if (r.bud) budNet += (r.dir === 'in' ? r.bud : -r.bud);
+    if (r.act) actNet += r.act;
+  });
+  const cls = v => v ? (v > 0 ? 'in' : 'out') : 'zero';
+  const sign = v => v ? ((v > 0 ? '+' : '−') + fmt(Math.abs(v))) : '—';
+  const budCell = wide ? '<span class="num bud ' + cls(budNet) + '">' + sign(budNet) + '</span>' : '';
+  const actCell = '<span class="num act sep ' + (actNet ? cls(actNet) : 'none') + '">' + sign(actNet) + '</span>';
+  return '<div class="scg-row total"><span class="inm">총합</span>' + budCell + actCell + '</div>';
 }
 function scEditHtml(month, acc){
   const e = scEdit;
@@ -7368,12 +7407,12 @@ function scGroupHtml(month, acc){
   return '<section class="scg ' + (wide ? 'w3' : 'w2') + '" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
     '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
       '<button type="button" class="add" data-scadd="' + esc(acc) + '" title="' + esc(acc) + '에 항목 더하기">＋ 항목</button></div>' +
-    '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num">예산</span>' : '') + '<span class="num">실행</span></div>' +
+    '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body +
+    (rows.length ? bankSumTotalHtml(month, acc) : '') +
     '<div class="scg-foot">' +
       '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
       '<span class="out">지출 <b>−' + fmt(T.exp) + '</b></span>' +
-      '<span class="bal">잔액 <b>' + (T.bal < 0 ? '−' : '') + fmt(Math.abs(T.bal)) + '원</b></span>' +
     '</div>' +
   '</section>';
 }
