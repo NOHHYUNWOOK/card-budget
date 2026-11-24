@@ -7099,35 +7099,67 @@ function bankTotalsRaw(month, account){
   d.rows.forEach(r=>{ if (account && r.account !== account) return; n++; if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
   return {inc: inc, exp: exp, bal: inc - exp, n: n};
 }
-/* 전월 잔액 — 직전 달 자료가 있으면 그 마지막 잔액 */
+/* 직전 달에 이 계좌 자료가 있는지 — 거래나 예산이 하나라도 있으면 전월이월금 연동 대상 */
+function bankPrevAccountData(month, account){
+  const pd = BANK.months[ymShift(month, -1)];
+  if (!pd) return false;
+  if ((pd.rows || []).some(r=> r.account === account)) return true;
+  return Object.keys(((pd.budgets || {})[account]) || {}).length > 0;
+}
+/* 전월 잔액 — 직전 달 자료가 있으면 그 달 실행 총합(잔액) */
 function bankPrevBalance(month, account){
   const prev = ymShift(month, -1);
-  if (!BANK.months[prev]) return null;
-  const t = bankTotals(prev, account);
-  if (!t.inc && !t.exp) return null;
-  return t.bal;
+  if (!bankPrevAccountData(month, account)) return null;
+  return bankTotals(prev, account).bal;
 }
-/* 전월이월금 자동 — 이 달에 이월 행이 없고 직전 달 자료가 있으면 직전 달 잔액으로 채웁니다 */
-function bankCarryVirtual(month, account){
+/* 직전 달 예산 총합 — 정산 요약 '총합' 행과 같은 값(수입 +, 지출 −) */
+function bankBudgetTotal(month, account){
+  const list = bankItemList(month, account);
+  let s = 0;
+  list.in.forEach(it=>{ s += bankBudget(month, account, it); });
+  list.out.forEach(it=>{ s -= bankBudget(month, account, it); });
+  return s;
+}
+/* 전월이월금 연동 값 (2026-11-24)
+   · 직전 달에 이 계좌 자료가 있으면 그 달 총합을 자동으로 가져옵니다 — 11월을 고치면 12월, 12월을 고치면 1월로 연쇄됩니다.
+     우리은행: 예산 = 직전 달 예산 총합, 실행 = 직전 달 실행 총합
+     토스 입출금·토스 모으기: 실행 = 직전 달 실행 총합 (예산 열 없음)
+   · 직전 달 자료가 없는 첫 달은 저장된 전월이월금 값(거래·예산)을 그대로 유지합니다. */
+function bankCarryValue(month, account){
   const d = BANK.months[month];
-  if (d && d.rows.some(r=> r.account === account && r.carry)) return null;
-  const prev = bankPrevBalance(month, account);
-  if (prev == null) return null;
+  const stored = d && (d.rows || []).find(r=> r.account === account && r.carry);
+  if (!bankPrevAccountData(month, account)){
+    return {auto: false, src: null, act: stored ? stored.amount : null,
+      bud: Math.round(+((((d || {}).budgets || {})[account] || {})['전월이월금']) || 0)};
+  }
+  const prev = ymShift(month, -1);
+  return {auto: true, src: prev, act: bankTotals(prev, account).bal,
+    bud: account === '우리은행' ? bankBudgetTotal(prev, account) : 0};
+}
+/* 전월이월금 자동 행 — 직전 달 자료가 있으면 그 달 총합으로 채웁니다 */
+function bankCarryVirtual(month, account){
+  const cv = bankCarryValue(month, account);
+  if (!cv.auto || cv.act == null) return null;
   return {id: 'vcarry-' + month + '-' + account, month: month, account: account, date: '', item: '전월이월금',
-    name: '전월이월금', amount: prev, memo: '', carry: true, virtual: true, order: -1};
+    name: '전월이월금', amount: cv.act, memo: monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합 자동',
+    carry: true, virtual: true, order: -1};
 }
 function bankRowsAll(month){
   const d = BANK.months[month];
-  const rows = d ? d.rows.slice() : [];
+  let rows = d ? d.rows.slice() : [];
   BANK_ACCOUNTS.forEach(a=>{
     const v = bankCarryVirtual(month, a);
-    if (v && !rows.some(r=> r.account === a && r.carry)) rows.push(v);
+    if (!v) return;
+    /* 연동되는 달은 저장된 이월 행 대신 자동 행 하나만 씁니다 — 같은 돈이 두 번 더해지지 않게 */
+    rows = rows.filter(r=> !(r.account === a && r.carry));
+    rows.push(v);
   });
   return rows;
 }
 function bankTotals(month, account){
   const d = BANK.months[month];
-  const rows = d ? d.rows.filter(r=> !account || r.account === account) : [];
+  /* 연동되는 달은 저장된 이월 행 대신 자동 행만 더합니다 — 같은 돈이 두 번 잡히지 않게 */
+  const rows = d ? d.rows.filter(r=> (!account || r.account === account) && !(r.carry && bankPrevAccountData(month, r.account))) : [];
   const v = account ? [bankCarryVirtual(month, account)].filter(Boolean)
                     : BANK_ACCOUNTS.map(a=> bankCarryVirtual(month, a)).filter(Boolean);
   let inc = 0, exp = 0;
@@ -7143,8 +7175,29 @@ function bankCardLinked(month){
   const d = BANK.months[month];
   return !d || d.cardLink !== false;
 }
+/* 월급 예산 연동 — 직전 달에서 마지막으로 고친 값이 더 최근이면 그 값을 씁니다.
+   다음 달 '예산'에만 반영되고(실행은 실제 입금 그대로), 다음 달에서 직접 더 나중에 고쳐 저장하면 그 값을 존중합니다. */
+function bankSalaryBudget(month, account, item){
+  const d = BANK.months[month] || {};
+  const own = (((d.budgets || {})[account]) || {})[item];
+  const ownAt = Date.parse((((d.budgetAt || {})[account]) || {})[item] || '') || 0;
+  const pd = BANK.months[ymShift(month, -1)];
+  const pb = pd ? ((((pd.budgets || {})[account]) || {})[item]) : undefined;
+  const prevAt = pd ? (Date.parse((((pd.budgetAt || {})[account]) || {})[item] || '') || 0) : 0;
+  if (pb != null && (own == null || prevAt > ownAt)) return Math.round(+pb || 0);
+  if (own != null) return Math.round(+own || 0);
+  return null;
+}
 function bankBudget(month, account, item){
   if (account === '우리은행' && item === '카드요금' && bankCardLinked(month)) return cardTotalFor(month);
+  if (item === '전월이월금'){
+    const cv = bankCarryValue(month, account);
+    if (cv.auto) return Math.round(cv.bud || 0);
+  }
+  if (/^(월급|급여)$/.test(item)){
+    const sv = bankSalaryBudget(month, account, item);
+    if (sv != null) return sv;
+  }
   const d = BANK.months[month];
   const b = d && d.budgets && d.budgets[account];
   if (b && Object.prototype.hasOwnProperty.call(b, item)) return Math.round(+b[item] || 0);
@@ -7158,6 +7211,10 @@ function bankSetBudget(month, account, item, v){
   const d = ensureBankDoc(month);
   if (!d.budgets[account]) d.budgets[account] = {};
   d.budgets[account][item] = Math.max(0, Math.round(+v || 0));
+  /* 언제 고친 값인지 — 월급 예산이 직전 달·이번 달 중 더 나중 것을 따르게 하는 데 씁니다 */
+  if (!d.budgetAt || typeof d.budgetAt !== 'object') d.budgetAt = {};
+  if (!d.budgetAt[account]) d.budgetAt[account] = {};
+  d.budgetAt[account][item] = nowIso();
   d.updatedAt = nowIso();
   bankSave();
   markBankDirty(month);
@@ -7321,6 +7378,7 @@ function renderBankSummary(){
   if (bar){
     const bits = [];
     BANK_ACCOUNTS.forEach(a=>{
+      if (bankCarryValue(month, a).auto) return;   /* 연동되는 달은 자동으로 맞으므로 안내가 필요 없습니다 */
       const d = BANK.months[month];
       const row = d && d.rows.find(r=> r.account === a && r.carry);
       const prev = bankPrevBalance(month, a);
@@ -7349,14 +7407,28 @@ function bankSumItemRows(month, acc){
   list.out.forEach(it=> push(it, 'out'));
   return out;
 }
+/* 전월이월금은 직전 달 총합에서 자동으로 오므로 이 달에서 직접 고칠 수 없습니다 — 출처를 알려 줍니다 */
+function bankCarryNotice(acc, item){
+  if (item !== '전월이월금') return false;
+  const cv = bankCarryValue(bankCurrentMonth(), acc);
+  if (!cv.auto) return false;
+  const lab = monthLabel(cv.src);
+  toast('전월이월금은 ' + lab + ' 총합에서 자동으로 들어갑니다 · ' + lab + '에서 고쳐 주세요');
+  return true;
+}
 function bankSumRowHtml(month, acc, row, wide){
   const bud = row.bud, act = row.act;
-  /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24) */
+  const isCarry = row.item === '전월이월금';
+  const cv = isCarry ? bankCarryValue(month, acc) : null;
+  const carryNote = cv && cv.auto ? monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합에서 자동' : '';
+  /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24)
+     전월이월금은 예산 총합이 마이너스(계획상 적자)일 수 있어 부호 그대로 보입니다 */
+  const budSigned = bud ? (row.dir === 'in' ? bud : -bud) : 0;
   const budCell = wide
-    ? '<button type="button" class="num bud ' + (bud ? (row.dir === 'in' ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' 예산 고치기">' +
-      (bud ? (row.dir === 'in' ? '+' : '−') + fmt(bud) : '—') + '</button>'
+    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기')) + '">' +
+      (budSigned ? (budSigned > 0 ? '+' : '−') + fmt(Math.abs(budSigned)) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="실행 합계 직접 입력">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc(carryNote ? '전월이월금 실행 · ' + carryNote : '실행 합계 직접 입력') + '">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
   return '<div class="scg-row">' +
     '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(row.item) + '</button>' +
@@ -7466,7 +7538,10 @@ function renderBankItems(){
     const maxN = lists.reduce((m, x)=> Math.max(m, x.rows.length), 0);
     return lists.map(x=> scGroupHtml(month, x.acc, x.rows, maxN)).join('');
   })();
-  if (hint) hint.textContent = '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가';
+  if (hint){
+    const autoCarry = BANK_ACCOUNTS.some(a=> bankCarryValue(month, a).auto);
+    hint.textContent = '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가' + (autoCarry ? ' · 전월이월금은 전월 총합 자동' : '');
+  }
 }
 function focusScInput(id){
   const i = document.getElementById(id);
@@ -7492,6 +7567,8 @@ function bankRenameItem(month, acc, oldName, newName){
   });
   const b = d.budgets[acc];
   if (b && Object.prototype.hasOwnProperty.call(b, oldName)){ b[newName] = b[oldName]; delete b[oldName]; }
+  const ba = d.budgetAt && d.budgetAt[acc];
+  if (ba && Object.prototype.hasOwnProperty.call(ba, oldName)){ ba[newName] = ba[oldName]; delete ba[oldName]; }
   const map = bankEnsureMap(month);
   Object.keys(map).forEach(k=> map[k] = (map[k] || []).map(x=> x === oldName ? newName : x));
   d.updatedAt = nowIso();
@@ -7504,6 +7581,7 @@ function bankDeleteItem(month, acc, item){
   d.rows = d.rows.filter(r=> !(r.account === acc && r.item === item));
   const b = d.budgets[acc];
   if (b && Object.prototype.hasOwnProperty.call(b, item)) delete b[item];
+  if (d.budgetAt && d.budgetAt[acc]) delete d.budgetAt[acc][item];
   if (d.map && typeof d.map === 'object') Object.keys(d.map).forEach(k=> d.map[k] = (d.map[k] || []).filter(x=> x !== item));
   d.updatedAt = nowIso();
   return rows.length;
@@ -7511,6 +7589,7 @@ function bankDeleteItem(month, acc, item){
 /* 실행 금액 직접 입력 — 거래가 한 건이면 그 금액을, 여러 건이면 차액을 조정 줄로 넣습니다 */
 function bankSetItemActual(month, acc, item, target, dir){
   const d = ensureBankDoc(month);
+  if (item === '전월이월금' && bankCarryValue(month, acc).auto) return null;  /* 연동되는 달은 직전 달에서만 */
   const signed = dir === 'in' ? target : -target;
   const real = d.rows.filter(r=> r.account === acc && r.item === item);
   if (item === '전월이월금' && !real.length){
@@ -7701,7 +7780,7 @@ function renderBankDetail(){
           '<circle cx="6.3" cy="7" r="1.2"/><circle cx="1.7" cy="12" r="1.2"/><circle cx="6.3" cy="12" r="1.2"/></g></svg></span>' +
           '<input type="checkbox" data-bselrow="' + esc(r.id) + '"' + (on ? ' checked' : '') + ' aria-label="선택"></div>') + '</td>' : '';
       const dateTxt = r.date ? dFull(r.date).replace(/\s*\(.\)$/, '') : '<span class="muted">—</span>';
-      const memo = [r.memo, (r.virtual ? '전월 잔액 자동' : '')].filter(Boolean).join(' · ');
+      const memo = [r.memo, (r.virtual && !r.memo ? '전월 잔액 자동' : '')].filter(Boolean).join(' · ');
       const badges = (r.carry ? '<span class="car">이월</span>' : '') +
         (BEDITMODE && !r.virtual ? '<button type="button" class="qedit" data-browedit="' + esc(r.id) + '" title="수정" aria-label="수정">✎</button>' : '') +
         (BEDITMODE && !r.virtual ? '<button type="button" class="qdel" data-bqdel="' + esc(r.id) + '" title="바로 삭제" aria-label="삭제">🗑</button>' : '');
@@ -7785,9 +7864,10 @@ function settleData(month){
   const st = d && d.settlement;
   const src = st ? null : settlePrevWithData(month);
   const base = st || (src ? BANK.months[src].settlement : null);
-  const out = {salary: base && base.salary != null ? Math.round(+base.salary || 0) : 0,
+  /* 월급 예산은 현금 탭 '월급' 항목 예산(직전 달 연동 포함)을 그대로 씁니다 — 두 탭 숫자가 같도록 */
+  const bankSal = bankBudget(month, '우리은행', '월급') || 0;
+  const out = {salary: bankSal > 0 ? bankSal : (base && base.salary != null ? Math.round(+base.salary || 0) : 0),
     cash: {}, card: {}, stored: !!st, copiedFrom: src};
-  if (!base) out.salary = bankBudget(month, '우리은행', '월급') || 0;
   SETTLE_CASH_ROWS.forEach(r=> out.cash[r.key] = (base && base.cash && base.cash[r.key] != null) ? Math.round(+base.cash[r.key] || 0) : 0);
   SETTLE_CARD_ROWS.forEach(r=> out.card[r.key] = (base && base.card && base.card[r.key] != null) ? Math.round(+base.card[r.key] || 0) : 0);
   return out;
@@ -7815,7 +7895,11 @@ function settleSet(kind, key, v){
   const cur = settleData(month);
   const next = {salary: cur.salary, cash: clone(cur.cash), card: clone(cur.card)};
   const val = Math.max(0, Math.round(+v || 0));
-  if (kind === 'salary') next.salary = val;
+  if (kind === 'salary'){
+    next.salary = val;
+    /* 정산 탭에서 고친 월급 예산을 현금 탭 '월급' 항목에도 같이 저장 — 다음 달 예산으로 이어집니다 */
+    bankSetBudget(month, '우리은행', '월급', val);
+  }
   else if (kind === 'cash') next.cash[key] = val;
   else next.card[key] = val;
   const d = ensureBankDoc(month);
@@ -8069,6 +8153,7 @@ function bankMonthPayload(month, remoteJson){
     cardLink: d.cardLink !== false,
     rows: rows.concat(extra),
     budgets: d.budgets || {},
+    budgetAt: d.budgetAt || {},
     map: d.map || ((remoteJson && remoteJson.map) || {}),
     settlement: d.settlement || ((remoteJson && remoteJson.settlement) || null),
     deleted: (OUTBOX.bdeleted || []).filter(x=> x.m === month && !live.has(x.k)).map(x=> x.k).slice(-200)};
@@ -8149,6 +8234,10 @@ function applyBankPayload(p){
         });
       });
     }
+  }
+  if (p.budgetAt && typeof p.budgetAt === 'object'){
+    if (remoteAt > localAt) doc.budgetAt = p.budgetAt;
+    else if (!doc.budgetAt) doc.budgetAt = p.budgetAt;
   }
   if (p.map && typeof p.map === 'object' && (!doc.map || remoteAt > localAt)) doc.map = p.map;
   if (p.settlement && (!doc.settlement || remoteAt > localAt)) doc.settlement = p.settlement;
@@ -8289,6 +8378,7 @@ $('#bankActiveBar').addEventListener('click', ev=>{
   const month = bankCurrentMonth();
   let n = 0;
   BANK_ACCOUNTS.forEach(a=>{
+    if (bankCarryValue(month, a).auto) return;   /* 연동되는 달은 자동으로 맞습니다 */
     const d = BANK.months[month]; if (!d) return;
     const row = d.rows.find(r=> r.account === a && r.carry);
     const prev = bankPrevBalance(month, a);
@@ -8307,16 +8397,21 @@ $('#bankItems').addEventListener('click', ev=>{
   }
   const nm = ev.target.closest('[data-scname]');
   if (nm){
+    if (nm.dataset.item === '전월이월금' && bankCarryValue(bankCurrentMonth(), nm.dataset.acc).auto){
+      bankCarryNotice(nm.dataset.acc, nm.dataset.item); return;
+    }
     scEdit = {acc: nm.dataset.acc, item: nm.dataset.item, field: 'name'};
     renderBankItems(); focusScInput('scName'); return;
   }
   const bud = ev.target.closest('[data-scbud]');
   if (bud){
+    if (bankCarryNotice(bud.dataset.acc, bud.dataset.item)) return;
     scEdit = {acc: bud.dataset.acc, item: bud.dataset.item, field: 'bud'};
     renderBankItems(); focusScInput('scAmt'); return;
   }
   const act = ev.target.closest('[data-scact]');
   if (act){
+    if (bankCarryNotice(act.dataset.acc, act.dataset.item)) return;
     scEdit = {acc: act.dataset.acc, item: act.dataset.item, dir: act.dataset.dir, field: 'act'};
     renderBankItems(); focusScInput('scAmt'); return;
   }
