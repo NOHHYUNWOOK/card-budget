@@ -1102,15 +1102,19 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 88px 86px}
 .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 86px}
 .scg-cols{padding:7px 0 5px;font-size:10.5px;font-weight:800;color:#111827}
-.scg-cols .num{text-align:right;padding-right:2px}
+/* 열 제목(예산·실행)은 칸 가운데 — 항목 제목만 왼쪽 (2026-11-24) */
+.scg-cols .num{text-align:center;padding-left:0;padding-right:0}
 /* 예산 열을 조금 왼쪽으로(여백) 당기고, 예산·실행 사이에 세로줄 (2026-11-24) */
-.scg.w3{--actw:86px}
-.scg.w3 .scg-cols .num.bud,.scg.w3 .scg-row .num.bud{padding-right:12px}
-.scg.w3 .scg-cols .num.act,.scg.w3 .scg-row .num.act{padding-left:12px;border-radius:0}
+.scg.w3{--actw:86px;--budw:88px}
+.scg.w3 .scg-row .num.bud{padding-right:12px}
+.scg.w3 .scg-row .num.act{padding-left:12px;border-radius:0}
 .scg.w3 .scg-row .num.act{align-self:stretch;display:flex;align-items:center;justify-content:flex-end}
 .scg.w3 .scg-cols,.scg.w3 .scg-row{position:relative}
 .scg.w3 .scg-cols::after,.scg.w3 .scg-row::after{content:'';position:absolute;top:0;bottom:0;right:calc(var(--actw) + 2px);
   width:1px;background:#dfe4ee;pointer-events:none}
+/* 예산 열 왼쪽(항목/예산 경계)에도 세로줄 — 헤더부터 총합 행까지 (2026-11-24) */
+.scg.w3 .scg-cols::before,.scg.w3 .scg-row::before{content:'';position:absolute;top:0;bottom:0;
+  right:calc(var(--actw) + var(--budw) + 6px);width:1px;background:#dfe4ee;pointer-events:none}
 .scg-row{padding:5px 0;border-bottom:1px solid var(--line2);font-size:12.8px}
 .scg-row:last-child{border-bottom:0}
 .scg-row .inm{min-width:0;text-align:left;border:0;background:transparent;padding:1px 2px;border-radius:6px;font:inherit;
@@ -1134,7 +1138,12 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .scg-row.total{border-top:1px solid #d7dde8;border-bottom:0;padding-top:7px;font-weight:800}
 .scg-row.total .inm{color:var(--ink);font-weight:800;cursor:default}
 .scg-row.total .inm:hover{background:transparent;color:var(--ink)}
-.scg-row.total .num{font-weight:800}
+/* 총합 숫자도 일반 행 숫자와 같은 오른쪽 정렬·같은 우측 여백 (2026-11-24) */
+.scg-row.total .num{font-weight:800;text-align:right;padding:1px 2px;justify-content:flex-end}
+/* 빈 채움 행 — 세로줄은 이어지고 눌리지 않습니다 (2026-11-24) */
+.scg-row.ph{cursor:default}
+.scg-row.ph:hover{background:transparent}
+.scg-row.ph .phc{display:block;padding:1px 2px;min-height:1.4em}
 .scg-row.secs .inm{color:var(--muted);font-size:10.5px;font-weight:800;letter-spacing:.02em;cursor:default;padding:0}
 .scg-row.secs .inm:hover{background:transparent;color:var(--muted)}
 .scg-foot{display:flex;flex-wrap:wrap;gap:2px 9px;padding:8px 0 0;margin-top:3px;border-top:1px solid var(--line);
@@ -1165,7 +1174,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 @media (max-width:900px){
   .sc2{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)}
   .scg{padding:0 9px 4px}
-  .scg.w3{--actw:84px}
+  .scg.w3{--actw:84px;--budw:84px}
   .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 84px 84px}
   .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 84px}
   .scg-row{font-size:12px}
@@ -1181,11 +1190,13 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .scg-h{padding:3px 0 7px}
   .scg-h .nm{font-size:15.5px}
   .scg-h .add{font-size:11.5px;padding:4px 9px}
-  .scg.w3{--actw:82px}
+  .scg.w3{--actw:82px;--budw:82px}
   .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 82px 82px}
   .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 82px}
-  .scg.w3 .scg-cols .num.bud,.scg.w3 .scg-row .num.bud{padding-right:8px}
-  .scg.w3 .scg-cols .num.act,.scg.w3 .scg-row .num.act{padding-left:8px}
+  .scg.w3 .scg-row .num.bud{padding-right:8px}
+  .scg.w3 .scg-row .num.act{padding-left:8px}
+  /* 세로 스택에서는 빈 채움 행을 숨겨 여백이 늘지 않게 (2026-11-24) */
+  .scg-row.ph{display:none}
   .scg-row{font-size:12.8px;padding:6px 0}
   .scg-row button.num{font-size:12px}
   .scg-cols{font-size:10px}
@@ -7404,9 +7415,9 @@ function scEditHtml(month, acc){
     (isAct ? '<span class="sc-note">합계를 바꾸면 차액만 조정 줄로 들어갑니다</span>' : '') +
   '</div>';
 }
-function scGroupHtml(month, acc){
+function scGroupHtml(month, acc, rowsArg, padN){
   const wide = acc === '우리은행';
-  const rows = bankSumItemRows(month, acc);
+  const rows = rowsArg || bankSumItemRows(month, acc);
   const T = bankTotals(month, acc);
   const editingNew = scEdit && scEdit.field === 'new' && scEdit.acc === acc;
   let body = '';
@@ -7417,13 +7428,21 @@ function scGroupHtml(month, acc){
   if (!rows.length && !editingNew){
     body = '<div class="scg-row"><span class="inm" style="color:var(--muted);font-weight:600;cursor:default">아직 항목이 없습니다</span></div>';
   }
+  /* 3계좌 본문 행 수를 가장 많은 계좌에 맞춥니다 — PC 3열에서 총합 행이 같은 줄에 (2026-11-24).
+     빈 행은 세로선만 이어지고 누를 수 없으며, 모바일 세로 스택에서는 숨깁니다. */
+  const bodyN = rows.length || (editingNew ? 0 : 1);
+  const pads = Math.max(0, (padN || bodyN) - bodyN);
+  if (pads){
+    const cell = '<span class="phc">&nbsp;</span>';
+    body += ('<div class="scg-row ph" aria-hidden="true">' + cell + (wide ? '<span class="phc"></span>' : '') + '<span class="phc"></span></div>').repeat(pads);
+  }
   if (editingNew) body += scEditHtml(month, acc);
   return '<section class="scg ' + (wide ? 'w3' : 'w2') + '" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
     '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
       '<button type="button" class="add" data-scadd="' + esc(acc) + '" title="' + esc(acc) + '에 항목 더하기">＋ 항목</button></div>' +
     '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body +
-    (rows.length ? bankSumTotalHtml(month, acc) : '') +
+    (padN || rows.length ? bankSumTotalHtml(month, acc) : '') +
     '<div class="scg-foot">' +
       '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
       '<span class="out">지출 <b>−' + fmt(T.exp) + '</b></span>' +
@@ -7441,7 +7460,12 @@ function renderBankItems(){
     if (hint) hint.textContent = '';
     return;
   }
-  box.innerHTML = BANK_ACCOUNTS.map(a=> scGroupHtml(month, a)).join('');
+  box.innerHTML = (()=>{
+    /* 행 수 기준: 3계좌 중 항목이 가장 많은 계좌 */
+    const lists = BANK_ACCOUNTS.map(a=> ({acc: a, rows: bankSumItemRows(month, a)}));
+    const maxN = lists.reduce((m, x)=> Math.max(m, x.rows.length), 0);
+    return lists.map(x=> scGroupHtml(month, x.acc, x.rows, maxN)).join('');
+  })();
   if (hint) hint.textContent = '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가';
 }
 function focusScInput(id){
