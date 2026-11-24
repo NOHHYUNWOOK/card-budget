@@ -370,21 +370,51 @@ button.lim-item:active{transform:scale(.99)}
   border-radius:999px;padding:4px 11px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
 .hlchip:hover{filter:brightness(.97)}
 .hlchip.on{box-shadow:0 0 0 2px #111827 inset}
-.detail-filters .hllabel,.detail-filters .hledit{font-size:11.5px;color:var(--ink2);border-style:dashed}
-.hlchipinp{width:74px;border:1.5px solid var(--hln);background:var(--hbg);color:var(--hink);border-radius:999px;
-  padding:4px 9px;font-size:12px;font-weight:800;font-family:inherit;text-align:center;outline:none}
-.hlchipinp:focus{box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+.detail-filters .hladd{font-size:11.5px;color:var(--ink2);border:1px dashed #cbd5e1;background:#fff}
+.detail-filters .hladd:hover{border-color:#94a3b8;color:var(--ink)}
 .hlpop{position:fixed;z-index:90;background:#fff;border:1px solid var(--line);border-radius:14px;
-  box-shadow:0 12px 34px rgba(16,24,40,.2);padding:8px;display:flex;gap:7px;align-items:center}
+  box-shadow:0 12px 34px rgba(16,24,40,.2);padding:9px;display:flex;flex-direction:column;gap:8px;
+  max-width:calc(100vw - 16px);max-height:calc(100vh - 20px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .hlpop.hidden{display:none}
-.hlpop .sw{width:28px;height:28px;border-radius:50%;border:2px solid #fff;cursor:pointer;padding:0}
-.hlpop .sw:hover{transform:scale(1.08)}
-.hlpop .sw.on{box-shadow:0 0 0 2px #111827}
+.hlpop-list{display:flex;flex-wrap:wrap;gap:6px;max-width:264px}
+.hlpop .hlsw{border:1.5px solid var(--hln);background:var(--hbg);color:var(--hink);border-radius:999px;
+  padding:6px 11px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+.hlpop .hlsw:hover{filter:brightness(.97)}
+.hlpop .hlsw.on{box-shadow:0 0 0 2px var(--hink) inset}
+.hlpop-empty{font-size:12px;color:var(--muted);padding:1px 3px 2px;font-weight:600}
+.hlpop-foot{display:flex;gap:6px;justify-content:flex-end}
 .hlpop .off{border:1px solid var(--line);background:#fff;border-radius:9px;padding:5px 9px;font-size:12px;font-weight:750;
   font-family:inherit;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.hlpop .off.new{border-style:dashed}
+.hlpop .off:hover{border-color:#94a3b8;color:var(--ink)}
+/* 하이라이트 만들기·고치기 시트 */
+.hlpal{display:flex;flex-wrap:wrap;gap:9px;margin:8px 0 12px}
+.hlswatch{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;flex:none;
+  transition:.12s}
+.hlswatch:hover{transform:scale(1.07)}
+.hlswatch.on{box-shadow:0 0 0 2px #111827, inset 0 0 0 2px #fff}
+.hlform{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.hlform input{flex:1 1 140px;min-width:110px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;
+  font:inherit;font-size:14px;background:#fafbfd}
+.hlform input:focus{outline:none;border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.hlform .btn{flex:none;min-height:42px;padding:0 16px}
+.hllist{display:flex;flex-direction:column;gap:6px}
+.hlitem{display:flex;align-items:stretch;gap:6px}
+.hlitem-main{flex:1;min-width:0;display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:#fff;
+  border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;font-weight:700;color:var(--ink);text-align:left;cursor:pointer}
+.hlitem-main:hover{border-color:#cfd6e4;background:#fbfcfe}
+.hlitem.on .hlitem-main{border-color:#b9cdf7;background:var(--accent-soft)}
+.hlitem .dot{width:14px;height:14px;border-radius:50%;flex:none}
+.hlitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hlitem .ed{flex:none;font-size:12px;color:var(--muted)}
+.hlitem .del{flex:none;border:1px solid var(--line);background:#fff;color:#a8646a;border-radius:12px;padding:0 11px;
+  font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.hlitem .del:hover{background:#fff5f5;border-color:#f0cfd3;color:#c0272d}
+body.hlsheet-open .toast{bottom:auto;top:14px;transform:translate(-50%,-20px)}
+body.hlsheet-open .toast.show{transform:translate(-50%,0)}
 @media (max-width:560px){
   .hlbtn{width:17px;height:17px}
-  .hlchip,.hlchipinp{font-size:11.5px;padding:4px 9px}
+  .hlchip{font-size:11.5px;padding:4px 9px}
 }
 .chip.accchip{background:var(--acs);border-color:var(--ac);color:var(--acd);font-weight:800}
 .chip.accchip:hover{background:var(--acs);border-color:var(--acd);color:var(--acd)}
@@ -1601,6 +1631,19 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   </div>
 </div>
 
+<div class="sheet-backdrop" id="hlSheetBackdrop">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hlSheetTitle">
+    <div class="sheet-head">
+      <div style="min-width:0">
+        <h2 id="hlSheetTitle">하이라이트</h2>
+        <p class="sheet-sub">색과 이름을 골라 만들고, 누르면 그 항목만 봐요</p>
+      </div>
+      <button class="iconbtn" id="hlSheetClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="sheet-body" id="hlSheetBody"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="capBackdrop">
   <div class="modal capmodal" role="dialog" aria-modal="true" aria-labelledby="capTitle">
     <div class="modal-head">
@@ -1633,37 +1676,85 @@ const SYNC_KEY = LS_KEY + '.sync';
 const CARD_COLORS = {'삼성카드':'#1428a0','KB국민카드':'#f0a500','현대카드':'#1f2937','우리카드':'#0067ac','내 카드':'#64748b','기타카드':'#8b93a1'};
 const CARD_SHORT = {'삼성카드':'삼성','KB국민카드':'KB국민','현대카드':'현대','우리카드':'우리'};
 const shortCard = c => CARD_SHORT[c] || c;
-/* ---------- 상세내역 행 하이라이트 (2026-11-24) ----------
-   행마다 파스텔 색 하나를 골라 표시하고, 그 색의 이름표로 필터를 걸 수 있습니다.
-   행에는 highlight(색 키)·highlightAt(바꿈 시각) 만 남기고, 이름표는 HL_KEY/settings.json 에 저장합니다. */
-const HL_COLORS = [
+/* ---------- 상세내역 행 하이라이트 (2026-11-24 개편) ----------
+   하이라이트는 사용자가 직접 만드는 '색 + 이름' 목록입니다. 기본으로 깔린 항목은 없습니다.
+   행에는 프리셋 id(highlight)·highlightAt(바꾼 시각) 만 남기고, 프리셋 목록은 HL_KEY/localStorage
+   와 동기화 저장소 settings.json(hlPresets) 에 함께 저장해 기기끼리 맞춥니다.
+   프리셋을 지워도 행에 남은 id 는 HL.retired 로 이름·색을 계속 보여 줘 화면이 깨지지 않습니다. */
+const HL_PALETTE = [
   {key:'yellow', bg:'#fff2a8', line:'#e0b100', ink:'#6b4e00', name:'노랑'},
-  {key:'green', bg:'#cdf3d9', line:'#22b573', ink:'#0b6b3a', name:'초록'},
-  {key:'blue', bg:'#d9e7ff', line:'#3b82f6', ink:'#144a9e', name:'파랑'},
-  {key:'pink', bg:'#ffdbe4', line:'#ef6f9b', ink:'#9d174d', name:'분홍'},
-  {key:'purple', bg:'#e8e0ff', line:'#8b5cf6', ink:'#5b21b6', name:'보라'}
+  {key:'green',  bg:'#cdf3d9', line:'#22b573', ink:'#0b6b3a', name:'초록'},
+  {key:'blue',   bg:'#d9e7ff', line:'#3b82f6', ink:'#144a9e', name:'파랑'},
+  {key:'pink',   bg:'#ffdbe4', line:'#ef6f9b', ink:'#9d174d', name:'분홍'},
+  {key:'purple', bg:'#e8e0ff', line:'#8b5cf6', ink:'#5b21b6', name:'보라'},
+  {key:'orange', bg:'#ffe4c7', line:'#f59e0b', ink:'#9a4a00', name:'주황'},
+  {key:'sky',    bg:'#d3f0fb', line:'#0ea5e9', ink:'#0b587a', name:'하늘'},
+  {key:'mint',   bg:'#cdf3ee', line:'#14b8a6', ink:'#0f6e63', name:'민트'},
+  {key:'lime',   bg:'#e6f6c2', line:'#84cc16', ink:'#4d7c0f', name:'연두'},
+  {key:'red',    bg:'#ffd9d9', line:'#ef4444', ink:'#991b1b', name:'빨강'},
+  {key:'indigo', bg:'#dde3ff', line:'#6366f1', ink:'#3730a3', name:'남색'},
+  {key:'gray',   bg:'#e8ebf0', line:'#94a3b8', ink:'#475569', name:'회색'}
 ];
 const HL_KEY = LS_KEY + '.hl';
-let HL = {labels: {}};
-let HL_LABEL_EDIT = false;
-function hlColor(k){ return HL_COLORS.find(c=> c.key === k) || null; }
-function hlKey(v){ const s = String(v == null ? '' : v); return hlColor(s) ? s : ''; }
-function hlLabel(k){ const c = hlColor(k); if (!c) return ''; const v = HL.labels && HL.labels[k]; return (v && String(v).trim()) || c.name; }
+let HL = {presets: [], retired: {}, legacy: {}};
+function hlPalette(c){ return c ? (HL_PALETTE.find(x=> x.key === c) || null) : null; }
+function hlNormId(v){ return /^[A-Za-z0-9_-]{1,24}$/.test(String(v == null ? '' : v)) ? String(v) : ''; }
+/* id 로 프리셋(색·이름) 찾기 — 지운 프리셋(retired)과 예전 색 키도 계속 해석합니다 */
+function hlPreset(id){
+  const s = hlNormId(id);
+  if (!s) return null;
+  const p = HL.presets.find(x=> x.id === s);
+  if (p) return p;
+  if (HL.retired && HL.retired[s]) return HL.retired[s];
+  const c = hlPalette(s);
+  if (c) return {id:s, color:s, label:(HL.legacy && HL.legacy[s]) || c.name, legacy:true};
+  return null;
+}
+function hlKey(v){ return hlNormId(v); }
+function hlLabel(k){ const p = hlPreset(k); if (!p) return ''; return p.label || (hlPalette(p.color) || {}).name || ''; }
+function hlNewId(){ return 'h' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3); }
 function hlLoad(){
   try {
     const raw = localStorage.getItem(HL_KEY);
-    if (raw){ const p = JSON.parse(raw); if (p && p.labels && typeof p.labels === 'object') HL.labels = p.labels; }
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object') return;
+    HL.presets = []; HL.retired = {}; HL.legacy = {};
+    (Array.isArray(p.presets) ? p.presets : []).forEach(x=>{
+      const id = hlNormId(x && x.id); if (!id) return;
+      const color = hlPalette(x.color) ? x.color : 'yellow';
+      const label = String((x && x.label) || '').trim().slice(0, 8) || hlPalette(color).name;
+      if (!HL.presets.some(y=> y.id === id)) HL.presets.push({id:id, color:color, label:label});
+    });
+    if (p.retired && typeof p.retired === 'object'){
+      Object.keys(p.retired).forEach(k=>{
+        const v = p.retired[k]; const id = hlNormId(k);
+        if (!id || !v || !hlPalette(v.color)) return;
+        HL.retired[id] = {id:id, color:v.color, label:String(v.label || '').trim().slice(0, 8) || hlPalette(v.color).name};
+      });
+    }
+    /* 예전 버전(v1: {labels:{색키:이름}})의 이름표 — 행에 남은 옛 색을 보여 줄 때만 씁니다 */
+    if (p.legacy && typeof p.legacy === 'object'){
+      Object.keys(p.legacy).forEach(k=>{ if (hlPalette(k)) HL.legacy[k] = String(p.legacy[k] || '').trim().slice(0, 8); });
+    } else if (p.labels && typeof p.labels === 'object'){
+      Object.keys(p.labels).forEach(k=>{ if (hlPalette(k)) HL.legacy[k] = String(p.labels[k] || '').trim().slice(0, 8); });
+    }
   } catch(e){}
 }
-function hlSave(){ try { localStorage.setItem(HL_KEY, JSON.stringify({labels: HL.labels})); } catch(e){} }
+function hlStoreObj(){
+  return {v:2, presets: HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
+          retired: Object.assign({}, HL.retired), legacy: Object.assign({}, HL.legacy)};
+}
+function hlSave(){ try { localStorage.setItem(HL_KEY, JSON.stringify(hlStoreObj())); } catch(e){} }
 function hlStyle(key){
-  const c = hlColor(key);
-  if (!c) return '';
+  const p = hlPreset(key); if (!p) return '';
+  const c = hlPalette(p.color); if (!c) return '';
   return ' style="background:' + c.bg + ';box-shadow:inset 3px 0 0 ' + c.line + '"';
 }
 function hlBtnHtml(kind, id, key){
-  const c = hlColor(key);
-  return '<button type="button" class="hlbtn' + (c ? ' on' : '') + '" data-hlm="' + kind + '" data-id="' + esc(id) + '" title="하이라이트 색" aria-label="하이라이트 색"' +
+  const p = hlPreset(key);
+  const c = p ? hlPalette(p.color) : null;
+  return '<button type="button" class="hlbtn' + (c ? ' on' : '') + '" data-hlm="' + kind + '" data-id="' + esc(id) + '" title="' + (p ? '하이라이트 · ' + esc(hlLabel(key)) : '하이라이트 정하기') + '" aria-label="하이라이트"' +
     (c ? ' style="background:' + c.bg + ';border-color:' + c.line + '"' : '') + '></button>';
 }
 /* 카드사 표시 순서 — 한도 패널·카드사 차트·연간 필터·상세 필터·캡처/수정 선택까지 모든 화면이 이 순서를 따릅니다.
@@ -2159,19 +2250,17 @@ function catChipsDetailHtml(){
       '<span class="dot" style="background:'+catMeta(n).color+'"></span>'+esc(n)+'</button>';
   }).join('');
 }
+/* 하이라이트 필터 칩 — 사용자가 만든 것만 보이고, 하나 더 누르면 전체 보기로 돌아갑니다 */
 function hlChipsHtml(which){
   const cur = which === 'bank' ? (BANK.ui.hl || '') : (F.hl || '');
-  if (HL_LABEL_EDIT){
-    return '<span class="lbl">하이라이트</span>' + HL_COLORS.map(c=>
-      '<input class="hlchipinp" data-hlk="' + c.key + '" maxlength="8" value="' + esc(hlLabel(c.key)) + '" aria-label="' + c.name + ' 버튼 이름" ' +
-      'style="background:' + c.bg + ';border-color:' + c.line + ';color:' + c.ink + '">').join('') +
-      '<button type="button" class="chip hledit on" data-hllabels="1">완료</button>';
-  }
   return '<span class="lbl">하이라이트</span>' +
-    '<button type="button" class="chip' + (cur ? '' : ' on') + '" data-hlf="" title="하이라이트 전체 보기">전체</button>' +
-    HL_COLORS.map(c=> '<button type="button" class="hlchip' + (cur === c.key ? ' on' : '') + '" data-hlf="' + c.key + '" ' +
-      'style="--hbg:' + c.bg + ';--hln:' + c.line + ';--hink:' + c.ink + '" aria-pressed="' + (cur === c.key ? 'true' : 'false') + '">' + esc(hlLabel(c.key)) + '</button>').join('') +
-    '<button type="button" class="chip hllabel" data-hllabels="1" title="버튼에 보일 이름 고치기">✎ 라벨</button>';
+    HL.presets.map(p=>{
+      const c = hlPalette(p.color) || HL_PALETTE[0];
+      return '<button type="button" class="hlchip' + (cur === p.id ? ' on' : '') + '" data-hlf="' + esc(p.id) + '" ' +
+        'style="--hbg:' + c.bg + ';--hln:' + c.line + ';--hink:' + c.ink + '" aria-pressed="' + (cur === p.id ? 'true' : 'false') + '" ' +
+        'title="' + esc(p.label) + ' 내역만 보기 (한 번 더 누르면 전체)">' + esc(p.label) + '</button>';
+    }).join('') +
+    '<button type="button" class="chip hladd" data-hladd="1" title="하이라이트 만들기·고치기">＋ 추가</button>';
 }
 function renderFilters(){
   // month — 상단에는 '전체 · 지난달 · 이번달 · 다른 월 ▾' 4개만 두고, 나머지 달은 팝오버에서 고른다(2026-11-23)
@@ -5723,7 +5812,8 @@ function settingsSnapshot(){
   S.categories.forEach(c=>{ cats.push(c.name); if (c.color) colors[c.name] = c.color; });
   const snap = {v:1, limits:Object.assign({}, LIMITS), mileageGoal:(MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT),
                 cats:cats, colors:colors, rules:S.rules, dueDates:S.dueDates,
-                hlLabels:Object.assign({}, HL.labels),
+                hlPresets:HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
+                hlRetired:Object.assign({}, HL.retired),
                 updatedAt: OUTBOX.settingsAt || nowIso()};
   OUTBOX.settingsAt = snap.updatedAt;
   return snap;
@@ -5788,10 +5878,26 @@ function applyRemoteSettings(p){
   if (p.dueDates && typeof p.dueDates === 'object'){
     Object.keys(p.dueDates).forEach(m=>{ S.dueDates[m] = Object.assign({}, S.dueDates[m] || {}, p.dueDates[m] || {}); });
   }
-  if (p.hlLabels && typeof p.hlLabels === 'object' && remoteAt > localAt){
-    const next = {};
-    HL_COLORS.forEach(c=>{ const v = p.hlLabels[c.key]; if (v) next[c.key] = String(v).slice(0, 8); });
-    HL.labels = next; hlSave(); changed++;
+  if (Array.isArray(p.hlPresets) || (p.hlRetired && typeof p.hlRetired === 'object')){
+    if (remoteAt > localAt){
+      const next = [];
+      (Array.isArray(p.hlPresets) ? p.hlPresets : []).forEach(x=>{
+        if (!x || typeof x !== 'object') return;
+        const id = hlNormId(x.id); if (!id || next.some(y=> y.id === id)) return;
+        const color = hlPalette(x.color) ? x.color : 'yellow';
+        next.push({id:id, color:color, label:String(x.label || '').trim().slice(0, 8) || hlPalette(color).name});
+      });
+      HL.presets = next;
+      HL.retired = {};
+      if (p.hlRetired && typeof p.hlRetired === 'object'){
+        Object.keys(p.hlRetired).forEach(k=>{
+          const v = p.hlRetired[k]; const id = hlNormId(k);
+          if (!id || !v || !hlPalette(v.color)) return;
+          HL.retired[id] = {id:id, color:v.color, label:String(v.label || '').trim().slice(0, 8) || hlPalette(v.color).name};
+        });
+      }
+      hlSave(); hlPruneFilters(); changed++;
+    }
   }
   OUTBOX.settingsAt = p.updatedAt;
   saveOutbox(); saveState();
@@ -8463,12 +8569,39 @@ $('#settleTable').addEventListener('keydown', ev=>{
    ============================================================ */
 let hlTarget = null;
 function closeHlPop(){ const p = $('#hlPop'); if (p) p.classList.add('hidden'); hlTarget = null; }
+function hlTargetRow(t){
+  if (!t) return null;
+  if (t.kind === 'bank'){
+    const d = BANK.months[bankCurrentMonth()];
+    return d ? (d.rows.find(x=> x.id === t.id) || null) : null;
+  }
+  return S.rows.find(x=> x.id === t.id) || null;
+}
 function openHlPop(btn, kind, id){
   const pop = $('#hlPop'); if (!pop) return;
   hlTarget = {kind: kind === 'bank' ? 'bank' : 'card', id: id};
-  pop.innerHTML = HL_COLORS.map(c=> '<button type="button" class="sw" data-hlset="' + c.key + '" title="' + esc(hlLabel(c.key)) + '" ' +
-      'style="background:' + c.bg + ';box-shadow:0 0 0 2px ' + c.line + '"></button>').join('') +
-    '<button type="button" class="off" data-hlset="">해제</button>';
+  const row = hlTargetRow(hlTarget);
+  const cur = row ? (row.highlight || '') : '';
+  let html = '';
+  if (cur && !HL.presets.some(p=> p.id === cur)){
+    /* 예전 색이나 지운 프리셋이 남아 있는 행 — 지금 색을 그대로 보여 주고 다시 누르면 해제 */
+    const c = hlPalette((hlPreset(cur) || {}).color) || HL_PALETTE[0];
+    html += '<div class="hlpop-list"><button type="button" class="hlsw on" data-hlset="' + esc(cur) + '" aria-pressed="true" ' +
+      'style="--hbg:' + c.bg + ';--hln:' + c.line + ';--hink:' + c.ink + '" title="한 번 더 누르면 해제">' + esc(hlLabel(cur) || '지금 색') + '</button></div>';
+  }
+  if (HL.presets.length){
+    html += '<div class="hlpop-list">' + HL.presets.map(p=>{
+      const c = hlPalette(p.color) || HL_PALETTE[0];
+      const on = cur === p.id;
+      return '<button type="button" class="hlsw' + (on ? ' on' : '') + '" data-hlset="' + esc(p.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+        'style="--hbg:' + c.bg + ';--hln:' + c.line + ';--hink:' + c.ink + '" title="' + esc(p.label) + (on ? ' · 한 번 더 누르면 해제' : '') + '">' + esc(p.label) + '</button>';
+    }).join('') + '</div>';
+  } else {
+    html += '<div class="hlpop-empty">아직 하이라이트가 없어요</div>';
+  }
+  html += '<div class="hlpop-foot"><button type="button" class="off new" data-hlnew="1">＋ 새 하이라이트</button>' +
+    (cur ? '<button type="button" class="off" data-hlset="">해제</button>' : '') + '</div>';
+  pop.innerHTML = html;
   pop.classList.remove('hidden');
   const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
   let x = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2));
@@ -8477,30 +8610,138 @@ function openHlPop(btn, kind, id){
   pop.style.left = Math.round(x) + 'px';
   pop.style.top = Math.round(y) + 'px';
 }
-function applyHl(key){
-  const t = hlTarget; closeHlPop();
-  if (!t) return;
+/* 한 행에 하이라이트를 적거나 지웁니다 */
+function hlSetRow(t, key){
+  if (!t) return false;
   key = hlKey(key);
   if (t.kind === 'bank'){
     const month = bankCurrentMonth();
     const d = BANK.months[month];
     const r = d && d.rows.find(x=> x.id === t.id);
-    if (!r) return;
+    if (!r) return false;
     r.highlight = key; r.highlightAt = nowIso();
     d.updatedAt = nowIso();
     bankSave(); markBankDirty(month); renderBankDetail();
-  } else {
-    const r = S.rows.find(x=> x.id === t.id);
-    if (!r) return;
-    r.highlight = key; r.highlightAt = nowIso();
-    saveState(); markDirtyMonth(r.month); renderAll();
+    return true;
   }
-  toast(key ? '「' + hlLabel(key) + '」 하이라이트로 표시했습니다' : '하이라이트를 지웠습니다');
+  const r = S.rows.find(x=> x.id === t.id);
+  if (!r) return false;
+  r.highlight = key; r.highlightAt = nowIso();
+  saveState(); markDirtyMonth(r.month); renderAll();
+  return true;
 }
+/* 같은 하이라이트를 한 번 더 누르면 바로 해제 — 별도 '해제' 버튼 없이도 동작합니다 */
+function applyHl(key){
+  const t = hlTarget; closeHlPop();
+  if (!t) return;
+  const row = hlTargetRow(t);
+  if (!row) return;
+  const next = (key && String(row.highlight || '') === key) ? '' : hlKey(key);
+  if (!hlSetRow(t, next)) return;
+  toast(next ? '「' + hlLabel(next) + '」 하이라이트로 표시했습니다' : '하이라이트를 지웠습니다');
+}
+/* 필터 칩 — 이미 켜진 하이라이트를 한 번 더 누르면 전체 보기로 */
 function setHlFilter(which, key){
   key = hlKey(key);
-  if (which === 'bank'){ BANK.ui.hl = key; bankSave(); renderBankDetail(); }
-  else { F.hl = key; S.ui.limit = 20; renderAll(); }
+  if (which === 'bank'){ BANK.ui.hl = (key && BANK.ui.hl === key) ? '' : key; bankSave(); renderBankDetail(); }
+  else { F.hl = (key && F.hl === key) ? '' : key; S.ui.limit = 20; renderAll(); }
+}
+function hlPruneFilters(){
+  if (F.hl && !HL.presets.some(p=> p.id === F.hl)) F.hl = '';
+  if (BANK.ui.hl && !HL.presets.some(p=> p.id === BANK.ui.hl)) BANK.ui.hl = '';
+}
+
+/* ---------- 하이라이트 만들기·고치기 시트 ---------- */
+let hlDraft = {color:'yellow', label:'', editId:''};
+let hlSheetFrom = null;   /* 행 동그라미에서 연 시트라면 새로 만든 하이라이트를 그 행에 바로 입힙니다 */
+function openHlSheet(editId, from){
+  hlSheetFrom = from || null;
+  const p = editId ? HL.presets.find(x=> x.id === editId) : null;
+  if (p) hlDraft = {color:p.color, label:p.label, editId:p.id};
+  else {
+    const used = new Set(HL.presets.map(x=> x.color));
+    const free = HL_PALETTE.find(c=> !used.has(c.key)) || HL_PALETTE[0];
+    hlDraft = {color:free.key, label:'', editId:''};
+  }
+  renderHlSheet();
+  $('#hlSheetBackdrop').classList.add('show');
+  document.body.classList.add('hlsheet-open');
+  setTimeout(()=>{ const i = $('#hlNameInput'); if (i && !hlDraft.editId) i.focus(); }, 90);
+}
+function closeHlSheet(){
+  $('#hlSheetBackdrop').classList.remove('show');
+  document.body.classList.remove('hlsheet-open');
+  hlDraft = {color:'yellow', label:'', editId:''};
+  hlSheetFrom = null;
+}
+function renderHlSheet(){
+  const body = $('#hlSheetBody'); if (!body) return;
+  const editing = hlDraft.editId ? HL.presets.find(p=> p.id === hlDraft.editId) : null;
+  const usedBy = c => HL.presets.find(p=> p.color === c.key && (!editing || p.id !== editing.id));
+  body.innerHTML =
+    '<div class="sec-title">' + (editing ? '이름·색 바꾸기' : '새 하이라이트') + '</div>' +
+    '<div class="hlpal">' + HL_PALETTE.map(c=>{
+      const taken = usedBy(c);
+      return '<button type="button" class="hlswatch' + (hlDraft.color === c.key ? ' on' : '') + '" data-hlcolor="' + c.key + '" ' +
+        'style="background:' + c.bg + ';border-color:' + c.line + '" aria-label="' + c.name + '" aria-pressed="' + (hlDraft.color === c.key ? 'true' : 'false') + '"' +
+        (taken ? ' title="' + esc(taken.label) + ' (이 색은 이미 사용 중)"' : ' title="' + c.name + '"') + '></button>';
+    }).join('') + '</div>' +
+    '<div class="hlform"><input id="hlNameInput" type="text" maxlength="8" placeholder="이름 (예: 할부, 환불)" value="' + esc(hlDraft.label) + '" aria-label="하이라이트 이름" autocomplete="off">' +
+      '<button type="button" class="btn" data-hlsave="1">' + (editing ? '저장' : '추가') + '</button>' +
+      (editing ? '<button type="button" class="btn ghost" data-hlcancel="1">취소</button>' : '') + '</div>' +
+    '<p class="tiny">색을 고르고 이름을 넣으면 상세내역 줄 앞 동그라미에서 바로 고를 수 있어요. 이름을 비우면 색 이름으로 저장됩니다.</p>' +
+    (HL.presets.length
+      ? '<div class="sec-title">내 하이라이트</div><div class="hllist">' + HL.presets.map(p=>{
+          const c = hlPalette(p.color) || HL_PALETTE[0];
+          const on = editing && editing.id === p.id;
+          return '<div class="hlitem' + (on ? ' on' : '') + '">' +
+            '<button type="button" class="hlitem-main" data-hledit="' + esc(p.id) + '" title="이름·색 바꾸기">' +
+              '<span class="dot" style="background:' + c.bg + ';box-shadow:inset 0 0 0 2px ' + c.line + '"></span>' +
+              '<span class="nm">' + esc(p.label) + '</span><span class="ed" aria-hidden="true">✎</span></button>' +
+            '<button type="button" class="del" data-hldel="' + esc(p.id) + '" aria-label="' + esc(p.label) + ' 삭제">삭제</button></div>';
+        }).join('') + '</div>'
+      : '<p class="tiny">아직 만든 하이라이트가 없어요. 위에서 색과 이름을 골라 추가해 주세요.</p>') +
+    '<p class="tiny">카드·현금 탭에서 함께 쓰고, 동기화를 켜 두면 다른 기기와도 맞춰져요.</p>';
+}
+function hlSaveDraft(){
+  const inp = $('#hlNameInput');
+  if (inp) hlDraft.label = String(inp.value || '').trim().slice(0, 8);
+  const color = hlPalette(hlDraft.color) ? hlDraft.color : 'yellow';
+  const label = hlDraft.label || hlPalette(color).name;
+  if (hlDraft.editId){
+    const p = HL.presets.find(x=> x.id === hlDraft.editId);
+    if (!p){ hlDraft.editId = ''; return hlSaveDraft(); }
+    p.color = color; p.label = label;
+    toast('「' + label + '」 하이라이트를 저장했습니다');
+    hlDraft = {color:color, label:'', editId:''};
+  } else {
+    if (HL.presets.length >= HL_PALETTE.length){ toast('하이라이트는 ' + HL_PALETTE.length + '개까지 만들 수 있어요'); return; }
+    HL.presets.push({id:hlNewId(), color:color, label:label});
+    toast('「' + label + '」 하이라이트를 만들었습니다');
+    const fresh = HL.presets[HL.presets.length - 1];
+    const from = hlSheetFrom;   /* 행에서 열었다면 그 행에 바로 입히고 시트를 닫습니다 */
+    if (from) hlSetRow(from, fresh.id);
+    const used = new Set(HL.presets.map(x=> x.color));
+    const free = HL_PALETTE.find(c=> !used.has(c.key)) || HL_PALETTE[0];
+    hlDraft = {color:free.key, label:'', editId:''};
+    hlSave(); markSettingsDirty(); renderHlSheet(); renderAll();
+    if (from){ closeHlSheet(); return; }
+    return;
+  }
+  hlSave(); markSettingsDirty(); renderHlSheet(); renderAll();
+}
+function hlDeletePreset(id){
+  const p = HL.presets.find(x=> x.id === id); if (!p) return;
+  askConfirm('하이라이트 삭제', '「' + p.label + '」 하이라이트를 지울까요? 이 색으로 표시해 둔 거래의 색은 그대로 남고, 필터 목록에서만 빠집니다.', '삭제', ()=>{
+    HL.presets = HL.presets.filter(x=> x.id !== id);
+    HL.retired[id] = {id:id, color:p.color, label:p.label};
+    if (F.hl === id) F.hl = '';
+    if (BANK.ui.hl === id) BANK.ui.hl = '';
+    hlSave(); markSettingsDirty();
+    if (hlDraft.editId === id) hlDraft = {color:HL_PALETTE[0].key, label:'', editId:''};
+    renderHlSheet(); renderAll();
+    toast('「' + p.label + '」 하이라이트를 지웠습니다');
+  }, true);
 }
 /* 행의 색 동그라미 — 다른 클릭(행 열기·선택)보다 먼저 잡아 팝오버만 엽니다 */
 document.addEventListener('click', ev=>{
@@ -8512,6 +8753,7 @@ document.addEventListener('click', ev=>{
   }
   const pop = $('#hlPop');
   if (!pop || pop.classList.contains('hidden')) return;
+  if (ev.target.closest('[data-hlnew]')){ ev.preventDefault(); ev.stopPropagation(); const t = hlTarget; closeHlPop(); openHlSheet('', t); return; }
   const sw = ev.target.closest('[data-hlset]');
   if (sw){ ev.preventDefault(); ev.stopPropagation(); applyHl(sw.dataset.hlset); return; }
   if (!ev.target.closest('#hlPop')) closeHlPop();
@@ -8520,29 +8762,47 @@ window.addEventListener('keydown', ev=>{ if (ev.key === 'Escape') closeHlPop(); 
 ['#cardHlChips', '#bankHlChips'].forEach(sel=>{
   const box = $(sel); if (!box) return;
   box.addEventListener('click', ev=>{
-    const lb = ev.target.closest('[data-hllabels]');
-    if (lb){
-      HL_LABEL_EDIT = !HL_LABEL_EDIT;
-      renderAll();
-      if (HL_LABEL_EDIT){ const i = document.querySelector('.hlchipinp'); if (i){ i.focus(); try { i.select(); } catch(e){} } }
-      return;
-    }
+    if (ev.target.closest('[data-hladd]')){ openHlSheet(''); return; }
     const f = ev.target.closest('[data-hlf]');
     if (f) setHlFilter(sel === '#bankHlChips' ? 'bank' : 'card', f.dataset.hlf || '');
   });
-  box.addEventListener('change', ev=>{
-    const i = ev.target.closest('[data-hlk]'); if (!i) return;
-    const k = i.dataset.hlk;
-    const v = String(i.value || '').trim().slice(0, 8);
-    if (v) HL.labels[k] = v; else delete HL.labels[k];
-    hlSave(); markSettingsDirty(); HL_LABEL_EDIT = false; renderAll();
-    toast('버튼 이름을 저장했습니다');
-  });
-  box.addEventListener('keydown', ev=>{
-    if (!ev.target.closest('[data-hlk]')) return;
-    if (ev.key === 'Enter'){ ev.preventDefault(); ev.target.blur(); }
-    else if (ev.key === 'Escape'){ ev.preventDefault(); HL_LABEL_EDIT = false; renderAll(); }
-  });
+});
+/* 하이라이트 시트 — 색 고르기 · 이름 넣기 · 고치기 · 삭제 */
+$('#hlSheetBody').addEventListener('click', ev=>{
+  const col = ev.target.closest('[data-hlcolor]');
+  if (col){
+    const key = col.dataset.hlcolor;
+    const taken = HL.presets.find(p=> p.color === key && p.id !== hlDraft.editId);
+    if (taken){
+      if (hlDraft.editId){ toast('그 색은 「' + taken.label + '」에서 쓰고 있어요'); return; }
+      /* 만들기 중에 이미 쓰는 색을 고르면 그 항목 고치기로 — 같은 색이 둘 생기지 않게 */
+      hlDraft = {color:taken.color, label:taken.label, editId:taken.id};
+      renderHlSheet();
+      toast('「' + taken.label + '」 하이라이트를 고치는 중이에요');
+      return;
+    }
+    hlDraft.color = key;
+    const i = $('#hlNameInput'); if (i) hlDraft.label = String(i.value || '');
+    renderHlSheet();
+    const ni = $('#hlNameInput'); if (ni){ ni.focus(); try { ni.setSelectionRange(ni.value.length, ni.value.length); } catch(e){} }
+    return;
+  }
+  if (ev.target.closest('[data-hlsave]')){ hlSaveDraft(); return; }
+  if (ev.target.closest('[data-hlcancel]')){ openHlSheet(''); return; }
+  const ed = ev.target.closest('[data-hledit]');
+  if (ed){ openHlSheet(ed.dataset.hledit); return; }
+  const del = ev.target.closest('[data-hldel]');
+  if (del){ hlDeletePreset(del.dataset.hldel); return; }
+});
+$('#hlSheetBody').addEventListener('keydown', ev=>{
+  if (ev.target.id !== 'hlNameInput') return;
+  if (ev.key === 'Enter'){ ev.preventDefault(); hlSaveDraft(); }
+  else if (ev.key === 'Escape'){ ev.preventDefault(); closeHlSheet(); }
+});
+$('#hlSheetClose').addEventListener('click', closeHlSheet);
+$('#hlSheetBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'hlSheetBackdrop') closeHlSheet(); });
+window.addEventListener('keydown', ev=>{
+  if (ev.key === 'Escape' && $('#hlSheetBackdrop').classList.contains('show')) closeHlSheet();
 });
 
 /* ============================================================
