@@ -7024,12 +7024,18 @@ const normBankAccount = v => {
   if (/토스/.test(s)) return '토스 입출금';
   return '';
 };
+/* 항목 이름 — 2026-11-24 옛 표기 '전월이월금' → '이월금'.
+   저장된 옛 이름은 같은 항목으로 읽고, 저장할 때는 '이월금' 하나로 정리합니다. */
+const CARRY_ITEM = '이월금';
+const CARRY_ITEM_OLD = '전월이월금';
+function isCarryName(n){ const s = String(n == null ? '' : n).replace(/\s+/g, ''); return s === CARRY_ITEM || s === CARRY_ITEM_OLD; }
+function normItemName(n){ const s = String(n == null ? '' : n).trim(); return isCarryName(s) ? CARRY_ITEM : s; }
 /* 기본 항목 — 범용 이름만. 실제 쓰는 이름(예: 가족 이름이 든 항목)은 비공개 저장소의 월별 자료에서 그대로 나타납니다. */
 const BANK_ITEMS_BASE = {
-  '우리은행': {in: ['전월이월금', '월급', '부수입', '의료비', 'N빵 정산'],
+  '우리은행': {in: [CARRY_ITEM, '월급', '부수입', '의료비', 'N빵 정산'],
               out: ['생활비', '자녀주식', '담보대출상환', '신용대출상환', '자녀보험', '청약/양압기', '카드요금', '여유금이체', '기타현금']},
-  '토스 입출금': {in: ['전월이월금', '이자', '여유금'], out: ['주차', '보험료', '모으기계좌']},
-  '토스 모으기': {in: ['전월이월금', '이자', '채우기'], out: ['꺼내기']}
+  '토스 입출금': {in: [CARRY_ITEM, '이자', '여유금'], out: ['주차', '보험료', '모으기계좌']},
+  '토스 모으기': {in: [CARRY_ITEM, '이자', '채우기'], out: ['꺼내기']}
 };
 /* 고정 지출 기본 예산 — 공개 배포본에는 개인 금액을 넣지 않습니다.
    새 달로 넘어갈 때의 예산은 비공개 저장소의 직전 달 budgets 에서 그대로 이어받습니다(bankBudget).
@@ -7086,7 +7092,35 @@ function bankLoad(){
     d.month = m; d.kind = 'bank';
     d.rows = (d.rows || []).map(r=> bankNormalizeRow(r)).filter(Boolean);
     if (!d.budgets || typeof d.budgets !== 'object') d.budgets = {};
+    migrateBankNames(d);            /* 옛 항목 이름을 이월금으로 정리 */
   });
+}
+/* 저장된 자료의 옛 항목 이름을 지금 이름으로 옮깁니다 — 같은 돈이 두 줄로 생기지 않게.
+   거래 줄(item·name), 예산·예산수정시각, 정산 매핑까지 모두 '이월금'으로 맞춥니다. */
+function migrateBankNames(d){
+  if (!d || typeof d !== 'object') return false;
+  let ch = false;
+  (d.rows || []).forEach(r=>{
+    const it = normItemName(r.item), nm = normItemName(r.name);
+    if (it !== r.item){ r.item = it; ch = true; }
+    if (nm !== r.name){ r.name = nm; ch = true; }
+  });
+  ['budgets', 'budgetAt'].forEach(k=>{
+    const o = d[k]; if (!o || typeof o !== 'object') return;
+    Object.keys(o).forEach(a=>{
+      const m = o[a]; if (!m || typeof m !== 'object') return;
+      Object.keys(m).filter(isCarryName).forEach(key=>{
+        if (!Object.prototype.hasOwnProperty.call(m, CARRY_ITEM)) m[CARRY_ITEM] = m[key];
+        delete m[key]; ch = true;
+      });
+    });
+  });
+  if (d.map && typeof d.map === 'object'){
+    Object.keys(d.map).forEach(k=>{
+      if (Array.isArray(d.map[k]) && d.map[k].some(isCarryName)){ d.map[k] = d.map[k].map(normItemName); ch = true; }
+    });
+  }
+  return ch;
 }
 function bankSave(){
   try { localStorage.setItem(BANK_KEY, JSON.stringify(BANK)); return true; }
@@ -7095,8 +7129,8 @@ function bankSave(){
 function bankNormalizeRow(raw){
   if (!raw || typeof raw !== 'object') return null;
   const amount = Math.round(+raw.amount || 0);
-  const item = String(raw.item || raw.항목 || '').trim().slice(0, 24);
-  const name = String(raw.name || raw.내용 || raw.적요 || item || '').trim().slice(0, 60);
+  const item = normItemName(String(raw.item || raw.항목 || '').trim().slice(0, 24));
+  const name = normItemName(String(raw.name || raw.내용 || raw.적요 || item || '').trim().slice(0, 60));
   if (!amount || (!item && !name)) return null;
   const ord = (raw.order !== null && raw.order !== undefined && raw.order !== '' && isFinite(+raw.order)) ? +raw.order : null;
   const r = {id: raw.id || uid(), month: String(raw.month || '').slice(0, 7),
@@ -7139,7 +7173,7 @@ function bankTotalsRaw(month, account){
   d.rows.forEach(r=>{ if (account && r.account !== account) return; n++; if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
   return {inc: inc, exp: exp, bal: inc - exp, n: n};
 }
-/* 직전 달에 이 계좌 자료가 있는지 — 거래나 예산이 하나라도 있으면 전월이월금 연동 대상 */
+/* 직전 달에 이 계좌 자료가 있는지 — 거래나 예산이 하나라도 있으면 이월금 연동 대상 */
 function bankPrevAccountData(month, account){
   const pd = BANK.months[ymShift(month, -1)];
   if (!pd) return false;
@@ -7160,28 +7194,34 @@ function bankBudgetTotal(month, account){
   list.out.forEach(it=>{ s -= bankBudget(month, account, it); });
   return s;
 }
-/* 전월이월금 연동 값 (2026-11-24)
+/* 이월금 예산으로 저장된 값 (옛 표기도 같은 항목으로 읽습니다) */
+function carryBudgetStored(d, account){
+  const b = ((d || {}).budgets || {})[account] || {};
+  if (Object.prototype.hasOwnProperty.call(b, CARRY_ITEM)) return Math.round(+b[CARRY_ITEM] || 0);
+  if (Object.prototype.hasOwnProperty.call(b, CARRY_ITEM_OLD)) return Math.round(+b[CARRY_ITEM_OLD] || 0);
+  return 0;
+}
+/* 이월금 연동 값 (2026-11-24)
    · 직전 달에 이 계좌 자료가 있으면 그 달 총합을 자동으로 가져옵니다 — 11월을 고치면 12월, 12월을 고치면 1월로 연쇄됩니다.
      우리은행: 예산 = 직전 달 예산 총합, 실행 = 직전 달 실행 총합
      토스 입출금·토스 모으기: 실행 = 직전 달 실행 총합 (예산 열 없음)
-   · 직전 달 자료가 없는 첫 달은 저장된 전월이월금 값(거래·예산)을 그대로 유지합니다. */
+   · 직전 달 자료가 없는 첫 달은 저장된 이월금 값(거래·예산)을 그대로 유지합니다. */
 function bankCarryValue(month, account){
   const d = BANK.months[month];
   const stored = d && (d.rows || []).find(r=> r.account === account && r.carry);
   if (!bankPrevAccountData(month, account)){
-    return {auto: false, src: null, act: stored ? stored.amount : null,
-      bud: Math.round(+((((d || {}).budgets || {})[account] || {})['전월이월금']) || 0)};
+    return {auto: false, src: null, act: stored ? stored.amount : null, bud: carryBudgetStored(d, account)};
   }
   const prev = ymShift(month, -1);
   return {auto: true, src: prev, act: bankTotals(prev, account).bal,
     bud: account === '우리은행' ? bankBudgetTotal(prev, account) : 0};
 }
-/* 전월이월금 자동 행 — 직전 달 자료가 있으면 그 달 총합으로 채웁니다 */
+/* 이월금 자동 행 — 직전 달 자료가 있으면 그 달 총합으로 채웁니다 */
 function bankCarryVirtual(month, account){
   const cv = bankCarryValue(month, account);
   if (!cv.auto || cv.act == null) return null;
-  return {id: 'vcarry-' + month + '-' + account, month: month, account: account, date: '', item: '전월이월금',
-    name: '전월이월금', amount: cv.act, memo: monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합 자동',
+  return {id: 'vcarry-' + month + '-' + account, month: month, account: account, date: '', item: CARRY_ITEM,
+    name: CARRY_ITEM, amount: cv.act, memo: monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합 자동',
     carry: true, virtual: true, order: -1};
 }
 function bankRowsAll(month){
@@ -7230,7 +7270,7 @@ function bankSalaryBudget(month, account, item){
 }
 function bankBudget(month, account, item){
   if (account === '우리은행' && item === '카드요금' && bankCardLinked(month)) return cardTotalFor(month);
-  if (item === '전월이월금'){
+  if (isCarryName(item)){
     const cv = bankCarryValue(month, account);
     if (cv.auto) return Math.round(cv.bud || 0);
   }
@@ -7248,6 +7288,7 @@ function bankBudget(month, account, item){
   return Math.round(+((BANK_TEMPLATE_BUDGET[account] || {})[item] || 0));
 }
 function bankSetBudget(month, account, item, v){
+  item = normItemName(item);
   const d = ensureBankDoc(month);
   if (!d.budgets[account]) d.budgets[account] = {};
   d.budgets[account][item] = Math.max(0, Math.round(+v || 0));
@@ -7260,6 +7301,7 @@ function bankSetBudget(month, account, item, v){
   markBankDirty(month);
 }
 function bankItemActual(month, account, item){
+  item = normItemName(item);
   let s = 0;
   bankRowsAll(month).forEach(r=>{ if (r.account === account && r.item === item) s += r.amount; });
   return s;
@@ -7369,13 +7411,17 @@ function renderBankSummary(){
   const rows = bankRowsAll(month);
   let inc = 0, exp = 0;
   rows.forEach(r=>{ if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
-  const bal = inc - exp;
-  const rate = inc ? exp / inc * 100 : 0;
+  const bal = inc - exp;                       /* 잔액·표 총합에는 이월금을 그대로 포함합니다 */
+  /* 총 수입은 이번 달에 실제로 들어온 수입만 — 이월금(옛 전월이월금)은 빼고 보여 줍니다 (2026-11-24) */
+  const carryIn = rows.reduce((s, r)=> (r.amount > 0 && isCarryName(r.item) ? s + r.amount : s), 0);
+  const inReal = inc - carryIn;
+  const inN = rows.filter(r=> r.amount > 0 && !isCarryName(r.item)).length;
+  const rate = inReal ? exp / inReal * 100 : 0;
   const w = Math.max(0, Math.min(100, rate));
   el.innerHTML =
     '<div class="bsum">' +
-      '<div class="bs in"><span class="k">총 수입</span><span class="v">' + fmt(inc) + '<small>원</small></span>' +
-        '<span class="x">' + fmt(rows.filter(r=> r.amount > 0).length) + '건 · 이월 포함</span></div>' +
+      '<div class="bs in"><span class="k">총 수입</span><span class="v">' + fmt(inReal) + '<small>원</small></span>' +
+        '<span class="x">' + fmt(inN) + '건' + (carryIn ? ' · 이월금 제외' : '') + '</span></div>' +
       '<div class="bs out"><span class="k">총 지출(실행)</span><span class="v">' + fmt(exp) + '<small>원</small></span>' +
         '<span class="x">' + fmt(rows.filter(r=> r.amount < 0).length) + '건 · 3개 계좌</span></div>' +
       '<div class="bs bal"><span class="k">현재 총 잔액</span><span class="v">' + fmt(bal) + '<small>원</small></span>' +
@@ -7384,8 +7430,8 @@ function renderBankSummary(){
     '<div class="bbar">' +
       '<div class="bar"><i class="b2" style="width:' + w.toFixed(1) + '%"></i>' +
         '<i class="b1" style="width:' + (100 - w).toFixed(1) + '%"></i></div>' +
-      '<div class="cap"><span>수입 대비 지출 ' + (inc ? Math.round(rate * 10) / 10 : 0) + '%</span>' +
-        '<span>남은 몫 ' + (inc ? Math.round((100 - Math.round(rate * 10) / 10) * 10) / 10 : 0) + '%</span>' +
+      '<div class="cap"><span>수입 대비 지출 ' + (inReal ? Math.round(rate * 10) / 10 : 0) + '%</span>' +
+        '<span>남은 몫 ' + (inReal ? Math.round((100 - Math.round(rate * 10) / 10) * 10) / 10 : 0) + '%</span>' +
         '<span class="sp">' + monthLabel(month) + ' · 3개 계좌 합계</span></div>' +
     '</div>';
   /* 계좌별 타일 */
@@ -7439,36 +7485,36 @@ function bankSumItemRows(month, acc){
   const push = (item, dir) => {
     const bud = bankBudget(month, acc, item);
     const act = bankItemActual(month, acc, item);
-    /* 빈 항목은 감춰 한눈에 보이게. 전월이월금은 이 계좌에 자료가 있을 때만 보입니다. */
-    if (!bud && !act && !(item === '전월이월금' && hasAny)) return;
+    /* 빈 항목은 감춰 한눈에 보이게. 이월금은 이 계좌에 자료가 있을 때만 보입니다. */
+    if (!bud && !act && !(isCarryName(item) && hasAny)) return;
     out.push({item: item, dir: dir, bud: bud, act: act});
   };
   list.in.forEach(it=> push(it, 'in'));
   list.out.forEach(it=> push(it, 'out'));
   return out;
 }
-/* 전월이월금은 직전 달 총합에서 자동으로 오므로 이 달에서 직접 고칠 수 없습니다 — 출처를 알려 줍니다 */
+/* 이월금은 직전 달 총합에서 자동으로 오므로 이 달에서 직접 고칠 수 없습니다 — 출처를 알려 줍니다 */
 function bankCarryNotice(acc, item){
-  if (item !== '전월이월금') return false;
+  if (!isCarryName(item)) return false;
   const cv = bankCarryValue(bankCurrentMonth(), acc);
   if (!cv.auto) return false;
   const lab = monthLabel(cv.src);
-  toast('전월이월금은 ' + lab + ' 총합에서 자동으로 들어갑니다 · ' + lab + '에서 고쳐 주세요');
+  toast('이월금은 ' + lab + ' 총합에서 자동으로 들어갑니다 · ' + lab + '에서 고쳐 주세요');
   return true;
 }
 function bankSumRowHtml(month, acc, row, wide){
   const bud = row.bud, act = row.act;
-  const isCarry = row.item === '전월이월금';
+  const isCarry = isCarryName(row.item);
   const cv = isCarry ? bankCarryValue(month, acc) : null;
   const carryNote = cv && cv.auto ? monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합에서 자동' : '';
   /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24)
-     전월이월금은 예산 총합이 마이너스(계획상 적자)일 수 있어 부호 그대로 보입니다 */
+     이월금은 예산 총합이 마이너스(계획상 적자)일 수 있어 부호 그대로 보입니다 */
   const budSigned = bud ? (row.dir === 'in' ? bud : -bud) : 0;
   const budCell = wide
     ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기')) + '">' +
       (budSigned ? (budSigned > 0 ? '+' : '−') + fmt(Math.abs(budSigned)) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc(carryNote ? '전월이월금 실행 · ' + carryNote : '실행 합계 직접 입력') + '">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc(carryNote ? '이월금 실행 · ' + carryNote : '실행 합계 직접 입력') + '">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
   return '<div class="scg-row">' +
     '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(row.item) + '</button>' +
@@ -7580,7 +7626,7 @@ function renderBankItems(){
   })();
   if (hint){
     const autoCarry = BANK_ACCOUNTS.some(a=> bankCarryValue(month, a).auto);
-    hint.textContent = '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가' + (autoCarry ? ' · 전월이월금은 전월 총합 자동' : '');
+    hint.textContent = '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가' + (autoCarry ? ' · 이월금은 전월 총합 자동' : '');
   }
 }
 function focusScInput(id){
@@ -7629,10 +7675,10 @@ function bankDeleteItem(month, acc, item){
 /* 실행 금액 직접 입력 — 거래가 한 건이면 그 금액을, 여러 건이면 차액을 조정 줄로 넣습니다 */
 function bankSetItemActual(month, acc, item, target, dir){
   const d = ensureBankDoc(month);
-  if (item === '전월이월금' && bankCarryValue(month, acc).auto) return null;  /* 연동되는 달은 직전 달에서만 */
+  if (isCarryName(item) && bankCarryValue(month, acc).auto) return null;  /* 연동되는 달은 직전 달에서만 */
   const signed = dir === 'in' ? target : -target;
   const real = d.rows.filter(r=> r.account === acc && r.item === item);
-  if (item === '전월이월금' && !real.length){
+  if (isCarryName(item) && !real.length){
     d.rows.push({id: uid(), month: month, account: acc, date: '', item: item, name: item,
       amount: signed, memo: '정산 요약에서 직접 입력', carry: true, order: 0});
     d.updatedAt = nowIso();
@@ -8283,6 +8329,7 @@ function applyBankPayload(p){
   if (p.settlement && (!doc.settlement || remoteAt > localAt)) doc.settlement = p.settlement;
   if (typeof p.cardLink === 'boolean' && (!doc.cardLink || remoteAt > localAt)) doc.cardLink = p.cardLink;
   if (remoteAt > localAt) doc.updatedAt = p.updatedAt;
+  if (migrateBankNames(doc)) changed++;      /* 원격에 남은 옛 이름을 이월금으로 */
   if (changed){ bankSave(); }
   return changed > 0;
 }
@@ -8427,7 +8474,7 @@ $('#bankActiveBar').addEventListener('click', ev=>{
   if (!n){ toast('이미 전월 잔액과 같습니다'); return; }
   const d = ensureBankDoc(month); d.updatedAt = nowIso();
   bankSave(); renderAll(); markBankDirty(month);
-  toast('전월이월금을 전월 잔액으로 맞췄습니다');
+  toast('이월금을 전월 잔액으로 맞췄습니다');
 });
 $('#bankItems').addEventListener('click', ev=>{
   const add = ev.target.closest('[data-scadd]');
@@ -8437,7 +8484,7 @@ $('#bankItems').addEventListener('click', ev=>{
   }
   const nm = ev.target.closest('[data-scname]');
   if (nm){
-    if (nm.dataset.item === '전월이월금' && bankCarryValue(bankCurrentMonth(), nm.dataset.acc).auto){
+    if (isCarryName(nm.dataset.item) && bankCarryValue(bankCurrentMonth(), nm.dataset.acc).auto){
       bankCarryNotice(nm.dataset.acc, nm.dataset.item); return;
     }
     scEdit = {acc: nm.dataset.acc, item: nm.dataset.item, field: 'name'};
