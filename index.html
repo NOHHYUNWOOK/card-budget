@@ -7168,11 +7168,14 @@ function renderBankSummary(){
 }
 function bankSumItemRows(month, acc){
   const list = bankItemList(month, acc);
+  const d0 = BANK.months[month] || {};
+  const hasAny = bankRowsAll(month).some(r=> r.account === acc) || Object.keys((d0.budgets || {})[acc] || {}).length > 0;
   const out = [];
   const push = (item, dir) => {
     const bud = bankBudget(month, acc, item);
     const act = bankItemActual(month, acc, item);
-    if (!bud && !act && item !== '전월이월금') return;   /* 빈 항목은 감춰 한눈에 보이게 */
+    /* 빈 항목은 감춰 한눈에 보이게. 전월이월금은 이 계좌에 자료가 있을 때만 보입니다. */
+    if (!bud && !act && !(item === '전월이월금' && hasAny)) return;
     out.push({item: item, dir: dir, bud: bud, act: act});
   };
   list.in.forEach(it=> push(it, 'in'));
