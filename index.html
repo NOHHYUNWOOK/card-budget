@@ -1234,6 +1234,28 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .scg-foot .out b{color:#d92d20}
 .scg-foot .bal{margin-left:auto}
 .scg-foot .bal b{color:var(--acd)}
+/* 차액 = 순수 수입 − 순수 지출 (계좌이동·이월금 제외) — +파랑 / −짙은 분홍 / 0 회색 (2026-11-25) */
+.scg-foot .net{margin-left:auto}
+.scg-foot .net b{font-weight:800}
+.scg-foot .net.pos b{color:#2563eb}
+.scg-foot .net.neg b{color:#be185d}
+.scg-foot .net.zero b{color:var(--muted)}
+/* 정산 요약 금액 칸 다중 선택 — Ctrl/⌘+클릭 · 폰은 꾹 (2026-11-25) */
+#bankItems .num.bud, #bankItems .num.act{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#bankItems .num.scsel{background:#e8f0ff!important;box-shadow:inset 0 0 0 1.6px #7aa7f5;border-radius:8px;color:#1d4ed8!important}
+#bankItems .num.scsel b{color:#1d4ed8}
+/* 선택 합계 칩 — 정산 요약 제목(자물쇠) 옆 */
+.scsum{display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 10px;border-radius:999px;
+  background:#eef4ff;border:1px solid #cfe0ff;font-size:11.5px;font-weight:750;color:#1d4ed8;
+  white-space:nowrap;align-self:center;line-height:1.5}
+.scsum .v{font-weight:850;font-variant-numeric:tabular-nums}
+.scsum.pos .v{color:#2563eb}
+.scsum.neg .v{color:#be185d}
+.scsum.zero .v{color:var(--muted)}
+.scsum .x{border:0;background:#fff;color:#5a7bbd;width:18px;height:18px;border-radius:999px;
+  display:grid;place-items:center;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 0 0 1px #dbe4f5}
+.scsum .x:hover{background:#e3ecff;color:#1d4ed8}
+@media (max-width:560px){ .scsum{font-size:11px;padding:1px 3px 1px 8px} }
 .sc-edit{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:9px 8px 10px;margin:4px 0 6px;
   background:var(--acs);border-radius:10px;box-shadow:inset 3px 0 0 var(--ac)}
 .sc-edit .who{font-size:11px;font-weight:800;color:var(--acd);flex:none}
@@ -1636,6 +1658,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
     <div class="card-head">
       <h2>정산 요약</h2>
       <span class="lockslot" data-lock="bankItems"></span>
+      <span class="scsum hidden" id="scSelSum" aria-live="polite"></span>
       <span class="hint" id="bankItemsHint"></span>
     </div>
     <div class="sc2" id="bankItems"></div>
@@ -2654,6 +2677,7 @@ function applyMonthSel(sel){
 }
 /* 달을 옮길 때 상세 패널 필터를 모두 지웁니다 — 카드사·분류·계좌·구분·하이라이트 색·검색어 (2026-11-24) */
 function resetPanelFilters(){
+  SCSEL.clear();
   F.cards = []; F.categories = []; F.q = ''; F.hl = ''; F.date = null;
   BANK.ui.account = ''; BANK.ui.dir = ''; BANK.ui.q = ''; BANK.ui.hl = '';
   S.ui.limit = 20;
@@ -7728,6 +7752,10 @@ let scEdit = null;                                  /* 정산 요약 편집 {acc
 let BEDITMODE = false, BSEL = new Set();            /* 은행 상세: 편집 모드 */
 let bRowEdit = null;                                /* {id|new, date, account, item, name, amount, memo} */
 let settleEdit = null;                              /* {kind:'salary'|'cash'|'card', key} */
+let SCSEL = new Set();                              /* 정산 요약 금액 칸 다중 선택 — 'acc\u0001item\u0001bud|act' (2026-11-25) */
+let SC_LP = null, SC_LP_BLOCK_UNTIL = 0;            /* 모바일 꾹 누르기 타이머 · 뒤따르는 클릭 차단 시각 */
+const SC_SEP = '\u0001';
+const scKey = (acc, item, field) => acc + SC_SEP + item + SC_SEP + field;
 let GRIP_B = null, GRIP_B_SKIP = false;
 
 function bankLoad(){
@@ -7960,6 +7988,34 @@ function bankTotals(month, account){
   rows.concat(v).forEach(r=>{ if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
   return {inc: inc, exp: exp, bal: inc - exp, n: rows.length + v.length};
 }
+/* 계좌 카드 맨 아래 '수입·지출·차액' — 계좌이동(검정 항목: 사용자가 넣은 계좌이동 + 모으기채우기/꺼내기)과
+   이월금은 빼고 순수한 수입·지출만 셉니다 (2026-11-25 요청). 여러 달(연도·전체)도 그대로 합칩니다. */
+function bankFootTotals(sel, acc){
+  const ms = isMonthSel(sel) ? [sel] : monthsInSel(sel, bankMonths());
+  let inc = 0, exp = 0;
+  ms.forEach(m=>{
+    bankRowsAll(m).forEach(r=>{
+      if (r.account !== acc) return;
+      if (r.carry || isCarryName(r.item)) return;                              /* 이월금 */
+      if (r.kind === TRANSFER_KIND) return;                                    /* 계좌이동 */
+      if (bankTransferInfo(m, acc, r.item) || bankTransferInfo(m, acc, r.name)) return;
+      if (isMoveItem(r.item) || moveAnyInfo(acc, r.item)) return;             /* 모으기채우기·꺼내기(이름 바꾼 것 포함) */
+      if (r.amount > 0) inc += r.amount; else exp -= r.amount;
+    });
+  });
+  return {inc: inc, exp: exp, net: inc - exp};
+}
+function scgFootHtml(sel, acc, T){
+  /* T 는 잔액 계산용(bankTotals)이 아니라 순수 수입·지출 — 차액 = 수입 − 지출 */
+  const net = T.net;
+  const cls = net > 0 ? 'pos' : (net < 0 ? 'neg' : 'zero');
+  const sign = net > 0 ? '+' : (net < 0 ? '−' : '');
+  return '<div class="scg-foot">' +
+    '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
+    '<span class="out">지출 <b>' + (T.exp ? '−' + fmt(T.exp) : '0') + '</b></span>' +
+    '<span class="net ' + cls + '" title="차액 = 수입 − 지출 (계좌이동·이월금 제외)">차액 <b>' + sign + fmt(Math.abs(net)) + '</b></span>' +
+  '</div>';
+}
 function cardTotalFor(month){
   let s = 0;
   S.rows.forEach(r=>{ if (r.month === month && !isExc(r)) s += (+r.amount || 0); });
@@ -8120,6 +8176,7 @@ function setView(v, quiet){
     b.classList.toggle('on', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
+  if (changed) SCSEL.clear();   /* 탭을 옮기면 정산 요약 선택도 비웁니다 */
   /* 이 탭에 없는 달을 보고 있었다면 이 탭의 달로 맞춥니다 — 연도 전체('YYYY')·전체('all')는 그대로 둡니다 */
   if (v !== 'card' && isMonthSel(F.month)){
     const ms = viewMonths();
@@ -8177,6 +8234,47 @@ function renderBank(){
   renderBankSummary();
   renderBankItems();
   renderBankDetail();
+  renderScSelSum();
+}
+/* ---------- 정산 요약 금액 칸 다중 선택 (2026-11-25 요청) ----------
+   PC: Ctrl(⌘) + 클릭 · 모바일: 금액 칸을 400ms 꾹 누르기.
+   한 칸이라도 골라 두면 그다음부터는 가볍게 눌러도 선택/해제가 됩니다. 잠금 상태에서도 합계는 볼 수 있습니다. */
+function toggleScSel(acc, item, field){
+  const k = scKey(acc, item, field);
+  if (SCSEL.has(k)) SCSEL.delete(k); else SCSEL.add(k);
+  renderBankItems();
+  renderScSelSum();
+}
+function scSelClear(){
+  if (!SCSEL.size) return;
+  SCSEL.clear();
+  renderBankItems();
+  renderScSelSum();
+}
+function renderScSelSum(){
+  const box = $('#scSelSum'); if (!box) return;
+  if (!SCSEL.size){ box.className = 'scsum hidden'; box.innerHTML = ''; return; }
+  const month = bankCurrentMonth();
+  const rowsOf = {};
+  BANK_ACCOUNTS.forEach(a=>{ rowsOf[a] = bankSumItemRows(month, a); });
+  let sum = 0, n = 0;
+  const dead = [];
+  SCSEL.forEach(k=>{
+    const parts = String(k).split(SC_SEP);
+    const acc = parts[0], item = parts[1], field = parts[2];
+    const row = (rowsOf[acc] || []).find(r=> r.item === item);
+    if (!row){ dead.push(k); return; }
+    n++;
+    if (field === 'bud') sum += (row.dir === 'in' ? (+row.bud || 0) : -(+row.bud || 0));
+    else sum += (+row.act || 0);
+  });
+  dead.forEach(k=> SCSEL.delete(k));
+  if (!n){ box.className = 'scsum hidden'; box.innerHTML = ''; return; }
+  const sign = sum > 0 ? '+' : (sum < 0 ? '−' : '');
+  box.className = 'scsum ' + (sum > 0 ? 'pos' : (sum < 0 ? 'neg' : 'zero'));
+  box.innerHTML = '<span class="n">선택 ' + fmt(n) + '칸 합계</span>' +
+    '<b class="v">' + sign + fmt(Math.abs(sum)) + '원</b>' +
+    '<button type="button" class="x" data-scselclear="1" title="선택 모두 해제" aria-label="선택 모두 해제">✕</button>';
 }
 function renderBankSummary(){
   const month = bankCurrentMonth();
@@ -8338,8 +8436,9 @@ function bankCarryNotice(acc, item){
 }
 function bankSumRowHtml(month, acc, row, wide, unlocked){
   const bud = row.bud, act = row.act;
-  const canEdit = unlocked !== false;             /* 잠금 상태면 누를 수 없는 버튼(disabled)으로 그립니다 (2026-11-25) */
-  const dis = canEdit ? '' : ' disabled aria-disabled="true"';
+  const canEdit = unlocked !== false;             /* 잠금 상태면 편집은 막되, 다중 선택(합계)은 계속 되도록 aria-disabled 로 (2026-11-25) */
+  const dis = canEdit ? '' : ' data-sclocked="1"';   /* 잠금: 편집만 막고 칸 자체는 살려 둡니다(합계 선택) */
+  const selB = SCSEL.has(scKey(acc, row.item, 'bud')), selA = SCSEL.has(scKey(acc, row.item, 'act'));
   const isCarry = isCarryName(row.item);
   const isMove = isMoveItem(row.item);           /* 모으기채우기·모으기꺼내기 — 이름·금액 모두 검정 */
   const isTr = !isMove && (!!row.transfer || !!bankTransferInfo(month, acc, row.item));   /* 계좌이동 — 같은 검정 둘레 (2026-11-25) */
@@ -8354,10 +8453,10 @@ function bankSumRowHtml(month, acc, row, wide, unlocked){
   const actFm = bankItemFormula(month, acc, row.item);
   const sym = row.dir === 'in' ? '＋' : '−';
   const budCell = wide
-    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '"' + dis + ' title="' + esc(label + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기') + (budFm ? ' · ' + budFm : '')) + '">' +
+    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + (selB ? ' scsel' : '') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '"' + dis + ' title="' + esc(label + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기') + (budFm ? ' · ' + budFm : '') + ' · Ctrl+클릭(폰은 꾹)으로 여러 칸 합계') + '">' +
       (budSigned ? (budSigned > 0 ? '+' : '−') + fmt(Math.abs(budSigned)) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '"' + dis + ' title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (moveNote ? label + ' 실행 — ' + sym + ' 부호로 들어갑니다' + (isTr ? ' (총 수입·총 지출 제외)' : '') : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + (selA ? ' scsel' : '') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '"' + dis + ' title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (moveNote ? label + ' 실행 — ' + sym + ' 부호로 들어갑니다' + (isTr ? ' (총 수입·총 지출 제외)' : '') : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
   /* 이름 — 편집 가능한 행은 버튼, 잠금 상태에서는 같은 모양의 글자(span)로 */
   const nameBtn = (cls, title, text)=> canEdit
@@ -8483,10 +8582,7 @@ function scGroupHtml(month, acc, rowsArg, padN){
     '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body +
     (padN || rows.length ? bankSumTotalHtml(month, acc) : '') +
-    '<div class="scg-foot">' +
-      '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
-      '<span class="out">지출 <b>' + (T.exp ? '−' + fmt(T.exp) : '0') + '</b></span>' +
-    '</div>' +
+    scgFootHtml(month, acc, bankFootTotals(month, acc)) +
   '</section>';
 }
 /* 연도 전체·전체 — 계좌별 항목을 그 기간 예산·실행 합계로 (2026-11-25). 이월금은 달마다 반복되므로 뺍니다. */
@@ -8541,10 +8637,7 @@ function scGroupHtmlYear(acc, rows){
       '<span class="yrall" title="그 기간 예산·실행을 더한 값">' + esc(multiSelLabel()) + '</span></div>' +
     '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body + (rows.length ? total : '') +
-    '<div class="scg-foot">' +
-      '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
-      '<span class="out">지출 <b>' + (T.exp ? '−' + fmt(T.exp) : '0') + '</b></span>' +
-    '</div>' +
+    scgFootHtml(F.month, acc, bankFootTotals(F.month, acc)) +
   '</section>';
 }
 function renderBankItems(){
@@ -9784,6 +9877,14 @@ function endSettleGrip(){
 $('#bankItems').addEventListener('pointerdown', startSettleGrip);
 $('#bankItems').addEventListener('click', ev=>{
   if (ev.target.closest('[data-scgrip]')) return;          /* 드래그 핸들 — 다른 동작 없음 */
+  /* 금액 칸 다중 선택 — 잠금·풀림 모두에서 (Ctrl/⌘+클릭, 한 칸 골라 두면 그 뒤 일반 클릭도 토글) */
+  const cell0 = ev.target.closest('[data-scbud], [data-scact]');
+  if (cell0 && Date.now() < SC_LP_BLOCK_UNTIL) return;     /* 꾹 누르기로 이미 골랐습니다 */
+  if (cell0 && (ev.ctrlKey || ev.metaKey || SCSEL.size)){
+    ev.preventDefault(); ev.stopPropagation();
+    toggleScSel(cell0.dataset.acc, cell0.dataset.item, cell0.hasAttribute('data-scbud') ? 'bud' : 'act');
+    return;
+  }
   if (!lockOpen('bankItems')) return;                      /* 잠금 상태 — 조회만 (2026-11-25) */
   const add = ev.target.closest('[data-scadd]');
   if (add){
@@ -9800,12 +9901,14 @@ $('#bankItems').addEventListener('click', ev=>{
   }
   const bud = ev.target.closest('[data-scbud]');
   if (bud){
+    if (!lockOpen('bankItems')){ toast('잠겨 있습니다 — 제목 옆 자물쇠를 열면 고칠 수 있습니다 · 꾹 누르면 합계 선택'); return; }
     if (bankCarryNotice(bud.dataset.acc, bud.dataset.item)) return;
     scEdit = {acc: bud.dataset.acc, item: bud.dataset.item, field: 'bud'};
     renderBankItems(); focusScInput('scAmt'); return;
   }
   const act = ev.target.closest('[data-scact]');
   if (act){
+    if (!lockOpen('bankItems')){ toast('잠겨 있습니다 — 제목 옆 자물쇠를 열면 고칠 수 있습니다 · 꾹 누르면 합계 선택'); return; }
     if (bankCarryNotice(act.dataset.acc, act.dataset.item)) return;
     scEdit = {acc: act.dataset.acc, item: act.dataset.item, dir: act.dataset.dir, field: 'act'};
     renderBankItems(); focusScInput('scAmt'); return;
@@ -9814,6 +9917,25 @@ $('#bankItems').addEventListener('click', ev=>{
   if (ev.target.closest('[data-scsave]')){ scSave(); return; }
   if (ev.target.closest('[data-scdel]')){ scDeleteItem(); return; }
   if (ev.target.closest('[data-scdelmove]')){ scDeleteMove(); return; }
+});
+/* 모바일 꾹 누르기(400ms)로 금액 칸을 다중 선택 — 손가락으로 여러 칸 합계를 볼 때 (2026-11-25) */
+$('#bankItems').addEventListener('pointerdown', ev=>{
+  const cell = ev.target.closest('[data-scbud], [data-scact]');
+  if (!cell || ev.pointerType === 'mouse') return;
+  const field = cell.hasAttribute('data-scbud') ? 'bud' : 'act';
+  const acc = cell.dataset.acc, item = cell.dataset.item;
+  clearTimeout(SC_LP);
+  SC_LP = setTimeout(()=>{
+    SC_LP = null;
+    SC_LP_BLOCK_UNTIL = Date.now() + 450;   /* 꾹 누른 뒤 따라오는 click 한 번만 막습니다 */
+    toggleScSel(acc, item, field);
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch(e){}
+  }, 400);
+});
+['pointerup', 'pointercancel', 'pointerleave', 'pointermove'].forEach(t=>
+  $('#bankItems').addEventListener(t, ()=>{ if (SC_LP){ clearTimeout(SC_LP); SC_LP = null; } }, {passive:true}));
+document.addEventListener('click', ev=>{
+  if (ev.target.closest && ev.target.closest('[data-scselclear]')){ ev.preventDefault(); scSelClear(); }
 });
 $('#bankItems').addEventListener('change', ev=>{
   /* ＋ 새 항목 — 구분을 '계좌이동'으로 고르면 방향(− 출금 / + 입금) 토글이 나타납니다 (2026-11-25) */
