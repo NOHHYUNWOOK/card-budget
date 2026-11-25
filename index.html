@@ -72,11 +72,15 @@ input,select{font:inherit;color:inherit}
 #monthSeg::-webkit-scrollbar{display:none}
 #monthSeg button{flex:none}
 
-/* ---------- 상단 기간 필터: 전체 · 지난달 · 이번달 · 다른 월 ▾ (2026-11-23) ----------
-   1~12월 자료가 모두 들어와도 달 버튼은 위 4개로 고정하고, 그 밖의 달은 팝오버에서 고릅니다. */
-#monthSeg button.mp-trigger{display:inline-flex;align-items:center;gap:3px}
-#monthSeg button.mp-trigger .cv{font-size:8.5px;line-height:1;opacity:.55;transform:translateY(.5px)}
-#monthSeg button.mp-trigger.on .cv{opacity:.85}
+/* ---------- 상단 기간 필터: 올해 · 지난달 · 이번달 · 다음달 · 📅 달력 (2026-11-25) ----------
+   다섯 칸 고정 — 그 밖의 달·연도 전체는 달력 아이콘 팝오버에서 고릅니다. */
+#monthSeg button.mp-year{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+#monthSeg button.mp-m{font-variant-numeric:tabular-nums;min-width:44px}
+#monthSeg button.mp-trigger{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:6px 8px;min-width:34px}
+#monthSeg button.mp-trigger svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#monthSeg button.mp-trigger .mpick-lbl{font-size:12px;font-weight:800;letter-spacing:-.02em}
+#monthSeg button.mp-trigger.on{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px rgba(16,24,40,.12)}
+#monthSeg button.mp-trigger.on svg{stroke:#1d4ed8}
 .mp-back{position:fixed;inset:0;background:rgba(15,23,42,.34);z-index:180;display:none;backdrop-filter:blur(1px)}
 .mp-back.show{display:block}
 .mp-pop{position:fixed;z-index:181;display:none;flex-direction:column;gap:9px;width:286px;padding:11px;
@@ -92,6 +96,7 @@ input,select{font:inherit;color:inherit}
 .mp-years button.has{color:var(--ink2)}
 .mp-years button:hover{color:var(--ink)}
 .mp-years button.on{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px rgba(16,24,40,.13)}
+.mp-years button.ysel{box-shadow:0 1px 3px rgba(16,24,40,.13), inset 0 0 0 1.5px #a8c3f7;color:#1d4ed8}
 .mp-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 .mp-grid button{position:relative;border:1px solid #e6e9f0;background:#fff;border-radius:10px;
   padding:8px 0;min-height:37px;font:inherit;font-size:13px;font-weight:750;color:var(--ink);
@@ -104,6 +109,15 @@ input,select{font:inherit;color:inherit}
 .mp-grid button.on:hover{background:#e3ecff}
 .mp-grid button .m-dot{position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#b7cdf3}
 .mp-grid button.on .m-dot{background:#1d4ed8}
+/* 연도 전체 보기 — 달력 팝오버에서 그 해 1~12월을 한 번에 (2026-11-25) */
+.mp-yearall{border:1px solid #dbe4f5;background:#f7faff;color:#1d4ed8;border-radius:10px;padding:8px 10px;
+  font:inherit;font-size:13px;font-weight:800;letter-spacing:-.01em;transition:.13s}
+.mp-yearall:hover{background:#eef4ff;border-color:#bcd2f7}
+.mp-yearall:active{transform:scale(.985)}
+.mp-yearall.on{background:#e8f0ff;border-color:#a8c3f7}
+.mp-yearall::after{content:' 전체';font-weight:700;color:#5a7bbd}
+.mp-years button.mp-all{color:var(--ink2);border-right:1px solid #e3e7ef;border-radius:8px 0 0 8px;padding-right:10px;margin-right:1px}
+.mp-years button.mp-all.on{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px rgba(16,24,40,.13)}
 @media (max-width:640px){
   .mp-pop{left:10px!important;right:10px!important;top:auto!important;bottom:0!important;width:auto;
     border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));gap:10px;
@@ -120,6 +134,15 @@ input,select{font:inherit;color:inherit}
   margin-top:2px;padding-top:8px;border-top:1px solid var(--line2)}
 .topnav-sep{flex:none;width:1px;height:16px;background:#dfe3ea;border-radius:1px}
 .topbar-tools #monthSeg{flex:0 0 auto;max-width:56vw}
+/* 좁은 화면: 다섯 칸이 한 줄에 고르게 — 바로가기는 다음 줄로 내려 답답하지 않게 (2026-11-25) */
+@media (max-width:560px){
+  .topbar-tools{flex-wrap:wrap;row-gap:6px}
+  .topbar-tools #monthSeg{flex:1 1 100%;max-width:none;overflow:visible}
+  .topbar-tools #monthSeg button{flex:1 1 0;justify-content:center}
+  .topbar-tools #monthSeg button.mp-m{min-width:0}
+  .topbar-tools #monthSeg button.mp-trigger{flex:0 0 auto;padding:6px 11px;min-width:42px}
+  .topbar-tools .topnav-sep{display:none}
+}
 #monthSeg:empty + .topnav-sep{display:none}
 .jumpnav{display:flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;overflow-x:auto;
   scrollbar-width:none;-ms-overflow-style:none;padding:1px 1px 1px 0;scroll-snap-type:x proximity}
@@ -1131,6 +1154,9 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .scg-h .add{margin-left:auto;border:1px solid var(--ac);background:#fff;color:var(--acd);border-radius:8px;
   padding:3px 8px;font-size:11.5px;font-weight:800;white-space:nowrap;font-family:inherit;cursor:pointer}
 .scg-h .add:hover{background:var(--acs)}
+/* 연도 전체 보기 표시 — 계좌 표 머리에 'YYYY년' (2026-11-25) */
+.scg-h .yrall{margin-left:auto;font-size:11px;font-weight:800;color:#1d4ed8;background:#e8f0ff;
+  border:1px solid #d3e2fd;border-radius:7px;padding:1px 7px;letter-spacing:-.01em;white-space:nowrap}
 .scg-cols,.scg-row{display:grid;gap:4px;align-items:center}
 .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 88px 86px}
 .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 86px}
@@ -1777,6 +1803,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 <div class="mp-pop" id="monthPickPop" role="dialog" aria-label="다른 월 선택">
   <div class="mp-years" id="mpYears" role="group" aria-label="연도 선택"></div>
   <div class="mp-grid" id="mpGrid"></div>
+  <button type="button" class="mp-yearall" id="mpYearAll" aria-label="이 해 전체 보기"></button>
 </div>
 
 <script>
@@ -1920,7 +1947,48 @@ function ymShift(m, n){
   const d = new Date(y, mi, 1);
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
 }
-const LAST_MONTH = ymShift(AUTO_MONTH, -1);   // '지난달' = 현재 결제월의 직전 달
+const PREV_MONTH = ymShift(AUTO_MONTH, -1);   // 상단 이전 달 버튼 (2026-11-25)
+const NEXT_MONTH = ymShift(AUTO_MONTH, 1);    // 상단 다음 달 버튼 (2026-11-25)
+const AUTO_YEAR = String(AUTO_MONTH).slice(0, 4);   // 상단 '올해' 버튼 — 실제 달력 기준 이번 해 (2026-11-25)
+
+/* ---------- 기간 선택 도우미 (2026-11-25) ----------
+   F.month 는 세 가지를 담습니다:  'all'(모든 자료) · 'YYYY'(그 해 1~12월) · 'YYYY-MM'(한 달).
+   상단 버튼·팝오버·카드/현금/정산 모든 패널이 이 세 가지를 같은 규칙으로 해석합니다. */
+const isYearSel = s => /^\d{4}$/.test(String(s || ''));
+const isMonthSel = s => /^\d{4}-\d{2}$/.test(String(s || ''));
+function periodLabel(sel){
+  sel = sel || F.month;
+  if (!sel || sel === 'all') return '전체';
+  if (isYearSel(sel)) return sel + '년';
+  return monthLabel(sel);
+}
+/* 여러 달을 합쳐 보는 기간의 이름 — '2026년 전체' / '전체' */
+function multiSelLabel(sel){
+  sel = sel || F.month;
+  return isYearSel(sel) ? sel + '년 전체' : '전체';
+}
+function monthInSel(m, sel){
+  sel = sel || F.month;
+  if (!m) return false;
+  if (!sel || sel === 'all') return true;
+  if (isYearSel(sel)) return String(m).slice(0, 4) === sel;
+  return m === sel;
+}
+/* 자료가 있는 달 목록(all) 중 선택 기간에 드는 달 */
+function monthsInSel(sel, all){
+  const ms = (all || []).slice().sort();
+  sel = sel || F.month;
+  if (!sel || sel === 'all') return ms;
+  if (isYearSel(sel)) return ms.filter(m => String(m).slice(0, 4) === sel);
+  return ms.filter(m => m === sel);
+}
+/* 한 달짜리 화면(한도·추이·입력)이 쓸 대표 달 — 연도를 고르면 그 해 마지막 달 */
+function anchorMonthIn(sel, all){
+  const ms = monthsInSel(sel, all);
+  if (ms.length) return ms[ms.length - 1];
+  if (isYearSel(sel)) return sel + '-12';
+  return (sel && sel !== 'all') ? sel : (all && all.length ? all[all.length - 1] : null);
+}
 const cardColor = c => CARD_COLORS[c] || '#64748b';
 
 let toastTimer = null;
@@ -2196,7 +2264,8 @@ function mileFamilySum(){
 /* 고른 달의 삼성·우리 사용액으로 계산한 예상 적립 (참고치) */
 function mileageExpected(){
   const ms = monthsIn(S.rows);
-  const m = F.month !== 'all' ? F.month : (ms.length ? ms[ms.length-1] : null);
+  /* 연도·전체를 고르면 그 기간의 마지막(가장 최근) 달 기준 — 한도와 같은 달을 씁니다 */
+  const m = isMonthSel(F.month) ? F.month : anchorMonthIn(F.month, ms);
   if (!m) return null;
   let spent = 0;
   S.rows.forEach(r=>{ if (r.month === m && MILE_CARDS.indexOf(r.card) >= 0) spent += (+r.amount || 0); });
@@ -2314,7 +2383,7 @@ function filteredRows(opts){
   const o = opts || {};
   const q = F.q.trim().toLowerCase();
   return S.rows.filter(r=>{
-    if (!o.ignoreMonth && F.month !== 'all' && r.month !== F.month) return false;
+    if (!o.ignoreMonth && !monthInSel(r.month, F.month)) return false;
     if (!o.ignoreCards && F.cards.length && F.cards.indexOf(r.card) < 0) return false;
     if (!o.ignoreCats && F.categories.length && F.categories.indexOf(r.category) < 0) return false;
     if (!o.ignoreDate && F.date && r.date !== F.date) return false;
@@ -2412,7 +2481,7 @@ function hlChipsHtml(which){
     '<button type="button" class="chip hladd" data-hladd="1" title="하이라이트 만들기·고치기">＋ 추가</button>';
 }
 function renderFilters(){
-  // month — 상단에는 '전체 · 지난달 · 이번달 · 다른 월 ▾' 4개만 두고, 나머지 달은 팝오버에서 고른다(2026-11-23)
+  // month — 상단에는 '올해 · 이전 달 · 이번 달 · 다음 달 · 📅 달력' 다섯 칸만 두고, 나머지 달·연도 전체는 팝오버에서 고른다(2026-11-25)
   const ms = viewMonths();          /* 탭마다 자료가 있는 달이 다릅니다 (카드/현금/정산) */
   if (!F.monthUser){
     /* 기본 선택 월은 실제 달력 기준 이번 달(AUTO_MONTH) — 카드·현금·정산 모든 탭 공통.
@@ -2422,20 +2491,31 @@ function renderFilters(){
   } else if (!ms.length) F.month = 'all';   /* 자료를 다 지운 경우만 되돌림 — 내역 없는 달을 일부러 고른 것은 유지 */
   const mSeg = $('#monthSeg');
   const mNum = m => (+String(m).slice(5,7)) + '월';
-  /* '다른 월' 버튼 라벨: 데이터가 한 해뿐이고 이번달과 같은 해면 '8월', 아니면 '2025년 12월' */
-  const dataYears = new Set(ms.map(m=> String(m).slice(0,4)));
-  const multiYear = dataYears.size > 1;
-  const otherLabel = m => (multiYear || String(m).slice(0,4) !== String(AUTO_MONTH).slice(0,4)) ? monthLabel(m) : mNum(m);
-  const otherSel = F.month !== 'all' && F.month !== AUTO_MONTH && F.month !== LAST_MONTH;
+  /* 상단 달 버튼 — 이번 달 기준 이전·이번·다음 달. 해를 넘어가면 라벨도 12월·1월처럼 자동으로 바뀝니다. */
+  const yLab = String(AUTO_MONTH).slice(0,4) + '년';
+  const mBtns = [PREV_MONTH, AUTO_MONTH, NEXT_MONTH];
+  /* 다섯 칸에 없는 달·연도·전체를 고르면 달력 아이콘에 그 기간을 함께 보입니다 (예: 📅 8월, 📅 2025년 12월, 📅 전체) */
+  const otherMonth = F.month !== 'all' && mBtns.indexOf(F.month) < 0 && String(F.month) !== AUTO_YEAR;
+  const calOn = F.month === 'all' || otherMonth;
+  const calLbl = F.month === 'all' ? '전체'
+    : (isYearSel(F.month) ? F.month + '년'
+      : (otherMonth ? (String(F.month).slice(0,4) === AUTO_YEAR ? mNum(F.month) : monthLabel(F.month)) : ''));
+  const CAL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.2" y="5" width="17.6" height="15.6" rx="3"/><path d="M3.2 9.8h17.6M8 3v3.6M16 3v3.6"/></svg>';
   mSeg.innerHTML = ms.length
-    ? (VIEW === 'card' ? '<button data-month="all"'+(F.month==='all'?' class="on"':'')+'>전체</button>' : '') +
-      '<button data-month="'+LAST_MONTH+'"'+(F.month===LAST_MONTH?' class="on"':'')+
-        ' aria-label="지난달 '+esc(monthLabel(LAST_MONTH))+'" title="지난달 · '+esc(periodTxtOf(LAST_MONTH))+' 결제분">'+mNum(LAST_MONTH)+'</button>' +
-      '<button data-month="'+AUTO_MONTH+'"'+(F.month===AUTO_MONTH?' class="on"':'')+
-        ' aria-label="이번달 '+esc(monthLabel(AUTO_MONTH))+'" title="이번달 · '+esc(periodTxtOf(AUTO_MONTH))+' 결제분">'+mNum(AUTO_MONTH)+'</button>' +
-      '<button type="button" class="mp-trigger'+(otherSel?' on':'')+'" id="monthPickBtn" aria-haspopup="dialog"'+
-        ' aria-expanded="'+(monthPickOpen?'true':'false')+'" title="연도·달 고르기">'+esc(otherSel ? otherLabel(F.month) : '다른 월')+
-        '<span class="cv" aria-hidden="true">▾</span></button>'
+    ? '<button type="button" data-month="'+AUTO_YEAR+'" class="mp-year'+(String(F.month)===AUTO_YEAR?' on':'')+'"'+
+        ' aria-label="'+esc(yLab + ' 전체 내역')+'" title="'+esc(yLab + ' 1~12월 전체 보기')+'">'+esc(yLab)+'</button>' +
+      mBtns.map((m, i)=>{
+        const isCur = i === 1;
+        const lab = mNum(m);
+        const full = monthLabel(m);
+        return '<button type="button" data-month="'+m+'" class="mp-m'+(F.month===m?' on':'')+'"'+
+          ' aria-label="'+esc((isCur ? '이번 달 ' : (i === 0 ? '이전 달 ' : '다음 달 ')) + full)+'"'+
+          ' title="'+esc((isCur ? '이번 달' : (i === 0 ? '이전 달' : '다음 달')) + ' · ' + full + ' · ' + periodTxtOf(m) + ' 결제분')+'">'+esc(lab)+'</button>';
+      }).join('') +
+      '<button type="button" class="mp-trigger'+(calOn?' on':'')+'" id="monthPickBtn" aria-haspopup="dialog"'+
+        ' aria-expanded="'+(monthPickOpen?'true':'false')+'" aria-label="'+esc(calOn ? '다른 달 고르기 · 지금 ' + periodLabel(F.month) : '연도·달 고르기')+'"'+
+        ' title="'+esc(calOn ? '지금 ' + periodLabel(F.month) + ' 보는 중 · 눌러서 연도·달 고르기' : '연도·달 고르기')+'">' +
+        CAL_SVG + (calOn ? '<span class="mpick-lbl">'+esc(calLbl)+'</span>' : '') + '</button>'
     : '';   /* 자료가 없을 때는 달 선택 줄을 그리지 않음(시작 화면만 깔끔하게) */
   if (!ms.length) closeMonthPick();
   else if (monthPickOpen) renderMonthPick();
@@ -2490,10 +2570,13 @@ function renderMonthPick(){
   if (!grid || !yearsEl) return;
   const years = monthPickYears();
   const dataYears = new Set(monthsIn(S.rows).map(m=> +String(m).slice(0,4)));
-  if (monthPickYear == null) monthPickYear = F.month !== 'all' ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
+  if (monthPickYear == null) monthPickYear = isMonthSel(F.month) ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
   if (years.indexOf(monthPickYear) < 0) monthPickYear = +String(AUTO_MONTH).slice(0,4);
-  yearsEl.innerHTML = years.map(y =>
-    '<button type="button" data-mp-year="'+y+'" class="'+(y === monthPickYear ? 'on' : '')+((dataYears.has(y)) ? ' has' : '')+'"'+
+  /* '전체' 칩 하나 + 연도 칩 — 연도 칩은 그 해 1~12월 격자를 보여 주고, 아래 'YYYY년 전체' 버튼으로 그 해 전체를 고릅니다 */
+  yearsEl.innerHTML = '<button type="button" data-pick-all="1" class="mp-all' + (F.month === 'all' ? ' on' : '') + '"' +
+      ' aria-pressed="' + (F.month === 'all') + '" title="연도·달 상관없이 내역 전체">전체</button>' +
+    years.map(y =>
+    '<button type="button" data-mp-year="'+y+'" class="'+(y === monthPickYear ? 'on' : '')+((dataYears.has(y)) ? ' has' : '')+((F.month === String(y)) ? ' ysel' : '')+'"'+
     ' aria-pressed="'+(y === monthPickYear)+'" title="'+y+'년'+((dataYears.has(y)) ? '' : ' · 내역 없음')+'">'+y+'</button>').join('');
   const counts = {};
   S.rows.forEach(r=>{ counts[r.month] = (counts[r.month] || 0) + 1; });
@@ -2506,6 +2589,16 @@ function renderMonthPick(){
       ' aria-pressed="'+(F.month === m)+'">'+i+'월'+(cnt ? '<span class="m-dot" aria-hidden="true"></span>' : '')+'</button>';
   }
   grid.innerHTML = h;
+  /* 그 해 1~12월 전체 보기 — 어느 연도든 1년 단위로 바로 */
+  const yAll = $('#mpYearAll');
+  if (yAll){
+    const on = F.month === String(monthPickYear);
+    yAll.textContent = monthPickYear + '년';
+    yAll.setAttribute('aria-label', monthPickYear + '년 전체 보기');
+    yAll.setAttribute('aria-pressed', on ? 'true' : 'false');
+    yAll.title = '클릭하면 ' + monthPickYear + '년 1~12월을 한 번에 봅니다';
+    yAll.classList.toggle('on', on);
+  }
 }
 function placeMonthPick(){
   const pop = $('#monthPickPop');
@@ -2522,7 +2615,7 @@ function placeMonthPick(){
 function openMonthPick(){
   const pop = $('#monthPickPop');
   if (!pop || !S.rows.length) return;
-  monthPickYear = F.month !== 'all' ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
+  monthPickYear = isMonthSel(F.month) ? +String(F.month).slice(0,4) : +String(AUTO_MONTH).slice(0,4);
   monthPickOpen = true;
   pop.classList.add('show');
   const back = $('#monthPickBack'); if (back) back.classList.toggle('show', window.innerWidth <= 640);
@@ -2542,6 +2635,20 @@ function pickMonth(m, ev){
   closeMonthPick();
   if (!/^\d{4}-\d{2}$/.test(String(m))) return;
   F.month = m; F.monthUser = true;
+  resetPanelFilters();   /* 달을 옮기면 상세 패널 필터는 초기화 */
+  renderAll();
+}
+/* 팝오버에서 고르는 기간 — 한 달('YYYY-MM'), 한 해 전체('YYYY'), 전체('all') (2026-11-25) */
+function pickPeriod(sel, ev){
+  if (ev){ ev.preventDefault(); ev.stopPropagation(); }
+  closeMonthPick();
+  if (sel !== 'all' && !isMonthSel(sel) && !isYearSel(sel)) return;
+  applyMonthSel(sel);
+}
+/* 상단·팝오버에서 고른 기간을 모든 탭에 적용 — 연도를 고르면 연간 그래프도 그 해로 */
+function applyMonthSel(sel){
+  F.month = sel; F.monthUser = true;
+  if (isYearSel(sel)){ S.ui.year = +sel; try { saveState(); } catch(e){} }
   resetPanelFilters();   /* 달을 옮기면 상세 패널 필터는 초기화 */
   renderAll();
 }
@@ -2568,10 +2675,11 @@ function limitCards(){
 }
 function limitContext(){
   const ms = monthsIn(S.rows);
-  const m = F.month !== 'all' ? F.month : (ms.length ? ms[ms.length-1] : null);
+  /* 한도는 월 단위 — 연도·전체를 고르면 그 기간의 마지막(가장 최근) 달 사용액을 기준으로 보여 줍니다 */
+  const m = isMonthSel(F.month) ? F.month : anchorMonthIn(F.month, ms);
   const spent = new Map();
   if (m) S.rows.forEach(r=>{ if (r.month === m && !isExc(r)) spent.set(r.card, (spent.get(r.card)||0) + (+r.amount||0)); });
-  return {month:m, spent, latest: F.month === 'all'};
+  return {month:m, spent, latest: !isMonthSel(F.month)};
 }
 function limitTileHtml(c, ctx, unlocked){
   const lim = limitOf(c);
@@ -2627,7 +2735,7 @@ function renderLimits(){
   const ctx = limitContext();
   const hint = $('#limitHint');
   if (hint) hint.textContent = ctx.month
-    ? ((ctx.latest ? '최근 ' : '') + monthLabel(ctx.month).replace(/^\d{4}년 /, '') + ' 사용액 기준')
+    ? ((isYearSel(F.month) ? F.month + '년 · ' : (ctx.latest ? '최근 ' : '')) + monthLabel(ctx.month).replace(/^\d{4}년 /, '') + ' 사용액 기준')
     : '';
   grid.innerHTML = cards.map(c=> limitEdit === c ? limitEditorHtml(c) : limitTileHtml(c, ctx, unlocked)).join('');
   renderFeedback(ctx);
@@ -3006,9 +3114,10 @@ function renderKpis(rows, sum){
   }
   const months = monthsIn(rows);
   const cards = cardsIn(rows);
-  const range = (F.month !== 'all')
+  const range = isMonthSel(F.month)
     ? monthLabel(F.month)
-    : (months.length ? monthLabel(months[0]).replace(/^\d{4}년 /,'') + '~' + monthLabel(months[months.length-1]).replace(/^\d{4}년 /,'') : '');
+    : (isYearSel(F.month) ? F.month + '년 1~12월'
+      : (months.length ? monthLabel(months[0]).replace(/^\d{4}년 /,'') + '~' + monthLabel(months[months.length-1]).replace(/^\d{4}년 /,'') : ''));
   const dueSet = [];
   months.forEach(m=>{
     const dd = (S.dueDates && S.dueDates[m]) || {};
@@ -3271,7 +3380,7 @@ function renderAnnualMileage(year){
   if (hint) hint.textContent = have.length ? '본인·가족 합산 · 예상 포함' : (year + '년 마일리지 기록 없음');
   if (!have.length){ el.innerHTML = annualEmptyBox(year + '년 마일리지 기록이 없습니다'); return; }
 
-  const selIdx = (F.month !== 'all' && String(F.month).slice(0,4) === String(year)) ? (+String(F.month).slice(5,7)) - 1 : -1;
+  const selIdx = (isMonthSel(F.month) && String(F.month).slice(0,4) === String(year)) ? (+String(F.month).slice(5,7)) - 1 : -1;
   const W = Math.max(280, el.clientWidth || 640);
   const smallW = W < 460;
   const H = smallW ? 212 : 250;
@@ -3407,7 +3516,7 @@ function renderAnnual(){
     ? scope + year + '년 · 최고 ' + (peakIdx+1) + '월 ' + fmt(peakVal) + '원'
     : scope + year + '년 내역 없음';
 
-  const selIdx = (F.month !== 'all' && String(F.month).slice(0,4) === String(year)) ? (+String(F.month).slice(5,7)) - 1 : -1;
+  const selIdx = (isMonthSel(F.month) && String(F.month).slice(0,4) === String(year)) ? (+String(F.month).slice(5,7)) - 1 : -1;
 
   /* ---- 범례 칩: 누르면 그 선만 끄고 켬 ---- */
   const chips = series.map(s=>{
@@ -3560,9 +3669,15 @@ function renderAnnual(){
    ============================================================ */
 let TREND_MONTH = null;   // 마지막으로 보여 준 달 — '전체'에서 날짜를 눌러도 같은 사용기간을 유지합니다
 function trendMonthOf(rows){
-  // 표시할 달: 고른 달 → 내역이 있는 가장 최근 달(또는 직전에 보던 달)
-  if (F.month !== 'all'){ TREND_MONTH = F.month; return F.month; }
+  // 표시할 달: 고른 달(최근/보던 달) → 내역이 있는 가장 최근 달
+  if (isMonthSel(F.month)){ TREND_MONTH = F.month; return F.month; }
   const ms = monthsIn(rows);
+  if (isYearSel(F.month)){
+    /* 연도 단위를 고르면 그 해의 이번 달(있으면) 또는 그 해 마지막 달 사용기간을 그립니다 */
+    if (String(AUTO_MONTH).slice(0,4) === F.month) return AUTO_MONTH;
+    const inY = ms.filter(m=> String(m).slice(0,4) === F.month);
+    return inY.length ? inY[inY.length-1] : F.month + '-12';
+  }
   if (TREND_MONTH && ms.indexOf(TREND_MONTH) >= 0) return TREND_MONTH;
   TREND_MONTH = ms.length ? ms[ms.length-1] : null;
   return TREND_MONTH;
@@ -3609,7 +3724,7 @@ function renderTrend(rows, sum){
   const monthTotal = vals.reduce((a,b)=> a + b, 0);
   const periodTxt = mdtxt(bp.start) + '~' + mdtxt(bp.end);
 
-  if (monthEl) monthEl.textContent = (F.month === 'all' ? '최근 ' : '') + monthLabel(dm) + ' · ' + periodTxt;
+  if (monthEl) monthEl.textContent = (!isMonthSel(F.month) ? '최근 ' : '') + monthLabel(dm) + ' · ' + periodTxt;
   if (peakHint) peakHint.textContent = peakIdx >= 0
     ? '최고 ' + mdtxt(dateAt(bp, peakIdx)) + ' · ' + fmt(vals[peakIdx]) + '원' : '';
 
@@ -3843,7 +3958,7 @@ function renderTable(rows, sum){
   const more = sorted.length - view.length;
   const fbits = [];
   if (EDITMODE) fbits.push('⠿ 끌어서 순서 변경');
-  if (F.month !== 'all') fbits.push(monthLabel(F.month));
+  if (F.month !== 'all') fbits.push(periodLabel(F.month));
   if (F.cards.length) fbits.push('카드 ' + F.cards.map(shortCard).join('·'));
   if (F.categories.length) fbits.push('분류 ' + F.categories.join('·'));
   if (F.date) fbits.push(dMD(F.date));
@@ -4437,12 +4552,12 @@ $('#monthSeg').addEventListener('click', ev=>{
   }
   const b = ev.target.closest('button[data-month]'); if(!b) return;
   closeMonthPick();
-  F.month = b.dataset.month; F.monthUser = true;
-  resetPanelFilters();   /* 달을 옮기면 상세 패널 필터는 초기화 */
-  renderAll();
+  applyMonthSel(b.dataset.month);
 });
-/* 다른 월 팝오버: 연도 칩 · 달 고르기 (2026-11-23) */
+/* 다른 월 팝오버: 전체 · 연도 칩 · 달 고르기 · 그 해 전체 (2026-11-23 / 2026-11-25) */
 $('#monthPickPop').addEventListener('click', ev=>{
+  if (ev.target.closest('[data-pick-all]')){ pickPeriod('all', ev); return; }
+  if (ev.target.closest('#mpYearAll')){ pickPeriod(String(monthPickYear), ev); return; }
   const y = ev.target.closest('[data-mp-year]');
   if (y){
     ev.preventDefault();
@@ -4618,7 +4733,7 @@ $('#yearSeg').addEventListener('click', ev=>{
   const i = years.indexOf(cur) + (+b.dataset.yearStep);
   if (i < 0 || i >= years.length) return;
   S.ui.year = years[i];
-  if (F.month !== 'all' && String(F.month).slice(0,4) !== String(S.ui.year)){ F.month = 'all'; F.monthUser = true; }
+  if (isMonthSel(F.month) && String(F.month).slice(0,4) !== String(S.ui.year)){ F.month = 'all'; F.monthUser = true; }
   saveState(); renderAll();
 });
 $('#annualCards') && $('#annualCards').addEventListener('click', ev=>{
@@ -6947,7 +7062,7 @@ function openCapture(mode){
   CAP.files.forEach(f=>{ try { URL.revokeObjectURL(f.thumbUrl); } catch(e){} });
   CAP.files = []; CAP.results = []; CAP.busy = false; CAP.status = ''; CAP.error = ''; CAP.ms = 0; CAP.model = '';
   CAP.card = '';
-  CAP.month = (F.month && F.month !== 'all') ? F.month : (VIEW === 'bank' ? bankCurrentMonth() : capNowMonth());
+  CAP.month = (F.month && F.month !== 'all' && !isYearSel(F.month)) ? F.month : (VIEW === 'bank' ? bankCurrentMonth() : capNowMonth());
   $('#capBackdrop').classList.add('show');
   capRender();
 }
@@ -7968,10 +8083,10 @@ function setView(v, quiet){
     b.classList.toggle('on', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-  /* 이 탭에 없는 달을 보고 있었다면 이 탭의 달로 맞춥니다 */
-  if (v !== 'card'){
+  /* 이 탭에 없는 달을 보고 있었다면 이 탭의 달로 맞춥니다 — 연도 전체('YYYY')·전체('all')는 그대로 둡니다 */
+  if (v !== 'card' && isMonthSel(F.month)){
     const ms = viewMonths();
-    if (F.month === 'all' || (F.month && ms.indexOf(F.month) < 0)){
+    if (ms.indexOf(F.month) < 0){
       F.month = (ms.indexOf(AUTO_MONTH) >= 0) ? AUTO_MONTH : (ms.length ? ms[ms.length - 1] : AUTO_MONTH);
       F.monthUser = true;
     }
@@ -7988,9 +8103,34 @@ function setView(v, quiet){
 
 /* ---------------- 현금 화면 ---------------- */
 function bankCurrentMonth(){
-  if (F.month && F.month !== 'all') return F.month;
+  if (isMonthSel(F.month)) return F.month;
   const ms = bankMonths();
+  /* 연도 전체를 보는 중 — 그 해 마지막 달을 '대표 달'로 (입력·이월금 안내가 쓸 달) */
+  if (isYearSel(F.month)){
+    const inY = ms.filter(m=> String(m).slice(0,4) === F.month);
+    return inY.length ? inY[inY.length-1] : F.month + '-12';
+  }
   return ms.length ? ms[ms.length - 1] : AUTO_MONTH;
+}
+/* 연도 전체 보기 — 그 해 1~12월을 합칩니다 (2026-11-25)
+   이월금은 달마다 전월 잔액이 반복되므로 연도 합계에서 빼고, 잔액은 그 해 마지막 달 잔액을 씁니다. */
+function bankYearMode(){ return !isMonthSel(F.month); }   /* 연도 전체 또는 전체 — 여러 달을 합쳐 봅니다 */
+function bankSelMonths(){ return monthsInSel(F.month, bankMonths()); }
+/* 여러 달 합계 — 연도 'YYYY' 또는 '전체'. 잔액은 그 기간 마지막 달 잔액 */
+function bankYearTotals(sel, account){
+  sel = sel || F.month;
+  let inc = 0, exp = 0, n = 0;
+  monthsInSel(sel, bankMonths()).forEach(m=>{
+    bankRowsAll(m).forEach(r=>{
+      if (r.carry) return;                       /* 이월금(전월 잔액)은 달마다 반복 — 빼고 셉니다 */
+      if (account && r.account !== account) return;
+      n++;
+      if (r.amount > 0) inc += r.amount; else exp -= r.amount;
+    });
+  });
+  const ms = monthsInSel(sel, bankMonths());
+  const last = ms.length ? ms[ms.length-1] : null;
+  return {inc: inc, exp: exp, n: n, bal: last ? bankTotals(last, account).bal : 0};
 }
 function bankMoney(v){ return (v < 0 ? '−' : '') + fmt(Math.abs(v)); }
 function bankAmountCell(r){
@@ -8003,11 +8143,16 @@ function renderBank(){
 }
 function renderBankSummary(){
   const month = bankCurrentMonth();
+  const yMode = bankYearMode();
+  const selMs = yMode ? bankSelMonths() : [month];
+  const endMonth = yMode ? (selMs.length ? selMs[selMs.length-1] : null) : month;
   const el = $('#bankKpis'); if (!el) return;
-  const rows = bankRowsAll(month);
+  /* 연도 전체면 그 해 1~12월 거래를 이어 붙입니다 — KPI(총 수입·총 지출)는 이월금 제외 규칙이 같습니다 */
+  const rows = yMode ? selMs.reduce((a, m)=> a.concat(bankRowsAll(m)), []) : bankRowsAll(month);
   let inc = 0, exp = 0;
   rows.forEach(r=>{ if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
-  const bal = inc - exp;                       /* 잔액·표 총합에는 이월금·토스 모으기를 그대로 포함합니다 */
+  /* 잔액: 한 달이면 그 달 합계, 연도면 그 해 마지막 달의 잔액 */
+  const bal = yMode ? (endMonth ? bankTotals(endMonth).bal : 0) : (inc - exp);
   /* 총 수입·총 지출은 이번 달 살림살이만 보여 줍니다 (2026-11-25)
      · 이월금(옛 전월이월금)은 제외
      · 토스 모으기 계좌의 모든 항목(이자·채우기·꺼내기·이월금)과 우리은행·토스 입출금의
@@ -8036,7 +8181,7 @@ function renderBankSummary(){
         '<span class="x">' + inX + '</span></div>' +
       '<div class="bs out"><span class="k">총 지출(실행)</span><span class="v">' + fmt(kExp) + '<small>원</small></span>' +
         '<span class="x">' + outX + '</span></div>' +
-      '<div class="bs bal"><span class="k">현재 총 잔액</span><span class="v">' + fmt(bal) + '<small>원</small></span>' +
+      '<div class="bs bal"><span class="k">' + (yMode ? (isYearSel(F.month) ? '연말 잔액' : '최근 잔액') : '현재 총 잔액') + '</span><span class="v">' + fmt(bal) + '<small>원</small></span>' +
         '<span class="x">우리 + 토스 입출금 + 모으기</span></div>' +
     '</div>' +
     '<div class="bbar">' +
@@ -8044,17 +8189,19 @@ function renderBankSummary(){
         '<i class="b1" style="width:' + (100 - w).toFixed(1) + '%"></i></div>' +
       '<div class="cap"><span>수입 대비 지출 ' + (inReal ? Math.round(rate * 10) / 10 : 0) + '%</span>' +
         '<span>남은 몫 ' + (inReal ? Math.round((100 - Math.round(rate * 10) / 10) * 10) / 10 : 0) + '%</span>' +
-        '<span class="sp">' + monthLabel(month) + (exLabel ? ' · ' + exLabel + ' 제외 기준' : ' · 3개 계좌 합계') + '</span></div>' +
+        '<span class="sp">' + esc(yMode ? multiSelLabel() : monthLabel(month)) + (exLabel ? ' · ' + exLabel + ' 제외 기준' : ' · 3개 계좌 합계') + '</span></div>' +
     '</div>';
   /* 계좌별 타일 */
   const grid = $('#bankAccGrid');
   if (grid){
     grid.innerHTML = BANK_ACCOUNTS.map(a=>{
-      const t = bankTotals(month, a);
-      const list = bankItemList(month, a);
+      const t = yMode ? bankYearTotals(F.month, a) : bankTotals(month, a);
       let expectIn = 0, expectOut = 0;
-      list.in.forEach(it=>{ const b = bankBudget(month, a, it), ac = bankItemActual(month, a, it); expectIn += Math.max(0, Math.max(b, ac) - ac); });
-      list.out.forEach(it=>{ const b = bankBudget(month, a, it), ac = Math.abs(bankItemActual(month, a, it)); expectOut += Math.max(0, b - ac); });
+      if (!yMode){
+        const list = bankItemList(month, a);
+        list.in.forEach(it=>{ const b = bankBudget(month, a, it), ac = bankItemActual(month, a, it); expectIn += Math.max(0, Math.max(b, ac) - ac); });
+        list.out.forEach(it=>{ const b = bankBudget(month, a, it), ac = Math.abs(bankItemActual(month, a, it)); expectOut += Math.max(0, b - ac); });
+      }
       const expected = t.bal + expectIn - expectOut;
       const r = t.inc ? Math.min(100, t.exp / t.inc * 100) : 0;
       const over = expected < 0 || t.bal < 0;
@@ -8062,18 +8209,23 @@ function renderBankSummary(){
         '<span class="top"><span class="dot" style="background:' + bankAccColor(a) + '"></span>' +
           '<span class="nm" style="color:' + (BANK_ACC_DARK[a] || bankAccColor(a)) + '">' + esc(a) + '</span>' +
           '<span class="use' + (t.exp ? '' : ' zero') + '">' + (t.exp ? '−' + fmt(t.exp) : '0') + '</span></span>' +
-        '<span class="rem">' + fmt(t.bal) + '<small>원 잔액</small></span>' +
+        '<span class="rem">' + fmt(t.bal) + '<small>원 ' + (yMode ? (isYearSel(F.month) ? '연말 잔액' : '최근 잔액') : '잔액') + '</small></span>' +
         '<span class="bar"><i style="width:' + r.toFixed(1) + '%"></i></span>' +
-        '<span class="meta">' + (expectOut || expectIn ? '예상 잔고 ' + fmt(expected) + '원 · ' : '') +
-          '수입 ' + fmt(t.inc) + '</span>' +
+        '<span class="meta">' + (yMode ? '연간 수입 ' : (expectOut || expectIn ? '예상 잔고 ' + fmt(expected) + '원 · 수입 ' : '수입 ')) +
+          fmt(t.inc) + '</span>' +
       '</button>';
     }).join('');
   }
   const hint = $('#bankAccHint');
-  if (hint) hint.textContent = '예상 잔고 = 지금 잔액 + 들어올 수입 − 남은 지출 예산 (카드요금은 카드 탭 실시간)';
-  /* 이월 안내 */
+  if (hint) hint.textContent = yMode
+    ? '여러 달 합계 = 수입·지출을 모두 더한 값 · 잔액은 마지막 달 기준 · 이월금은 두 번 더하지 않습니다'
+    : '예상 잔고 = 지금 잔액 + 들어올 수입 − 남은 지출 예산 (카드요금은 카드 탭 실시간)';
+  /* 이월 안내 — 한 달을 볼 때만 */
   const bar = $('#bankActiveBar');
-  if (bar){
+  if (bar && yMode){
+    bar.innerHTML = '';
+    bar.classList.add('hidden');
+  } else if (bar){
     const bits = [];
     BANK_ACCOUNTS.forEach(a=>{
       if (bankCarryValue(month, a).auto) return;   /* 연동되는 달은 자동으로 맞으므로 안내가 필요 없습니다 */
@@ -8300,8 +8452,67 @@ function scGroupHtml(month, acc, rowsArg, padN){
     '</div>' +
   '</section>';
 }
+/* 연도 전체·전체 — 계좌별 항목을 그 기간 예산·실행 합계로 (2026-11-25). 이월금은 달마다 반복되므로 뺍니다. */
+function bankSumItemRowsYear(sel, acc){
+  const ms = monthsInSel(sel, bankMonths());
+  const map = new Map();
+  ms.forEach(m=>{
+    bankSumItemRows(m, acc).forEach(row=>{
+      if (isCarryName(row.item)) return;
+      const cur = map.get(row.item) || {item: row.item, dir: row.dir, bud: 0, act: 0, fixed: !!row.fixed, transfer: !!row.transfer};
+      cur.bud += (+row.bud || 0);
+      cur.act += (+row.act || 0);
+      if (row.fixed) cur.fixed = true;
+      if (row.transfer) cur.transfer = true;
+      map.set(row.item, cur);
+    });
+  });
+  const list = Array.from(map.values());
+  const last = ms.length ? ms[ms.length-1] : null;
+  return bankOrderRows(list, last ? bankRowOrder(last, acc) : []);
+}
+function bankSumRowHtmlYear(acc, row){
+  const wide = acc === '우리은행';
+  const bud = row.bud, act = row.act;
+  const isMove = isMoveItem(row.item);
+  const isTr = !isMove && !!row.transfer;
+  const label = isMove ? bankMoveLabel(row.item, acc) : row.item;
+  const budSigned = bud ? (row.dir === 'in' ? bud : -bud) : 0;
+  const cls = v => v ? (v > 0 ? 'in' : 'out') : 'zero';
+  const sign = v => v ? (v > 0 ? '+' : '−') + fmt(Math.abs(v)) : '—';
+  const budCell = wide ? '<span class="num bud ' + cls(budSigned) + '">' + sign(budSigned) + '</span>' : '';
+  const actCell = '<span class="num act sep ' + (act ? cls(act) : 'none') + '">' + sign(act) + '</span>';
+  return '<div class="scg-row' + (isMove ? ' mv' : (isTr ? ' mv tr' : '')) + '" data-item="' + esc(row.item) + '">' +
+    '<span class="nmcell"><span class="inm ' + (row.dir === 'in' ? 'in' : 'out') + (isMove || isTr ? ' fixed mvname' : '') + '" title="' + esc(label + (isTr ? ' — 계좌이동' : '')) + '">' + esc(label) + '</span></span>' +
+    budCell + actCell + '</div>';
+}
+function scGroupHtmlYear(acc, rows){
+  const wide = acc === '우리은행';
+  const T = bankYearTotals(F.month, acc);
+  let budNet = 0, actNet = 0;
+  rows.forEach(r=>{ if (r.bud) budNet += (r.dir === 'in' ? r.bud : -r.bud); if (r.act) actNet += r.act; });
+  const cls = v => v ? (v > 0 ? 'in' : 'out') : 'zero';
+  const sign = v => v ? (v > 0 ? '+' : '−') + fmt(Math.abs(v)) : '—';
+  const total = '<div class="scg-row total"><span class="inm">총합</span>' +
+    (wide ? '<span class="num bud ' + cls(budNet) + '">' + sign(budNet) + '</span>' : '') +
+    '<span class="num act sep ' + (actNet ? cls(actNet) : 'none') + '">' + sign(actNet) + '</span></div>';
+  const body = rows.length
+    ? rows.map(r=> bankSumRowHtmlYear(acc, r)).join('')
+    : '<div class="scg-row"><span class="inm" style="color:var(--muted);font-weight:600;cursor:default">이 해에 항목이 없습니다</span></div>';
+  return '<section class="scg ' + (wide ? 'w3' : 'w2') + ' ro" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
+    '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
+      '<span class="yrall" title="그 기간 예산·실행을 더한 값">' + esc(multiSelLabel()) + '</span></div>' +
+    '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
+    body + (rows.length ? total : '') +
+    '<div class="scg-foot">' +
+      '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
+      '<span class="out">지출 <b>' + (T.exp ? '−' + fmt(T.exp) : '0') + '</b></span>' +
+    '</div>' +
+  '</section>';
+}
 function renderBankItems(){
   const month = bankCurrentMonth();
+  const yMode = bankYearMode();
   const box = $('#bankItems'); if (!box) return;
   const hint = $('#bankItemsHint');
   if (!bankMonths().length){
@@ -8309,6 +8520,18 @@ function renderBankItems(){
       '<b>📸 캡처로 추가</b>로 은행 앱 거래내역 화면을 올리거나 <b>+ 직접 추가</b>로 시작하세요.<br>' +
       '<span class="muted" style="font-size:12px">자료는 이 브라우저와 비공개 저장소에만 저장되고, 카드 탭과 자동으로 이어집니다.</span></div>';
     if (hint) hint.textContent = '';
+    return;
+  }
+  if (yMode){
+    scEdit = null;
+    if (!bankSelMonths().length){
+      box.innerHTML = '<div class="empty" style="padding:26px 4px;grid-column:1/-1">' + esc(multiSelLabel()) + '에는 현금 자료가 없습니다.<br>' +
+        '<span class="muted" style="font-size:12px">다른 해를 고르거나 달을 골라 보세요.</span></div>';
+      if (hint) hint.textContent = '';
+      return;
+    }
+    box.innerHTML = BANK_ACCOUNTS.map(a=> scGroupHtmlYear(a, bankSumItemRowsYear(F.month, a))).join('');
+    if (hint) hint.textContent = multiSelLabel() + ' · 예산·실행 합계 (이월금 제외) · 고치려면 달을 고르세요';
     return;
   }
   box.innerHTML = (()=>{
@@ -8645,13 +8868,18 @@ function bankDirChipsHtml(){
 }
 function renderBankDetail(){
   const month = bankCurrentMonth();
+  const yMode = bankYearMode();
+  /* 연도 전체에서는 여러 달 거래를 모아 보여 주므로 수정 모드를 끝냅니다 — 달을 골라 수정 */
+  if (yMode && BEDITMODE){ BEDITMODE = false; BSEL.clear(); bRowEdit = null; document.body.classList.toggle('editmode', EDITMODE || BEDITMODE); }
   const c2 = $('#bankAccChips2'), c3 = $('#bankDirChips');
   if (c2) c2.innerHTML = bankAccChipsHtml();
   if (c3) c3.innerHTML = bankDirChipsHtml();
   const c4 = $('#bankHlChips');
   if (c4) c4.innerHTML = hlChipsHtml('bank');
   const tbody = $('#btbody'); if (!tbody) return;
-  const rows = bankSortRows(bankFilteredRows(month));
+  const rows = bankSortRows(yMode
+    ? bankSelMonths().reduce((a, m)=> a.concat(bankFilteredRows(m).filter(r=> !r.carry)), [])
+    : bankFilteredRows(month));
   const tbl = $('#bankTable');
   if (tbl) tbl.classList.toggle('nodate', !rows.some(r=> !!r.date));
   const sumBox = $('#bankSum');
@@ -8659,9 +8887,9 @@ function renderBankDetail(){
     let inc = 0, exp = 0;
     rows.forEach(r=>{ if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
     sumBox.innerHTML = '<span class="lbl">합계</span>' +
-      '<span class="lbl" style="color:#0f7a42">입금</span><span class="v" style="color:#0f7a42">+' + fmt(inc) + '<small>원</small></span>' +
+      '<span class="lbl" style="color:#0f7a42">' + (yMode ? '연간 입금' : '입금') + '</span><span class="v" style="color:#0f7a42">+' + fmt(inc) + '<small>원</small></span>' +
       '<span class="lbl">출금</span><span class="v" style="color:#d92d20">−' + fmt(exp) + '<small>원</small></span>' +
-      '<span class="n">· <b>' + fmt(rows.length) + '</b>건 · 잔액 ' + fmt(inc - exp) + '원</span>';
+      '<span class="n">· <b>' + fmt(rows.length) + '</b>건 · ' + (yMode ? '순액 ' + fmt(inc - exp) + '원' : '잔액 ' + fmt(inc - exp) + '원') + '</span>';
     sumBox.classList.toggle('hidden', !rows.length);
   }
   if (BEDITMODE){
@@ -8678,7 +8906,7 @@ function renderBankDetail(){
   }
   if (!rows.length){
     tbody.innerHTML = '<tr class="emptyrow"><td colspan="' + (BEDITMODE ? 6 : 5) + '"><div class="empty">' +
-      esc(monthLabel(month)) + '에 현금 내역이 없습니다.<br><b>📸 캡처로 추가</b>하거나 <b>+ 직접 추가</b>로 넣어 보세요.</div></td></tr>';
+      esc(yMode ? multiSelLabel() : monthLabel(month)) + '에 현금 내역이 없습니다.<br><b>📸 캡처로 추가</b>하거나 <b>+ 직접 추가</b>로 넣어 보세요.</div></td></tr>';
   } else {
     tbody.innerHTML = rows.map(r=>{
       const on = BEDITMODE && !r.virtual && BSEL.has(r.id);
@@ -8714,7 +8942,7 @@ function renderBankDetail(){
   }
   const foot = $('#bankTableFoot');
   if (foot) foot.innerHTML = '<span>표시 <b>' + fmt(rows.length) + '</b>건</span><span class="spacer"></span>' +
-    '<span class="muted">' + esc(monthLabel(month)) + ' · 메모는 거래 줄 아래 · ' + (BEDITMODE ? '✎로 수정, ⠿로 순서' : '자물쇠를 열면 수정·삭제') + '</span>';
+    '<span class="muted">' + esc(yMode ? multiSelLabel() : monthLabel(month)) + ' · 메모는 거래 줄 아래 · ' + (yMode ? '달을 고르면 수정·삭제' : (BEDITMODE ? '✎로 수정, ⠿로 순서' : '자물쇠를 열면 수정·삭제')) + '</span>';
 }
 function bankRowEditHtml(d0, r){
   const d = d0 || {};
@@ -8787,6 +9015,20 @@ function settleSalaryActual(month){
   bankRowsAll(month).forEach(r=>{ if (r.account === '우리은행' && r.amount > 0 && /월급|급여/.test(r.item || '')) s += r.amount; });
   return s;
 }
+/* 연도 전체 정산 — 달별 예산을 더해 1년 계획으로 보고, 집행은 그 해 1~12월 합계 (2026-11-25) */
+function settleYearMonths(sel){ return monthsInSel(sel, bankMonths()); }
+function settleBudgetYear(sel){
+  const out = {salary: 0, cash: {}, card: {}, stored: false, copiedFrom: null, months: settleYearMonths(sel)};
+  SETTLE_CASH_ROWS.forEach(r=> out.cash[r.key] = 0);
+  SETTLE_CARD_ROWS.forEach(r=> out.card[r.key] = 0);
+  out.months.forEach(m=>{
+    const sd = settleData(m);
+    out.salary += sd.salary || 0;
+    SETTLE_CASH_ROWS.forEach(r=> out.cash[r.key] += (sd.cash[r.key] || 0));
+    SETTLE_CARD_ROWS.forEach(r=> out.card[r.key] += (sd.card[r.key] || 0));
+  });
+  return out;
+}
 function settleCashActual(month, key){
   const d = BANK.months[month];
   const map = (d && d.map) || {};
@@ -8809,6 +9051,7 @@ function settleFormula(month, kind, key){
   return (m && m[key]) ? String(m[key]) : '';
 }
 function settleSet(kind, key, v, formula){
+  if (!isMonthSel(F.month)){ toast('연도 전체·전체에서는 예산을 고칠 수 없습니다 — 달을 골라 주세요'); settleEdit = null; renderSettle(); return; }
   const month = bankCurrentMonth();
   const cur = settleData(month);
   const next = {salary: cur.salary, cash: clone(cur.cash), card: clone(cur.card)};
@@ -8841,6 +9084,7 @@ function settleSet(kind, key, v, formula){
 function settleRowHtml(kind, key, label, bud, act, opts){
   const o = opts || {};
   const settleLocked = !lockOpen('settle');       /* 잠금이면 예산 칸을 눌러도 편집되지 않습니다 (2026-11-25) */
+  const ro = o.edit === false || !isMonthSel(F.month);   /* 연도 전체·전체는 읽기 전용 — 예산을 더한 값 */
   const editing = settleEdit && settleEdit.kind === kind && (kind === 'salary' || settleEdit.key === key);
   const fm = settleFormula(bankCurrentMonth(), kind, key);   /* 적어 둔 수식이 있으면 그대로 */
   const diff = bud - act;
@@ -8849,7 +9093,7 @@ function settleRowHtml(kind, key, label, bud, act, opts){
   let h = '<div class="setrow' + cls + (editing ? ' editing' : '') + '" data-setrow="' + esc(id) + '">' +
     '<span class="nm' + (o.indent ? ' d1' : '') + '">' + esc(label) +
       (o.tag ? '<span class="tag ' + o.tagCls + '">' + esc(o.tag) + '</span>' : '') + '</span>';
-  const budCell = (o.edit === false)
+  const budCell = ro
     ? (bud ? '<b>' + fmt(bud) + '</b>' : '—')
     : (editing
       ? '<span class="bedit"><input id="setBudInput" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (bud ? fmt(bud) : '')) + '" placeholder="=100+100" aria-label="' + esc(label) + ' 예산">' +
@@ -8864,12 +9108,16 @@ function settleRowHtml(kind, key, label, bud, act, opts){
 function renderSettle(){
   const el = $('#settleKpis'); if (!el) return;
   const month = bankCurrentMonth();
-  const sd = settleData(month);
-  const cardRows = SETTLE_CARD_ROWS.map(r=> ({key: r.key, label: r.label, bud: sd.card[r.key] || 0, act: settleCardActual(month, r.cats)}));
-  const cashRows = SETTLE_CASH_ROWS.map(r=> ({key: r.key, label: r.label, bud: sd.cash[r.key] || 0, act: settleCashActual(month, r.key)}));
+  const yMode = !isMonthSel(F.month);   /* 연도 전체·전체 = 1~12월(모든 달) 합계 */
+  const yMonths = yMode ? settleYearMonths(F.month) : [];
+  const sd = yMode ? settleBudgetYear(F.month) : settleData(month);
+  const cardActOf = (cats)=> yMode ? yMonths.reduce((s, m)=> s + settleCardActual(m, cats), 0) : settleCardActual(month, cats);
+  const cashActOf = (key)=> yMode ? yMonths.reduce((s, m)=> s + settleCashActual(m, key), 0) : settleCashActual(month, key);
+  const cardRows = SETTLE_CARD_ROWS.map(r=> ({key: r.key, label: r.label, bud: sd.card[r.key] || 0, act: cardActOf(r.cats)}));
+  const cashRows = SETTLE_CASH_ROWS.map(r=> ({key: r.key, label: r.label, bud: sd.cash[r.key] || 0, act: cashActOf(r.key)}));
   const cashBud = cashRows.reduce((a, r)=> a + r.bud, 0), cashAct = cashRows.reduce((a, r)=> a + r.act, 0);
   const cardBud = cardRows.reduce((a, r)=> a + r.bud, 0), cardAct = cardRows.reduce((a, r)=> a + r.act, 0);
-  const salAct0 = settleSalaryActual(month);
+  const salAct0 = yMode ? yMonths.reduce((s, m)=> s + settleSalaryActual(m), 0) : settleSalaryActual(month);
   const salPlanned = !(salAct0 > 0) && sd.salary > 0;
   const salAct = salAct0 > 0 ? salAct0 : sd.salary;
   const outBud = cashBud + cardBud, outAct = cashAct + cardAct;
@@ -8891,15 +9139,17 @@ function renderSettle(){
       '<div class="cap"><span>예산 대비 집행 ' + (outBud ? rate.toFixed(1) : '0') + '%</span>' +
         '<span>실제 집행 합계 ' + fmt(salAct - balAct) + '원</span>' +
         '<span>실제 차액 ' + (balDif < 0 ? '−' : '') + fmt(Math.abs(balDif)) + '원</span>' +
-        '<span class="sp">' + esc(monthLabel(month)) + '</span></div>' +
+        '<span class="sp">' + esc(yMode ? multiSelLabel() : monthLabel(month)) + '</span></div>' +
     '</div>';
-  const chip = $('#settleMonthChip'); if (chip) chip.textContent = monthLabel(month);
+  const chip = $('#settleMonthChip'); if (chip) chip.textContent = yMode ? multiSelLabel() : monthLabel(month);
   const hint = $('#settleHint');
-  if (hint) hint.textContent = !lockOpen('settle')
-    ? '자물쇠를 열면 예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동'
-    : (sd.copiedFrom
-      ? monthLabel(sd.copiedFrom).replace(/^\d{4}년 /, '') + ' 예산을 복사했습니다 · 예산 칸을 눌러 고치세요'
-      : '예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동');
+  if (hint) hint.textContent = yMode
+    ? multiSelLabel() + ' · 예산·집행 합계 · 고치려면 달을 고르세요'
+    : (!lockOpen('settle')
+      ? '자물쇠를 열면 예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동'
+      : (sd.copiedFrom
+        ? monthLabel(sd.copiedFrom).replace(/^\d{4}년 /, '') + ' 예산을 복사했습니다 · 예산 칸을 눌러 고치세요'
+        : '예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동'));
   const box = $('#settleTable'); if (!box) return;
   const head = '<div class="setrow head"><span class="nm">항목</span><span class="num">예산</span><span class="num">집행</span><span class="num">차액</span></div>';
   let body = settleRowHtml('salary', 'salary', '월급', sd.salary, salAct, {cls: 'salary', tag: salPlanned ? '예정' : '', tagCls: 'plan'});
@@ -9022,14 +9272,19 @@ function renderSettleAnnual(){
 function renderSettleCat(){
   const box = $('#settleCat'); if (!box) return;
   const month = bankCurrentMonth();
+  const yMode = !isMonthSel(F.month);
+  const yMonths = yMode ? settleYearMonths(F.month) : [];
+  const label = yMode ? multiSelLabel() : monthLabel(month);
   const rows = [];
-  SETTLE_CASH_ROWS.forEach(r=> rows.push({name: r.label, kind: 'cash', amt: settleCashActual(month, r.key)}));
-  SETTLE_CARD_ROWS.forEach(r=> rows.push({name: r.label, kind: 'card', amt: settleCardActual(month, r.cats)}));
+  SETTLE_CASH_ROWS.forEach(r=> rows.push({name: r.label, kind: 'cash',
+    amt: yMode ? yMonths.reduce((s, m)=> s + settleCashActual(m, r.key), 0) : settleCashActual(month, r.key)}));
+  SETTLE_CARD_ROWS.forEach(r=> rows.push({name: r.label, kind: 'card',
+    amt: yMode ? yMonths.reduce((s, m)=> s + settleCardActual(m, r.cats), 0) : settleCardActual(month, r.cats)}));
   const list = rows.filter(x=> x.amt > 0).sort((a, b)=> b.amt - a.amt);
   const hint = $('#settleCatHint');
-  if (hint) hint.textContent = esc(monthLabel(month)) + ' 집행 기준';
+  if (hint) hint.textContent = esc(label) + ' 집행 기준';
   if (!list.length){
-    box.innerHTML = '<div class="semp">' + esc(monthLabel(month)) + '에 집행된 정산 항목이 없습니다.</div>';
+    box.innerHTML = '<div class="semp">' + esc(label) + '에 집행된 정산 항목이 없습니다.</div>';
     return;
   }
   const total = list.reduce((s, x)=> s + x.amt, 0);
@@ -9556,6 +9811,7 @@ $('#bankSearch').addEventListener('input', ev=>{
 });
 $('#btnBankCapture').addEventListener('click', ()=> openCapture('bank'));
 $('#btnBankAdd').addEventListener('click', ()=>{
+  if (bankYearMode()){ toast('연도 전체·전체 보기에서는 추가할 수 없습니다 — 달을 골라 주세요'); return; }
   if (!lockOpen('bankDetail')){ toast('지금은 잠겨 있습니다 — 제목 옆 자물쇠를 열면 추가할 수 있습니다'); return; }
   openBankNew();
 });
@@ -9580,6 +9836,7 @@ $('#btnBankSelAll').addEventListener('click', ()=>{
 $('#btnBankSelCancel').addEventListener('click', ()=> setBankEditMode(false));
 
 function setBankEditMode(on){
+  if (on && bankYearMode()){ toast('연도 전체·전체 보기에서는 수정할 수 없습니다 — 달을 골라 주세요'); return; }
   BEDITMODE = !!on;
   BSEL.clear();
   bRowEdit = null;
