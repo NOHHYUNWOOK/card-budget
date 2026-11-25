@@ -250,6 +250,10 @@ button.lim-item:active{transform:scale(.99)}
 .lim-form .btn.sm{padding:5px 10px;font-size:12.5px;border-radius:9px;flex:none}
 .lim-form .lim-x{border:0;background:transparent;color:var(--muted);font-size:11.5px;font-weight:600;text-decoration:underline;padding:4px 2px;flex:none}
 .lim-form .lim-x:hover{color:var(--danger)}
+/* 한도 수식 미리보기 — 입력줄 아래에 작게 (2026-11-25) */
+.lim-item .calc-hint{font-size:11px;color:var(--muted);font-weight:650;line-height:1.3;min-height:0}
+.lim-item .calc-hint.bad{color:var(--danger);font-weight:700}
+.lim-item .calc-hint:empty{display:none}
 
 /* ---------- 사용액 분석 피드백 ---------- */
 .fb-box{display:flex;flex-direction:column;gap:5px;border-top:1px dashed var(--line);padding-top:9px;margin-top:1px}
@@ -1141,6 +1145,9 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .scg-row.mv .num:hover{background:var(--acs);color:#111827}
 .scg-row.mv .inm.fixed{cursor:default}
 .scg-row.mv .inm.fixed:hover{background:transparent;color:#111827}
+/* 모으기 이체 2행도 이름은 고칠 수 있습니다 — 자리·부호·검정색은 그대로 (2026-11-25) */
+.scg-row.mv .inm.fixed.mvname{cursor:pointer;box-shadow:inset 0 -1px 0 #ccd1da}
+.scg-row.mv .inm.fixed.mvname:hover{background:var(--acs);color:#111827;box-shadow:inset 0 -1px 0 #8f97a6}
 /* 맨 아래 총합 — 예산 합(우리은행)·실행 합을 수입·지출 합산 순합계로 */
 .scg-row.total{border-top:1px solid #d7dde8;border-bottom:0;padding-top:7px;font-weight:800}
 .scg-row.total .inm{color:var(--ink);font-weight:800;cursor:default}
@@ -1174,6 +1181,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .rowedit-box .calc-hint:empty{display:none}
 .sc-edit .calc-hint{flex:1 1 100%;font-size:11.5px;color:var(--muted);font-weight:650;min-height:0}
 .sc-edit .calc-hint.bad{color:var(--danger);font-weight:700}
+.sc-edit .sc-note{flex:1 1 100%;font-size:11.5px;color:var(--muted);font-weight:650;line-height:1.35}
 .sc-edit .calc-hint:empty{display:none}
 .sc-edit .fld{display:flex;flex-direction:column;gap:2px;flex:1 1 92px;min-width:76px}
 .sc-edit .fld > span{font-size:10px;color:var(--muted);font-weight:700}
@@ -1300,6 +1308,14 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   text-align:right;font-variant-numeric:tabular-nums;outline:none;background:#fafbfd}
 .setrow .bedit input:focus{border-color:#b9cdf7;background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
 .setrow .bedit .btn{padding:3px 8px;font-size:11.5px;border-radius:7px}
+/* 예산을 고치는 동안에는 입력칸을 넓게 — =100000+50000 같은 수식이 잘리지 않게 (2026-11-25) */
+.setrow.editing{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}
+.setrow.editing .num.exe,.setrow.editing .num.dif{display:none}
+.setrow.editing .bedit{justify-content:flex-start;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px}
+.setrow.editing .bedit input{width:100%;min-width:0;text-align:right}
+.setrow.editing .bedit .calc-hint{grid-column:1/-1;font-size:11px;color:var(--muted);font-weight:650;min-height:0}
+.setrow.editing .bedit .calc-hint.bad{color:var(--danger);font-weight:700}
+.setrow.editing .bedit .calc-hint:empty{display:none}
 @media (max-width:560px){
   .setwrap{padding:6px 12px 14px}
   .setrow,.setgrp{grid-template-columns:minmax(0,1fr) 80px 80px 66px;gap:4px;font-size:12px}
@@ -1939,6 +1955,9 @@ const LIMIT_DEFAULTS = {'삼성카드': 2000000, 'KB국민카드': 400000, '우�
 /* 사용자가 정한 값만 담습니다. 숫자(0 포함) = 설정한 한도(원), null = 지운 상태(미설정).
    0은 '미설정'이 아니라 '0원 한도'입니다 — 쓰는 만큼 남은 한도가 음수로 표시됩니다. */
 let LIMITS = {};        // { '삼성카드': 1500000, '현대카드': 0 } — 0은 0원 한도(설정됨)
+/* 한도를 '=100+70' 처럼 수식으로 넣었을 때의 원문 — 다시 열면 결과(175만원)가 아니라 수식이 보입니다 (2026-11-25) */
+const LIMITF_KEY = LS_KEY + '.limitformula';
+let LIMIT_FORMULA = {};   // { '삼성카드': '=100+70' }
 let limitEdit = null;   // 지금 금액을 입력 중인 카드
 function limitOwn(c){ return Object.prototype.hasOwnProperty.call(LIMITS, c); }
 /* 한도가 '설정된' 카드인가 — 0원도 설정된 한도입니다. 지운 카드(null)와 기본값 0만 미설정. */
@@ -1966,9 +1985,29 @@ function loadLimits(){
   } catch(e){ LIMITS = {}; }
 }
 function saveLimits(){
-  try { localStorage.setItem(LIMIT_KEY, JSON.stringify(LIMITS)); return true; }
-  catch(e){ toast('한도를 저장하지 못했습니다 (브라우저 저장 공간)'); return false; }
+  try {
+    localStorage.setItem(LIMIT_KEY, JSON.stringify(LIMITS));
+    localStorage.setItem(LIMITF_KEY, JSON.stringify(LIMIT_FORMULA));
+    return true;
+  } catch(e){ toast('한도를 저장하지 못했습니다 (브라우저 저장 공간)'); return false; }
 }
+/* 한도 수식 원문 — 한도를 지우면 함께 지웁니다 */
+function loadLimitFormula(){
+  LIMIT_FORMULA = {};
+  try {
+    const p = JSON.parse(localStorage.getItem(LIMITF_KEY) || '{}');
+    if (p && typeof p === 'object' && !Array.isArray(p)){
+      Object.keys(p).forEach(c=>{
+        const v = String(p[c] == null ? '' : p[c]).trim();
+        if (isFormulaText(v)) LIMIT_FORMULA[c] = formulaText(v);
+      });
+    }
+  } catch(e){ LIMIT_FORMULA = {}; }
+}
+function setLimitFormula(c, fm){
+  if (fm) LIMIT_FORMULA[c] = fm; else delete LIMIT_FORMULA[c];
+}
+function limitFormulaOf(c){ return (LIMIT_FORMULA[c] && String(LIMIT_FORMULA[c])) || ''; }
 const parseLimit = s => {
   /* 입력은 '만원' 단위(예: 200 = 200만원). 소수점도 받아 원 단위로 바꿔 저장합니다. */
   const t = String(s==null?'':s).replace(/[^0-9.]/g, '');
@@ -2493,7 +2532,7 @@ function limitTileHtml(c, ctx){
   const p = lim > 0 ? Math.min(100, Math.max(0, Math.round(used / lim * 1000) / 10))
                     : (used > 0 ? 100 : 0);
   const near = !over && p >= 90;
-  return '<button class="lim-item'+(over ? ' over' : (near ? ' near' : ''))+'" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 한도 수정">'+
+  return '<button class="lim-item'+(over ? ' over' : (near ? ' near' : ''))+'" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 한도 수정'+(limitFormulaOf(c) ? ' · ' + esc(limitFormulaOf(c)) : '')+'">'+
     '<span class="top">'+nm+'</span>'+
     '<span class="rem">'+(over ? '−' : '')+fmt(Math.abs(rem))+'<small>원 '+(over ? '초과' : '남음')+'</small></span>'+
     '<span class="bar"><i style="width:'+p+'%"></i></span>'+
@@ -2503,16 +2542,18 @@ function limitTileHtml(c, ctx){
 function limitEditorHtml(c){
   const lim = limitOf(c);
   const set = limitIsSet(c);
-  const shown = set ? (lim ? limitManText(lim) : '0') : '';   /* 0원 한도도 '0'으로 보이게 */
+  const fm = limitFormulaOf(c);
+  const shown = fm || (set ? (lim ? limitManText(lim) : '0') : '');   /* 수식 이력이 있으면 그 수식, 0원 한도도 '0'으로 보이게 */
   return '<div class="lim-item editing">'+
     '<span class="top"><span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</span>'+
     '<div class="lim-form">'+
-      '<input id="limInput" type="text" inputmode="decimal" autocomplete="off" value="'+esc(shown)+'" placeholder="예: 200" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원, 0 = 0원 한도)">'+
+      '<input id="limInput" type="text" inputmode="text" autocomplete="off" value="'+esc(shown)+'" placeholder="예: 200 (=100+70)" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원, =100+70 도 계산, 0 = 0원 한도)">'+
       '<span class="won">만원</span>'+
       '<button class="btn primary sm" data-limact="save">저장</button>'+
       '<button class="btn ghost sm" data-limact="cancel">취소</button>'+
       (set ? '<button class="lim-x" data-limact="clear">지우기</button>' : '')+
     '</div>'+
+    '<span class="calc-hint lim-hint" id="calcHint">' + esc(fm ? fm + ' = ' + (lim ? limitManText(lim) : '0') + '만원' : '') + '</span>'+
     '</div>';
 }
 function renderLimits(){
@@ -3728,7 +3769,7 @@ function renderTable(rows, sum){
         'title="분류 선택 · 추가 · 삭제" aria-label="'+esc(catName)+' — 분류 변경">'+
         (none ? '' : '<span class="dot" style="background:'+catMeta(r.category).color+'"></span>')+
         '<span class="nm">'+esc(catName)+'</span><span class="car">▾</span></button></td>'+
-      '<td class="num amount'+(r.amount<0?' neg':'')+'">'+fmt(r.amount)+'원'+
+      '<td class="num amount'+(r.amount<0?' neg':'')+'"'+(r.formula?' title="'+esc(r.formula)+' = '+fmt(r.amount)+'원"':'')+'>'+fmt(r.amount)+'원'+
         (EDITMODE ? '<button type="button" class="qexc'+(exc?' on':'')+'" data-exctoggle="'+esc(r.id)+'" title="'+(exc?'결제예정에 다시 반영':'결제예정 미반영으로 빼기')+'" aria-label="'+(exc?'결제예정 반영':'결제예정 미반영')+'">'+(exc?'↺':'⊘')+'</button>' : '')+
         (EDITMODE ? '<button type="button" class="qedit" data-rowedit="'+esc(r.id)+'" title="이용일자·가맹점·금액 수정" aria-label="'+esc(r.merchant)+' 내용 수정">✎</button>' : '')+
         (EDITMODE ? '<button type="button" class="qdel" data-qdel="'+esc(r.id)+'" title="이 거래 바로 삭제" aria-label="'+esc(r.merchant)+' 바로 삭제">🗑</button>' : '')+'</td>'+
@@ -3796,7 +3837,7 @@ function renderTableNow(){
 function openRowEdit(id){
   const r = S.rows.find(x=> x.id === id);
   if (!r) return;
-  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: fmt(r.amount)};
+  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: r.formula || fmt(r.amount)};
   renderTableNow();
   const inp = document.querySelector('tr[data-editrow] [data-refield="merchant"]');
   if (inp){ inp.focus(); try { inp.setSelectionRange(0, inp.value.length); } catch(e){} }
@@ -3827,6 +3868,9 @@ function saveRowEdit(){
   }
   const oldKey = rowKey(row);
   row.date = date; row.merchant = merchant; row.amount = amount; row.edited = true;
+  /* 금액을 '=100+100' 수식으로 적었으면 계산값과 함께 원문도 남깁니다 (2026-11-25) */
+  const fm = isFormulaText(d.amount) ? formulaText(d.amount) : '';
+  if (fm) row.formula = fm; else delete row.formula;
   if (rowKey(row) !== oldKey) addTomb(oldKey, row.month);   /* 동기화: 예전 값이 다른 기기에 남지 않게 */
   rowEdit = null;
   saveState();
@@ -4302,17 +4346,27 @@ $('#limitGrid').addEventListener('click', ev=>{
     const a = act.dataset.limact;
     if (a === 'cancel'){ limitEdit = null; renderLimits(); return; }
     if (a === 'clear'){
-      LIMITS[card] = null; saveLimits(); limitEdit = null; renderAll();   /* null = 미설정 */
+      LIMITS[card] = null; setLimitFormula(card, ''); saveLimits(); limitEdit = null; renderAll();   /* null = 미설정 */
       markSettingsDirty();
       toast(shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
     if (a === 'save'){
-      const v = parseLimit($('#limInput') ? $('#limInput').value : '');   /* null = 빈 입력 */
-      LIMITS[card] = v; saveLimits(); limitEdit = null; renderAll();
+      const raw = $('#limInput') ? $('#limInput').value : '';
+      const fm = isFormulaText(raw) ? formulaText(raw) : '';
+      let v = null;
+      if (/[=+\-*/()×÷]/.test(String(raw))){          /* 수식·사칙연산 입력 — 만원 단위로 계산 (2026-11-25) */
+        const cc = calcAmount(raw);
+        if (!cc.ok){ toast('한도: ' + cc.error); return; }
+        if (cc.value < 0){ toast('한도는 0 이상이어야 합니다'); return; }
+        v = Math.min(Math.round(cc.value * 10000), 99999999);
+      } else {
+        v = parseLimit(raw);   /* null = 빈 입력 */
+      }
+      LIMITS[card] = v; setLimitFormula(card, v === null ? '' : fm); saveLimits(); limitEdit = null; renderAll();
       markSettingsDirty();
       toast(v === null ? shortCard(card) + ' 월 한도를 지웠습니다'
-        : (v ? shortCard(card) + ' 월 한도 ' + won(v)
+        : (v ? shortCard(card) + ' 월 한도 ' + won(v) + (fm ? ' · ' + fm : '')
              : shortCard(card) + ' 월 한도를 0원으로 설정 — 쓰는 만큼 초과로 표시됩니다'));
       return;
     }
@@ -4323,6 +4377,12 @@ $('#limitGrid').addEventListener('click', ev=>{
 $('#limitGrid').addEventListener('input', ev=>{
   const t = ev.target;
   if (t.id !== 'limInput') return;
+  /* 수식(=100+70·200*2)은 적은 그대로 두고, 그냥 숫자만 적을 때는 만원 단위 콤마로 정리합니다 */
+  if (/[=+\-*/()×÷]/.test(String(t.value))){
+    const h = document.getElementById('calcHint');
+    if (h){ const cc = calcAmount(t.value); h.textContent = cc.ok ? (String(t.value).trim() + ' = ' + limitManText(cc.value * 10000) + '만원') : cc.error; h.classList.toggle('bad', !cc.ok); }
+    return;
+  }
   /* 만원 단위 — 숫자와 소수점 하나만, 정수부는 천 단위 콤마로 */
   const d = String(t.value).replace(/[^0-9.]/g, '').match(/^(\d{0,6})(?:\.(\d?))?/);
   const ip = (d && d[1]) || '';
@@ -5020,6 +5080,17 @@ function saveCategories(){
 }
 
 /* ---------- rules tab ---------- */
+/* 분류 규칙의 금액 범위도 '=100+100' 수식으로 적을 수 있게 (2026-11-25) */
+function setRuleBound(i, key, raw){
+  const r = draft.rules[i]; if (!r) return;
+  const s = String(raw == null ? '' : raw).trim();
+  const fk = key + 'Formula';
+  if (!s){ r[key] = null; delete r[fk]; return; }
+  const c = calcAmount(s);
+  if (!c.ok) return;                        /* 아직 치는 중 — 마지막으로 맞는 값을 그대로 둡니다 */
+  r[key] = Math.max(0, c.value);
+  if (isFormulaText(s)) r[fk] = formulaText(s); else delete r[fk];
+}
 function ruleTabHtml(){
   const cats = draft.cats.length ? draft.cats.map(c=>c.name) : S.categories.map(c=>c.name);
   const list = draft.rules.map((r,i)=>{
@@ -5032,7 +5103,7 @@ function ruleTabHtml(){
       '</div>'+
       '<div class="rulegrid">'+
         '<input class="kw" data-rule-kw="'+i+'" type="text" value="'+esc((r.keywords||[]).join(', '))+'" placeholder="가맹점에 포함된 글자 (쉼표로 구분)">'+
-        '<span class="rng">금액 <input type="number" data-rule-min="'+i+'" value="'+(r.min==null?'':r.min)+'" placeholder="이상"> ~ <input type="number" data-rule-max="'+i+'" value="'+(r.max==null?'':r.max)+'" placeholder="이하"></span>'+
+        '<span class="rng">금액 <input type="text" inputmode="decimal" data-rule-min="'+i+'" value="'+esc(r.minFormula || (r.min==null?'':r.min))+'" placeholder="이상"> ~ <input type="text" inputmode="decimal" data-rule-max="'+i+'" value="'+esc(r.maxFormula || (r.max==null?'':r.max))+'" placeholder="이하"></span>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -5055,8 +5126,8 @@ function bindRuleTab(){
     const t = ev.target, d = t.dataset;
     if (d.ruleCat != null) draft.rules[+d.ruleCat].category = t.value;
     if (d.ruleKw != null) draft.rules[+d.ruleKw].keywords = t.value.split(/[,、]+/).map(s=>s.trim()).filter(Boolean);
-    if (d.ruleMin != null) draft.rules[+d.ruleMin].min = t.value === '' ? null : Math.max(0, +t.value);
-    if (d.ruleMax != null) draft.rules[+d.ruleMax].max = t.value === '' ? null : Math.max(0, +t.value);
+    if (d.ruleMin != null) setRuleBound(+d.ruleMin, 'min', t.value);
+    if (d.ruleMax != null) setRuleBound(+d.ruleMax, 'max', t.value);
   });
   body.addEventListener('click', ev=>{
     const d = ev.target.closest('[data-rule-del]'); if(!d) return;
@@ -5253,8 +5324,8 @@ function bindDataTab(){
   });
   $('#btnWipe').addEventListener('click', ()=>{
     askConfirm('저장된 자료를 지울까요?', '이 브라우저의 자동 저장(localStorage)과 화면 자료를 지우고 빈 가계부로 돌아갑니다. 카드별 한도도 함께 지워집니다. CSV 백업을 먼저 받아두세요.', '지우기', ()=>{
-      try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); } catch(e){}
-      LIMITS = {}; limitEdit = null; FB_AI = null; FB_AI_OFF = null;
+      try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(LIMITF_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); } catch(e){}
+      LIMITS = {}; LIMIT_FORMULA = {}; limitEdit = null; FB_AI = null; FB_AI_OFF = null;
       MILE = MILE_EMPTY(); mileEdit = false;
       mileGoalEdit = false;
       S = blankState(true); F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
@@ -5824,6 +5895,8 @@ function rowForStore(r){
   /* 결제예정 미반영 — 되돌린 것도 시각과 함께 올려 다른 기기에서 최신 상태로 적용되게 합니다 */
   out.excluded = !!r.excluded;
   if (r.excludedAt) out.excludedAt = r.excludedAt;
+  /* 금액을 수식(=100+100)으로 넣었을 때의 원문 — 계산값(amount)과 함께 남깁니다 */
+  if (r.formula) out.formula = String(r.formula).slice(0, 80);
   /* 하이라이트 — 지운 것도 빈 값으로 올려 다른 기기에 반영되게 합니다 */
   out.highlight = hlKey(r.highlight);
   if (r.highlightAt) out.highlightAt = r.highlightAt;
@@ -5887,7 +5960,7 @@ async function pushMonth(month){
 function settingsSnapshot(){
   const colors = {}, cats = [];
   S.categories.forEach(c=>{ cats.push(c.name); if (c.color) colors[c.name] = c.color; });
-  const snap = {v:1, limits:Object.assign({}, LIMITS), mileageGoal:(MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT),
+  const snap = {v:1, limits:Object.assign({}, LIMITS), limitFormula:Object.assign({}, LIMIT_FORMULA), mileageGoal:(MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT),
                 cats:cats, colors:colors, rules:S.rules, dueDates:S.dueDates,
                 hlPresets:HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
                 hlRetired:Object.assign({}, HL.retired),
@@ -5931,6 +6004,15 @@ function applyRemoteSettings(p){
       if (Number.isFinite(v) && v >= 0) next[c] = v;                 /* 0원 한도도 숫자 0으로 유지 */
     });
     LIMITS = next; saveLimits(); changed++;
+  }
+  /* 한도 수식 원문도 함께 받습니다 — 한도와 짝이므로 위에서 받은 뒤에 */
+  if (p.limitFormula && typeof p.limitFormula === 'object' && !Array.isArray(p.limitFormula) && remoteAt > localAt){
+    const nf = {};
+    Object.keys(p.limitFormula).forEach(c=>{
+      const v = String(p.limitFormula[c] == null ? '' : p.limitFormula[c]).trim();
+      if (isFormulaText(v)) nf[c] = formulaText(v);
+    });
+    LIMIT_FORMULA = nf; saveLimits(); changed++;
   }
   if (p.mileageGoal != null && isFinite(+p.mileageGoal)){
     const gv = Math.max(0, Math.round(+p.mileageGoal));
@@ -6116,6 +6198,7 @@ function normalizeRow(raw){
     cardName: raw.cardName || '', payType: raw.payType || '',
     excluded: raw.excluded === true || raw.excluded === 'true' || raw.excluded === 1,
     excludedAt: String(raw.excludedAt || ''),
+    formula: (raw.formula && /^\s*=/.test(String(raw.formula))) ? String(raw.formula).trim().slice(0, 80) : '',
     highlight: hlKey(raw.highlight),
     highlightAt: String(raw.highlightAt || ''),
     order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')
@@ -6141,6 +6224,7 @@ function mergePayload(payload, stats){
       let ch = false;
       if (!ex.edited && r.category && r.category !== ex.category){ ex.category = r.category; ch = true; }
       if (!ex.edited && r.memo && r.memo !== ex.memo){ ex.memo = r.memo; ch = true; }
+      if (!ex.formula && r.formula){ ex.formula = r.formula; ch = true; }   /* 수식 원문만 비어 있으면 받아 둠 */
       /* 결제예정 미반영 — 더 최근에 바꾼 쪽(excludedAt)을 따릅니다 */
       if (r.excludedAt){
         const re = Date.parse(r.excludedAt) || 0, le = Date.parse(ex.excludedAt || '') || 0;
@@ -6661,7 +6745,7 @@ function capRowHtml(r){
         '</div>'+
         '<div class="l2">'+
           '<input type="date" data-cap-f="date" data-i="'+i+'" value="'+esc(r.date)+'" aria-label="날짜">'+
-          '<input type="number" step="1" data-cap-f="amount" data-i="'+i+'" value="'+r.amount+'" class="'+(r.amount<0?'neg':'')+'" aria-label="금액">'+
+          '<input type="text" inputmode="decimal" data-cap-f="amount" data-i="'+i+'" value="'+esc(r.formula || r.amount)+'" class="'+(r.amount<0?'neg':'')+'" aria-label="금액">'+
           '<select data-cap-f="account" data-i="'+i+'" aria-label="계좌">'+accOpts+'</select>'+
           '<select data-cap-f="item" data-i="'+i+'" aria-label="항목">'+itemOpts+'</select>'+
         '</div>'+
@@ -6680,7 +6764,7 @@ function capRowHtml(r){
       '</div>'+
       '<div class="l2">'+
         '<input type="date" data-cap-f="date" data-i="'+i+'" value="'+esc(r.date)+'" aria-label="이용일자">'+
-        '<input type="number" step="1" data-cap-f="amount" data-i="'+i+'" value="'+r.amount+'" class="'+(r.amount<0?'neg':'')+'" aria-label="금액">'+
+        '<input type="text" inputmode="decimal" data-cap-f="amount" data-i="'+i+'" value="'+esc(r.formula || r.amount)+'" class="'+(r.amount<0?'neg':'')+'" aria-label="금액">'+
         '<select data-cap-f="card" data-i="'+i+'" aria-label="카드사">'+cardOpts+'</select>'+
         '<select data-cap-f="category" data-i="'+i+'" aria-label="분류">'+catOpts+'</select>'+
       '</div>'+
@@ -6768,7 +6852,11 @@ function capSaveInlineKey(){
 function capSetField(i, f, v, el){
   const r = CAP.results[i]; if (!r) return;
   if (f === 'amount'){
-    r.amount = Math.round(+v || 0);
+    /* '=100+100' 수식도 받습니다 — 결과는 숫자로, 원문은 formula 로 (2026-11-25) */
+    const raw = String(v == null ? '' : v);
+    const c = calcAmount(raw);
+    r.amount = c.ok ? c.value : Math.round(+raw || 0);
+    if (isFormulaText(raw)) r.formula = formulaText(raw); else delete r.formula;
     if (el) el.classList.toggle('neg', r.amount < 0);
     capUpdateFoot();
   } else if (f === 'merchant' || f === 'date' || f === 'note' || f === 'category' || f === 'card' || f === 'item' || f === 'account'){
@@ -6863,6 +6951,7 @@ function capAddSelected(){
       merchant: String(it.merchant).trim(), amount: Math.round(+it.amount || 0),
       category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture'
     };
+    if (it.formula) row.formula = it.formula;   /* 캡처 검토에서 적은 수식 원문도 함께 */
     S.rows.push(row);
     newRows.push(row);
     clearTomb(rowKey(row));   /* 같은 거래를 일부러 다시 넣었으면 삭제 기록을 풉니다 */
@@ -6961,6 +7050,8 @@ const bankAccShort = a => BANK_ACC_SHORT[a] || a;
 function calcAmount(raw){
   let s = String(raw == null ? '' : raw).trim();
   if (!s) return {ok: false, error: '금액을 입력하세요'};
+  s = s.replace(/^=\s*/, '');          /* 엑셀처럼 앞에 = 를 붙여도 같은 식으로 계산 (2026-11-25) */
+  if (!s) return {ok: false, error: '금액을 입력하세요'};
   s = s.replace(/[−–—]/g, '-').replace(/[×✕✖]/g, '*').replace(/÷/g, '/')
        .replace(/[（]/g, '(').replace(/[）]/g, ')').replace(/＋/g, '+').replace(/\s+/g, '');
   if (/[^0-9+\-*/().,]/.test(s)) return {ok: false, error: '숫자와 + − × ÷ ( ) 만 쓸 수 있습니다'};
@@ -7011,10 +7102,14 @@ function calcAmount(raw){
     return {ok: true, value: r};
   } catch(e){ return {ok: false, error: e.message}; }
 }
+/* 금액 칸에 '=100+100' 처럼 '='로 시작하는 수식을 적었으면, 계산한 숫자와 함께 원문을 저장해
+   나중에 그 칸을 다시 열었을 때 결과값(200)이 아니라 적은 수식 그대로 보여 줍니다 (2026-11-25). */
+function isFormulaText(raw){ return /^\s*=/.test(String(raw == null ? '' : raw)); }
+function formulaText(raw){ return String(raw == null ? '' : raw).trim().slice(0, 80); }
 /* 수식 미리보기 — 입력란과 같은 폼 안의 .calc-hint 에 = 결과를 보여줍니다 */
 function refreshCalcHint(inp){
   if (!inp) return;
-  const box = inp.closest('.bedit-grid, .sc-edit, .bsq-edit, .rowedit-box');
+  const box = inp.closest('.bedit-grid, .sc-edit, .bsq-edit, .rowedit-box, .bedit, .lim-form, .caprow');
   const hint = box && box.querySelector('.calc-hint');
   if (!hint) return;
   const raw = String(inp.value || '').trim();
@@ -7043,8 +7138,8 @@ function normItemName(n){ const s = String(n == null ? '' : n).trim(); return is
    · 이 두 항목과 토스 모으기 계좌 전체는 현금 탭 맨 위 '총 수입'·'총 지출'에서 빠지고,
      계좌별 잔액과 정산 요약 총합에는 그대로 들어갑니다. */
 const MOVE_ITEMS = [
-  {item: '모으기채우기', dir: 'out', sign: -1},
-  {item: '모으기꺼내기', dir: 'in', sign: 1}
+  {key: 'fill', item: '모으기채우기', dir: 'out', sign: -1},
+  {key: 'take', item: '모으기꺼내기', dir: 'in', sign: 1}
 ];
 const MOVE_ACCOUNTS = ['우리은행', '토스 입출금'];
 function moveItemInfo(n){
@@ -7052,6 +7147,36 @@ function moveItemInfo(n){
   for (let i = 0; i < MOVE_ITEMS.length; i++) if (MOVE_ITEMS[i].item === k) return MOVE_ITEMS[i];
   return null;
 }
+/* 모으기 이체 2행의 보이는 이름 — 슬롯(fill/take)에 붙여 두고, 바꾼 이름은 모든 달·두 계좌에 같이 보입니다.
+   저장은 이 기기(localStorage)와 비공개 저장소의 bank-YYYY-MM.json(moveNames)에 함께 남습니다.
+   이름을 비우면 기본 이름(모으기채우기 / 모으기꺼내기)으로 돌아갑니다.
+   이름만 바뀌고 슬롯의 성격(검정색·−/+ 부호·총 수입/지출 제외·총합 바로 위 자리)은 그대로입니다 (2026-11-25). */
+function bankMoveLabel(item){
+  const m = moveItemInfo(item);
+  if (!m) return String(item == null ? '' : item);
+  const raw = BANK.moveNames && BANK.moveNames[m.key];
+  const nm = String(raw == null ? '' : raw).trim().slice(0, 24);
+  return nm || m.item;
+}
+function bankSetMoveName(key, name){
+  const s = String(name == null ? '' : name).trim().slice(0, 24);
+  if (!BANK.moveNames || typeof BANK.moveNames !== 'object' || Array.isArray(BANK.moveNames)) BANK.moveNames = {};
+  if (s) BANK.moveNames[key] = s; else delete BANK.moveNames[key];
+  BANK.moveNamesAt = nowIso();
+}
+/* 바꾼 이름으로 입력한 거래도 같은 슬롯으로 읽습니다 — 저절로 줄이 하나 더 생기지 않게 */
+function moveLabelInfo(n){
+  const k = String(n == null ? '' : n).replace(/\s+/g, '');
+  if (!k) return null;
+  for (let i = 0; i < MOVE_ITEMS.length; i++){
+    const raw = BANK.moveNames && BANK.moveNames[MOVE_ITEMS[i].key];
+    const nm = String(raw == null ? '' : raw).replace(/\s+/g, '');
+    if (nm && nm === k) return MOVE_ITEMS[i];
+  }
+  return null;
+}
+/* 이름 → 슬롯 (기본 이름과 바꾼 이름 모두) */
+function moveAnyInfo(n){ return moveItemInfo(n) || moveLabelInfo(n); }
 function isMoveItem(n){ return !!moveItemInfo(n); }
 /* 모으기 이체 금액의 부호 — 채우기는 음수(−), 꺼내기는 양수(+) */
 function moveSignedAmount(item, raw){
@@ -7092,7 +7217,7 @@ const SETTLE_CARD_ROWS = [
   {key: '기타', label: '기타', cats: ['기타']}
 ];
 const BANK_KEY = LS_KEY + '.bank';
-const BANK_EMPTY = () => ({v: 1, months: {}, ui: {account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}});
+const BANK_EMPTY = () => ({v: 1, months: {}, moveNames: {}, moveNamesAt: '', ui: {account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}});
 let BANK = BANK_EMPTY();
 let VIEW = 'card';                                  /* card | bank | settle */
 let scEdit = null;                                  /* 정산 요약 편집 {acc,item,field:'name'|'bud'|'act'|'new',dir} */
@@ -7108,6 +7233,14 @@ function bankLoad(){
     if (raw){
       const p = JSON.parse(raw);
       if (p && p.ui && typeof p.ui === 'object') BANK.ui = Object.assign({account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}, p.ui);
+      /* 모으기 이체 2행의 바꾼 이름 — fill(채우기)·take(꺼내기) */
+      if (p && p.moveNames && typeof p.moveNames === 'object' && !Array.isArray(p.moveNames)){
+        MOVE_ITEMS.forEach(m=>{
+          const v = String(p.moveNames[m.key] == null ? '' : p.moveNames[m.key]).trim().slice(0, 24);
+          if (v) BANK.moveNames[m.key] = v;
+        });
+      }
+      if (p && p.moveNamesAt) BANK.moveNamesAt = String(p.moveNamesAt);
       if (p && p.months && typeof p.months === 'object'){
         Object.keys(p.months).forEach(m=>{
           if (!/^\d{4}-\d{2}$/.test(m)) return;
@@ -7174,6 +7307,7 @@ function bankNormalizeRow(raw){
     order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')};
   if (raw.carry) r.carry = true;
   if (raw.src) r.src = raw.src;
+  if (raw.formula && /^\s*=/.test(String(raw.formula))) r.formula = String(raw.formula).trim().slice(0, 80);
   const hk = hlKey(raw.highlight);
   if (hk) r.highlight = hk;
   if (raw.highlightAt) r.highlightAt = String(raw.highlightAt);
@@ -7194,6 +7328,7 @@ function bankRowKey(r){ return [r.account || '', String(r.date || '').slice(0, 1
 function bankRowForStore(r){
   const o = {month: r.month, account: r.account, date: r.date || '', item: r.item || '', name: r.name || '',
     amount: Math.round(+r.amount || 0), memo: r.memo || '', highlight: hlKey(r.highlight)};
+  if (r.formula) o.formula = String(r.formula).slice(0, 80);   /* '=100+100' 수식 원문 (2026-11-25) */
   if (r.highlightAt) o.highlightAt = r.highlightAt;
   if (r.carry) o.carry = true;
   if (typeof r.order === 'number' && isFinite(r.order)){ o.order = Math.round(r.order * 100) / 100; if (r.orderAt) o.orderAt = r.orderAt; }
@@ -7321,11 +7456,16 @@ function bankBudget(month, account, item){
   if (!bankMonths().length) return 0;      /* 자료가 하나도 없으면 빈 화면 — 기본값을 지어내지 않습니다 */
   return Math.round(+((BANK_TEMPLATE_BUDGET[account] || {})[item] || 0));
 }
-function bankSetBudget(month, account, item, v){
+function bankSetBudget(month, account, item, v, formula){
   item = normItemName(item);
   const d = ensureBankDoc(month);
   if (!d.budgets[account]) d.budgets[account] = {};
   d.budgets[account][item] = Math.max(0, Math.round(+v || 0));
+  /* 예산을 '=100+100' 수식으로 넣었으면 원문도 저장 — 다시 누르면 수식이 보입니다 (2026-11-25) */
+  if (!d.budgetFormula || typeof d.budgetFormula !== 'object') d.budgetFormula = {};
+  if (!d.budgetFormula[account]) d.budgetFormula[account] = {};
+  const fm = formula == null ? '' : formulaText(formula);
+  if (fm) d.budgetFormula[account][item] = fm; else delete d.budgetFormula[account][item];
   /* 언제 고친 값인지 — 월급 예산이 직전 달·이번 달 중 더 나중 것을 따르게 하는 데 씁니다 */
   if (!d.budgetAt || typeof d.budgetAt !== 'object') d.budgetAt = {};
   if (!d.budgetAt[account]) d.budgetAt[account] = {};
@@ -7333,6 +7473,25 @@ function bankSetBudget(month, account, item, v){
   d.updatedAt = nowIso();
   bankSave();
   markBankDirty(month);
+}
+/* 예산 수식 원문 — 이 달에 값이 없을 때만 직전 달 것을 봅니다(bankBudget 과 같은 규칙) */
+function bankBudgetFormula(month, account, item){
+  if (isCarryName(item) && bankCarryValue(month, account).auto) return '';
+  const get = (doc)=>{
+    const f = doc && doc.budgetFormula && doc.budgetFormula[account];
+    return f && f[item] ? String(f[item]) : '';
+  };
+  const d = BANK.months[month];
+  const b = d && d.budgets && d.budgets[account];
+  if (b && Object.prototype.hasOwnProperty.call(b, item)) return get(d);
+  return get(BANK.months[ymShift(month, -1)]);
+}
+/* 실행 금액 수식 원문 — 그 항목 줄에 적어 둔 수식을 찾아 돌려줍니다 */
+function bankItemFormula(month, account, item){
+  const rs = bankRowsAll(month).filter(r=> r.account === account && r.item === item);
+  if (rs.length === 1 && rs[0].formula) return String(rs[0].formula);
+  const adj = rs.filter(r=> r.formula && /정산 요약에서 직접 입력/.test(r.memo || ''));
+  return adj.length ? String(adj[adj.length - 1].formula) : '';
 }
 function bankItemActual(month, account, item){
   item = normItemName(item);
@@ -7560,21 +7719,25 @@ function bankSumRowHtml(month, acc, row, wide){
   const bud = row.bud, act = row.act;
   const isCarry = isCarryName(row.item);
   const isMove = isMoveItem(row.item);           /* 모으기채우기·모으기꺼내기 — 이름·금액 모두 검정 */
+  const label = isMove ? bankMoveLabel(row.item) : row.item;   /* 바꾼 이름이 있으면 그 이름으로 */
   const cv = isCarry ? bankCarryValue(month, acc) : null;
   const carryNote = cv && cv.auto ? monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합에서 자동' : '';
   /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24)
      이월금은 예산 총합이 마이너스(계획상 적자)일 수 있어 부호 그대로 보입니다 */
   const budSigned = bud ? (row.dir === 'in' ? bud : -bud) : 0;
+  const budFm = wide ? bankBudgetFormula(month, acc, row.item) : '';
+  const actFm = bankItemFormula(month, acc, row.item);
   const budCell = wide
-    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기')) + '">' +
+    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기') + (budFm ? ' · ' + budFm : '')) + '">' +
       (budSigned ? (budSigned > 0 ? '+' : '−') + fmt(Math.abs(budSigned)) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc(carryNote ? '이월금 실행 · ' + carryNote : (isMove ? row.item + ' 실행 — ' + (row.dir === 'in' ? '＋' : '−') + ' 부호로 들어갑니다' : '실행 합계 직접 입력')) + '">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (isMove ? label + ' 실행 — ' + (row.dir === 'in' ? '＋' : '−') + ' 부호로 들어갑니다' : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
-  const fixedTitle = row.item + ' — 정산 요약 고정 항목 (' + (row.dir === 'in' ? '＋ 모으기에서 꺼내는 돈' : '− 모으기로 넣는 돈') + ')';
-  const nameCell = (row.fixed || isMove)
-    ? '<span class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed" title="' + esc(fixedTitle) + '">' + esc(row.item) + '</span>'
-    : '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(row.item) + '</button>';
+  const nameCell = isMove
+    ? '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed mvname" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + ' — 눌러서 이름 고치기 (부호·검정색·총 수입/지출 제외는 그대로)') + '">' + esc(label) + '</button>'
+    : (row.fixed
+      ? '<span class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed" title="' + esc(row.item + ' — 정산 요약 고정 항목') + '">' + esc(label) + '</span>'
+      : '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(label) + '</button>');
   return '<div class="scg-row' + (isMove ? ' mv' : '') + '">' +
     nameCell + budCell + actCell + '</div>';
 }
@@ -7611,6 +7774,18 @@ function scEditHtml(month, acc){
   }
   const item = e.item;
   if (e.field === 'name'){
+    const mv = moveItemInfo(item);
+    if (mv){
+      /* 모으기 이체 2행 — 이름만 바꾸고 슬롯 성격은 그대로 (2026-11-25) */
+      const label = bankMoveLabel(item);
+      return '<div class="sc-edit" ' + st + '>' +
+        '<span class="who">모으기 이체 · 이름</span>' +
+        '<input id="scName" type="text" maxlength="24" value="' + esc(label) + '" placeholder="' + esc(mv.item) + '" aria-label="항목 이름">' +
+        '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
+        '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
+        '<span class="sc-note">이름만 바뀝니다 — 검정색 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호 · 총 수입/지출 제외 · 두 계좌 공통 · 비우면 ' + esc(mv.item) + '</span>' +
+      '</div>';
+    }
     return '<div class="sc-edit" ' + st + '>' +
       '<span class="who">' + esc(bankAccShort(acc)) + ' · 항목 이름</span>' +
       '<input id="scName" type="text" maxlength="24" value="' + esc(item) + '" aria-label="항목 이름">' +
@@ -7621,10 +7796,11 @@ function scEditHtml(month, acc){
   }
   const isAct = e.field === 'act';
   const val = isAct ? Math.abs(bankItemActual(month, acc, item)) : bankBudget(month, acc, item);
+  const fm = isAct ? bankItemFormula(month, acc, item) : bankBudgetFormula(month, acc, item);   /* 적어 둔 수식이 있으면 그대로 보여 줌 */
   const linked = !isAct && acc === '우리은행' && item === '카드요금' && bankCardLinked(month);
   return '<div class="sc-edit" ' + st + '>' +
     '<span class="who">' + esc(bankAccShort(acc)) + ' · ' + (isAct ? '실행 합계' : '예산') + (linked ? ' ⇄' : '') + '</span>' +
-    '<input id="scAmt" type="text" inputmode="decimal" data-calc="1" value="' + (val ? fmt(val) : '') + '" placeholder="50000+12000" aria-label="' + (isAct ? '실행 합계' : '예산') + '">' +
+    '<input id="scAmt" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (val ? fmt(val) : '')) + '" placeholder="=100+100" aria-label="' + (isAct ? '실행 합계' : '예산') + '">' +
     '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
     '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
     '<span class="calc-hint" id="calcHint"></span>' +
@@ -7713,6 +7889,8 @@ function bankRenameItem(month, acc, oldName, newName){
   });
   const b = d.budgets[acc];
   if (b && Object.prototype.hasOwnProperty.call(b, oldName)){ b[newName] = b[oldName]; delete b[oldName]; }
+  const bf = d.budgetFormula && d.budgetFormula[acc];
+  if (bf && Object.prototype.hasOwnProperty.call(bf, oldName)){ bf[newName] = bf[oldName]; delete bf[oldName]; }   /* 수식 원문도 함께 */
   const ba = d.budgetAt && d.budgetAt[acc];
   if (ba && Object.prototype.hasOwnProperty.call(ba, oldName)){ ba[newName] = ba[oldName]; delete ba[oldName]; }
   const map = bankEnsureMap(month);
@@ -7727,20 +7905,25 @@ function bankDeleteItem(month, acc, item){
   d.rows = d.rows.filter(r=> !(r.account === acc && r.item === item));
   const b = d.budgets[acc];
   if (b && Object.prototype.hasOwnProperty.call(b, item)) delete b[item];
+  if (d.budgetFormula && d.budgetFormula[acc]) delete d.budgetFormula[acc][item];
   if (d.budgetAt && d.budgetAt[acc]) delete d.budgetAt[acc][item];
   if (d.map && typeof d.map === 'object') Object.keys(d.map).forEach(k=> d.map[k] = (d.map[k] || []).filter(x=> x !== item));
   d.updatedAt = nowIso();
   return rows.length;
 }
 /* 실행 금액 직접 입력 — 거래가 한 건이면 그 금액을, 여러 건이면 차액을 조정 줄로 넣습니다 */
-function bankSetItemActual(month, acc, item, target, dir){
+function bankSetItemActual(month, acc, item, target, dir, formula){
   const d = ensureBankDoc(month);
   if (isCarryName(item) && bankCarryValue(month, acc).auto) return null;  /* 연동되는 달은 직전 달에서만 */
   const signed = dir === 'in' ? target : -target;
+  const fm = formula ? formulaText(formula) : '';            /* '=100+100' 수식 원문 (2026-11-25) */
+  const putFm = (r)=>{ if (!r) return; if (fm) r.formula = fm; else delete r.formula; };
   const real = d.rows.filter(r=> r.account === acc && r.item === item);
   if (isCarryName(item) && !real.length){
-    d.rows.push({id: uid(), month: month, account: acc, date: '', item: item, name: item,
-      amount: signed, memo: '정산 요약에서 직접 입력', carry: true, order: 0});
+    const r0 = {id: uid(), month: month, account: acc, date: '', item: item, name: item,
+      amount: signed, memo: '정산 요약에서 직접 입력', carry: true, order: 0};
+    putFm(r0);
+    d.rows.push(r0);
     d.updatedAt = nowIso();
     return null;
   }
@@ -7748,15 +7931,24 @@ function bankSetItemActual(month, acc, item, target, dir){
     const r = real[0];
     const oldK = bankRowKey(r);
     r.amount = signed;
+    putFm(r);
     if (bankRowKey(r) !== oldK){ addBankTomb(oldK, month); clearBankTomb(bankRowKey(r)); }
     d.updatedAt = nowIso();
     return null;
   }
   const act = bankItemActual(month, acc, item);
   const delta = signed - act;
-  if (!delta) return 0;
-  d.rows.push({id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: item, name: item + ' (정산 조정)',
-    amount: delta, memo: '정산 요약에서 직접 입력', order: bankNewOrder(d), orderAt: nowIso()});
+  if (!delta){
+    /* 금액은 그대로여도 적은 수식은 남겨 둡니다 */
+    const adj0 = real.filter(r=> /정산 요약에서 직접 입력/.test(r.memo || ''));
+    putFm(adj0.length ? adj0[adj0.length - 1] : real[0]);
+    d.updatedAt = nowIso();
+    return 0;
+  }
+  const adj = {id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: item, name: item + ' (정산 조정)',
+    amount: delta, memo: '정산 요약에서 직접 입력', order: bankNewOrder(d), orderAt: nowIso()};
+  putFm(adj);
+  d.rows.push(adj);
   d.updatedAt = nowIso();
   return delta;
 }
@@ -7786,25 +7978,35 @@ function scSave(){
     const list = bankItemList(month, acc);
     if (list.in.indexOf(name) >= 0 || list.out.indexOf(name) >= 0){ toast('이미 있는 항목입니다'); if (nameEl) nameEl.focus(); return; }
     const dir = dirEl && dirEl.value === 'in' ? 'in' : 'out';
-    let bud = 0, amt = 0;
+    let bud = 0, amt = 0, budFm = '', amtFm = '';
     if (budEl && String(budEl.value).trim()){
       const c = calcAmount(budEl.value);
       if (!c.ok){ toast('예산: ' + c.error); return; }
       if (c.value < 0){ toast('예산은 0원 이상이어야 합니다'); return; }
       bud = c.value;
+      if (isFormulaText(budEl.value)) budFm = formulaText(budEl.value);
     }
     if (amtEl && String(amtEl.value).trim()){
       const c = calcAmount(amtEl.value);
       if (!c.ok){ toast('금액: ' + c.error); return; }
       amt = Math.abs(c.value);
       if (!amt){ toast('금액은 0원보다 커야 합니다'); return; }
+      if (isFormulaText(amtEl.value)) amtFm = formulaText(amtEl.value);
     }
     if (!bud && !amt){ toast('예산이나 금액 중 하나는 넣어주세요'); return; }
     const d = ensureBankDoc(month);
-    if (bud){ if (!d.budgets[acc]) d.budgets[acc] = {}; d.budgets[acc][name] = bud; }
+    if (bud){
+      if (!d.budgets[acc]) d.budgets[acc] = {};
+      d.budgets[acc][name] = bud;
+      if (!d.budgetFormula || typeof d.budgetFormula !== 'object') d.budgetFormula = {};
+      if (!d.budgetFormula[acc]) d.budgetFormula[acc] = {};
+      if (budFm) d.budgetFormula[acc][name] = budFm; else delete d.budgetFormula[acc][name];
+    }
     if (amt){
-      d.rows.push({id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: name, name: name,
-        amount: dir === 'in' ? amt : -amt, memo: '', order: bankNewOrder(d), orderAt: nowIso()});
+      const nr = {id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: name, name: name,
+        amount: dir === 'in' ? amt : -amt, memo: '', order: bankNewOrder(d), orderAt: nowIso()};
+      if (amtFm) nr.formula = amtFm;
+      d.rows.push(nr);
     }
     d.updatedAt = nowIso();
     scEdit = null; bankSave(); renderAll(); markBankDirty(month);
@@ -7813,6 +8015,28 @@ function scSave(){
   }
   if (e.field === 'name'){
     const el = $('#scName');
+    /* 모으기 이체 2행(모으기채우기·모으기꺼내기) — 슬롯에 붙은 이름만 바꿉니다.
+       거래·예산 이름은 그대로 두어 부호·검정색·총 수입/지출 제외·자리가 모두 유지됩니다 (2026-11-25). */
+    const mv = moveItemInfo(e.item);
+    if (mv){
+      const raw = String(el ? el.value : '').trim().replace(/\s+/g, ' ');
+      const nn = raw.slice(0, 24);
+      const back = !nn || nn === mv.item;   /* 빈 값이면 기본 이름으로 */
+      if (!back){
+        const taken = BANK_ACCOUNTS.some(a=>{
+          const l = bankItemList(month, a);
+          return l.in.concat(l.out).some(x=> x === nn && !moveItemInfo(x));
+        });
+        if (taken){ toast('이미 있는 항목 이름입니다 — 다른 이름으로 넣어주세요'); if (el) el.focus(); return; }
+        const other = moveAnyInfo(nn);
+        if (other && other.key !== mv.key){ toast('다른 모으기 이체 행이 쓰는 이름입니다'); if (el) el.focus(); return; }
+      }
+      bankSetMoveName(mv.key, back ? '' : nn);
+      scEdit = null; bankSave(); renderAll(); markBankDirty(month);
+      toast(back ? '이름을 기본값 "' + mv.item + '"(으)로 되돌렸습니다'
+                 : '이름을 "' + nn + '"(으)로 바꿨습니다 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호와 총 수입/지출 제외는 그대로');
+      return;
+    }
     const nn = String(el ? el.value : '').trim().slice(0, 24);
     if (!nn){ toast('항목 이름을 넣어주세요'); return; }
     if (nn === e.item){ scEdit = null; renderBankItems(); return; }
@@ -7824,23 +8048,25 @@ function scSave(){
     return;
   }
   const el = $('#scAmt');
-  const c = calcAmount(el ? el.value : '');
+  const rawAmt = String(el ? el.value : '');
+  const c = calcAmount(rawAmt);
   if (!c.ok){ toast((e.field === 'act' ? '실행' : '예산') + ': ' + c.error); return; }
+  const fm = isFormulaText(rawAmt) ? formulaText(rawAmt) : '';   /* '=100+100' 수식 원문 */
   if (e.field === 'bud'){
     if (c.value < 0){ toast('예산은 0원 이상이어야 합니다'); return; }
     if (acc === '우리은행' && e.item === '카드요금' && bankCardLinked(month)){
       const d = ensureBankDoc(month); d.cardLink = false; d.updatedAt = nowIso();
     }
-    bankSetBudget(month, acc, e.item, c.value);
+    bankSetBudget(month, acc, e.item, c.value, fm);
     scEdit = null; renderAll();
-    toast(e.item + ' 예산을 ' + fmt(c.value) + '원으로 저장했습니다');
+    toast(e.item + ' 예산을 ' + fmt(c.value) + '원으로 저장했습니다' + (fm ? ' · ' + fm : ''));
     return;
   }
   const target = Math.abs(c.value);
   const dir = e.dir === 'in' ? 'in' : 'out';
-  const delta = bankSetItemActual(month, acc, e.item, target, dir);
+  const delta = bankSetItemActual(month, acc, e.item, target, dir, fm);
   scEdit = null; bankSave(); renderAll(); markBankDirty(month);
-  toast(e.item + ' 실행을 ' + fmt(target) + '원으로 맞췄습니다' + (delta ? ' · 차액 ' + (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + '원을 조정 줄로 넣었습니다' : ''));
+  toast(e.item + ' 실행을 ' + fmt(target) + '원으로 맞췄습니다' + (fm ? ' · ' + fm : '') + (delta ? ' · 차액 ' + (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + '원을 조정 줄로 넣었습니다' : ''));
 }
 
 /* ---------------- 은행 상세 내역 ---------------- */
@@ -7936,7 +8162,7 @@ function renderBankDetail(){
         '<td class="bacc"><span class="acc"><span class="dot" style="background:' + bankAccColor(r.account) + '"></span>' + esc(bankAccShort(r.account)) + '</span></td>' +
         '<td class="bname">' + (r.virtual ? '' : '<div class="mline">' + hlBtnHtml('bank', r.id, r.highlight)) + '<span class="nm" title="' + esc(r.name) + '">' + esc(r.name || r.item) + '</span>' + (r.virtual ? '' : '</div>') +
           '<span class="memo" title="' + esc(memo) + '">' + esc(memo) + '</span></td>' +
-        '<td class="bamt ' + (r.amount > 0 ? 'inc' : 'out') + '">' + bankAmountCell(r) + badges + '</td>' +
+        '<td class="bamt ' + (r.amount > 0 ? 'inc' : 'out') + '"' + (r.formula ? ' title="' + esc(r.formula) + ' = ' + (r.amount > 0 ? '+' : '−') + fmt(Math.abs(r.amount)) + '원"' : '') + '>' + bankAmountCell(r) + badges + '</td>' +
       '</tr>';
     }).join('');
   }
@@ -7960,7 +8186,9 @@ function bankRowEditHtml(d0, r){
   let items = list.in.concat(list.out).filter((v,i,a)=> a.indexOf(v) === i);
   if (d.item && items.indexOf(d.item) < 0) items = [d.item].concat(items);
   /* 모으기 이체 항목은 정산 요약 고정 행이라 항목 목록에 안 나와도 여기서 고를 수 있게 (2026-11-25) */
-  if (MOVE_ACCOUNTS.indexOf(acc) >= 0) MOVE_ITEMS.forEach(m=>{ if (items.indexOf(m.item) < 0) items.push(m.item); });
+  if (MOVE_ACCOUNTS.indexOf(acc) >= 0) MOVE_ITEMS.forEach(m=>{
+    [m.item, bankMoveLabel(m.item)].forEach(x=>{ if (x && items.indexOf(x) < 0) items.push(x); });
+  });
   const accOpts = BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
   const itemOpts = items.map(it=> '<option value="' + esc(it) + '"></option>').join('');
   const isNew = r.id === '__new__' || d.isNew;
@@ -8038,20 +8266,37 @@ function settleCardActual(month, cats){
   S.rows.forEach(r=>{ if (r.month === month && !isExc(r) && cats.indexOf(r.category) >= 0) s += (+r.amount || 0); });
   return s;
 }
-function settleSet(kind, key, v){
+function settleFormula(month, kind, key){
+  const d = BANK.months[month];
+  const f = d && d.settlementFormula;
+  if (!f || typeof f !== 'object') return '';
+  if (kind === 'salary') return f.salary ? String(f.salary) : '';
+  const m = f[kind];
+  return (m && m[key]) ? String(m[key]) : '';
+}
+function settleSet(kind, key, v, formula){
   const month = bankCurrentMonth();
   const cur = settleData(month);
   const next = {salary: cur.salary, cash: clone(cur.cash), card: clone(cur.card)};
   const val = Math.max(0, Math.round(+v || 0));
+  const fm = formula ? formulaText(formula) : '';              /* '=100+100' 수식 원문 (2026-11-25) */
   if (kind === 'salary'){
     next.salary = val;
     /* 정산 탭에서 고친 월급 예산을 현금 탭 '월급' 항목에도 같이 저장 — 다음 달 예산으로 이어집니다 */
-    bankSetBudget(month, '우리은행', '월급', val);
+    bankSetBudget(month, '우리은행', '월급', val, fm);
   }
   else if (kind === 'cash') next.cash[key] = val;
   else next.card[key] = val;
   const d = ensureBankDoc(month);
   d.settlement = next;
+  if (!d.settlementFormula || typeof d.settlementFormula !== 'object') d.settlementFormula = {salary:'', cash:{}, card:{}};
+  if (!d.settlementFormula.cash || typeof d.settlementFormula.cash !== 'object') d.settlementFormula.cash = {};
+  if (!d.settlementFormula.card || typeof d.settlementFormula.card !== 'object') d.settlementFormula.card = {};
+  if (kind === 'salary') d.settlementFormula.salary = fm;
+  else {
+    const box = d.settlementFormula[kind];
+    if (fm) box[key] = fm; else delete box[key];
+  }
   d.updatedAt = nowIso();
   settleEdit = null;
   bankSave();
@@ -8062,18 +8307,20 @@ function settleSet(kind, key, v){
 function settleRowHtml(kind, key, label, bud, act, opts){
   const o = opts || {};
   const editing = settleEdit && settleEdit.kind === kind && (kind === 'salary' || settleEdit.key === key);
+  const fm = settleFormula(bankCurrentMonth(), kind, key);   /* 적어 둔 수식이 있으면 그대로 */
   const diff = bud - act;
   const id = kind + '|' + key;
   const cls = o.cls ? ' ' + o.cls : '';
-  let h = '<div class="setrow' + cls + '" data-setrow="' + esc(id) + '">' +
+  let h = '<div class="setrow' + cls + (editing ? ' editing' : '') + '" data-setrow="' + esc(id) + '">' +
     '<span class="nm' + (o.indent ? ' d1' : '') + '">' + esc(label) +
       (o.tag ? '<span class="tag ' + o.tagCls + '">' + esc(o.tag) + '</span>' : '') + '</span>';
   const budCell = (o.edit === false)
     ? (bud ? '<b>' + fmt(bud) + '</b>' : '—')
     : (editing
-      ? '<span class="bedit"><input id="setBudInput" type="text" inputmode="decimal" data-calc="1" value="' + (bud ? fmt(bud) : '') + '" aria-label="' + esc(label) + ' 예산">' +
-        '<button type="button" class="btn primary" data-setsave="yes">확인</button><button type="button" class="btn ghost" data-setcancel="1">✕</button></span>'
-      : '<button type="button" class="budbtn" data-setbud="' + esc(id) + '" title="예산 고치기">' + (bud ? fmt(bud) : '—') + '</button>');
+      ? '<span class="bedit"><input id="setBudInput" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (bud ? fmt(bud) : '')) + '" placeholder="=100+100" aria-label="' + esc(label) + ' 예산">' +
+        '<button type="button" class="btn primary" data-setsave="yes">확인</button><button type="button" class="btn ghost" data-setcancel="1">✕</button>' +
+        '<span class="calc-hint" id="calcHint"></span></span>'
+      : '<button type="button" class="budbtn" data-setbud="' + esc(id) + '" title="' + esc('예산 고치기' + (fm ? ' · ' + fm : '')) + '">' + (bud ? fmt(bud) : '—') + '</button>');
   h += '<span class="num bud">' + budCell + '</span>';
   h += '<span class="num exe' + (act ? '' : ' zero') + '">' + (act ? fmt(act) : '—') + '</span>';
   h += '<span class="num dif' + (diff < 0 ? ' over' : (diff > 0 ? ' good' : '')) + '">' + (bud || act ? bankMoney(diff) : '—') + '</span>';
@@ -8299,6 +8546,10 @@ function bankMonthPayload(month, remoteJson){
   const live = new Set(rows.concat(extra).map(r=> bankRowKey(r)));
   return {v: 1, kind: 'bank', month: month, updatedAt: nowIso(), accounts: BANK_ACCOUNTS,
     cardLink: d.cardLink !== false,
+    moveNames: Object.assign({}, (BANK.moveNames || {})),
+    moveNamesAt: BANK.moveNamesAt || '',
+    budgetFormula: d.budgetFormula || {},
+    settlementFormula: d.settlementFormula || {},
     rows: rows.concat(extra),
     budgets: d.budgets || {},
     budgetAt: d.budgetAt || {},
@@ -8387,7 +8638,36 @@ function applyBankPayload(p){
     if (remoteAt > localAt) doc.budgetAt = p.budgetAt;
     else if (!doc.budgetAt) doc.budgetAt = p.budgetAt;
   }
+  /* 예산·정산 예산의 '=100+100' 수식 원문도 함께 맞춥니다 */
+  ['budgetFormula', 'settlementFormula'].forEach(k=>{
+    const src = p[k];
+    if (!src || typeof src !== 'object' || Array.isArray(src)) return;
+    if (remoteAt > localAt || !doc[k]) doc[k] = src;
+    else if (typeof doc[k] === 'object'){
+      Object.keys(src).forEach(a=>{
+        if (src[a] && typeof src[a] === 'object'){
+          if (!doc[k][a]) doc[k][a] = {};
+          Object.keys(src[a]).forEach(it=>{ if (doc[k][a][it] == null) doc[k][a][it] = src[a][it]; });
+        } else if (doc[k][a] == null) doc[k][a] = src[a];
+      });
+    }
+  });
   if (p.map && typeof p.map === 'object' && (!doc.map || remoteAt > localAt)) doc.map = p.map;
+  /* 모으기 이체 2행의 바꾼 이름 — 더 나중에 고친 쪽을 따릅니다 */
+  if (p.moveNames && typeof p.moveNames === 'object' && !Array.isArray(p.moveNames)){
+    const rNameAt = Date.parse(p.moveNamesAt || '') || 0;
+    const lNameAt = Date.parse(BANK.moveNamesAt || '') || 0;
+    if (rNameAt > lNameAt){
+      const next = {};
+      MOVE_ITEMS.forEach(m=>{
+        const v = String(p.moveNames[m.key] == null ? '' : p.moveNames[m.key]).trim().slice(0, 24);
+        if (v) next[m.key] = v;
+      });
+      BANK.moveNames = next;
+      BANK.moveNamesAt = p.moveNamesAt;
+      changed++;
+    }
+  }
   if (p.settlement && (!doc.settlement || remoteAt > localAt)) doc.settlement = p.settlement;
   if (typeof p.cardLink === 'boolean' && (!doc.cardLink || remoteAt > localAt)) doc.cardLink = p.cardLink;
   if (remoteAt > localAt) doc.updatedAt = p.updatedAt;
@@ -8645,7 +8925,7 @@ function openBankRowEdit(id){
   const r = d && d.rows.find(x=> x.id === id);
   if (!r) return;
   bRowEdit = {id: r.id, month: month, account: r.account, date: toDateStr(r.date) || '', item: r.item,
-    name: r.name || '', amount: fmt(Math.abs(r.amount)), memo: r.memo || '', isNew: false, dir: r.amount < 0 ? 'out' : 'in'};
+    name: r.name || '', amount: r.formula || fmt(Math.abs(r.amount)), memo: r.memo || '', isNew: false, dir: r.amount < 0 ? 'out' : 'in'};
   renderBank();
   const panel = $('#bankEditPanel');
   if (panel){ try { panel.scrollIntoView({behavior: 'smooth', block: 'center'}); } catch(e){} }
@@ -8674,35 +8954,41 @@ function bankNewOrder(doc){
 function saveBankRow(){
   const d = bRowEdit; if (!d) return;
   const itemRaw = String(d.item || '').trim();
-  const name = String(d.name || '').trim() || itemRaw;
+  const moveHit = moveAnyInfo(itemRaw);            /* 바꿔 둔 모으기 이름으로 넣어도 같은 슬롯 (2026-11-25) */
+  const name = String(d.name || '').trim() || (moveHit ? bankMoveLabel(moveHit.item) : itemRaw);
   const calc = calcAmount(d.amount);
   if (calc.ok && Math.abs(calc.value) === 0){ toast('금액은 0원보다 커야 합니다'); return; }
   if (!name){ toast('항목이나 내용을 넣어주세요'); return; }
   if (!calc.ok){ toast('금액: ' + calc.error); const i = document.querySelector('#bankEditPanel [data-bf="amount"]'); if (i) i.focus(); return; }
   const amount = (()=>{
     const base = d.dir === 'in' ? Math.abs(calc.value) : -Math.abs(calc.value);
-    return isMoveItem(itemRaw) ? moveSignedAmount(itemRaw, calc.value) : base;   /* 채우기 −, 꺼내기 + 로 정리 */
+    return moveHit ? moveSignedAmount(moveHit.item, calc.value) : base;   /* 채우기 −, 꺼내기 + 로 정리 */
   })();
   const month = d.month || bankCurrentMonth();
   const account = normBankAccount(d.account) || d.account || '우리은행';
-  const item = isMoveItem(itemRaw) ? moveItemInfo(itemRaw).item : (itemRaw || '기타');
+  const item = moveHit ? moveHit.item : (itemRaw || '기타');
   const date = d.date ? toDateStr(d.date) : '';
   const memo = String(d.memo || '').trim().slice(0, 80);
+  const fm = isFormulaText(d.amount) ? formulaText(d.amount) : '';   /* '=100+100' 수식 원문 */
   const doc = ensureBankDoc(month);
+  const putFm = (r)=>{ if (!r) return; if (fm) r.formula = fm; else delete r.formula; };
   if (d.isNew){
-    doc.rows.push({id: uid(), month: month, account: account, date: date, item: item, name: name,
-      amount: amount, memo: memo, order: bankNewOrder(doc), orderAt: nowIso()});
+    const nr = {id: uid(), month: month, account: account, date: date, item: item, name: name,
+      amount: amount, memo: memo, order: bankNewOrder(doc), orderAt: nowIso()};
+    putFm(nr);
+    doc.rows.push(nr);
   } else {
     const r = doc.rows.find(x=> x.id === d.id);
     if (!r){ bRowEdit = null; renderBank(); return; }
     const oldKey = bankRowKey(r);
     r.account = account; r.date = date; r.item = item; r.name = name; r.amount = amount; r.memo = memo;
+    putFm(r);
     if (bankRowKey(r) !== oldKey) addBankTomb(oldKey, month);
   }
   doc.updatedAt = nowIso();
   bRowEdit = null;
   bankSave(); renderAll(); markBankDirty(month);
-  const shownDir = isMoveItem(item) ? (moveSignedAmount(item, calc.value) < 0 ? 'out' : 'in') : d.dir;
+  const shownDir = moveHit ? (moveSignedAmount(moveHit.item, calc.value) < 0 ? 'out' : 'in') : d.dir;
   toast('저장했습니다' + (calc.error ? '' : ' · ' + (shownDir === 'in' ? '+' : '−') + fmt(Math.abs(calc.value)) + '원'));
 }
 function askBankDelete(ids){
@@ -8768,7 +9054,7 @@ $('#bankDetailCard').addEventListener('input', ev=>{
   bRowEdit[f] = t.value;
   /* 항목에 모으기채우기·모으기꺼내기를 넣으면 구분을 부호에 맞게 바꿔 줍니다 (2026-11-25) */
   if (f === 'item'){
-    const m = moveItemInfo(t.value);
+    const m = moveAnyInfo(t.value);
     if (m){
       bRowEdit.dir = m.sign < 0 ? 'out' : 'in';
       const sel = document.querySelector('#bankEditPanel [data-bf="dir"]');
@@ -8880,10 +9166,12 @@ $('#settleTable').addEventListener('click', ev=>{
   if (ev.target.closest('[data-setcancel]')){ settleEdit = null; renderSettle(); return; }
   if (ev.target.closest('[data-setsave]')){
     const i = $('#setBudInput');
-    const c = calcAmount(i ? i.value : '');
+    const raw = String(i ? i.value : '');
+    const c = calcAmount(raw);
     if (!c.ok){ toast('예산: ' + c.error); return; }
     if (c.value < 0){ toast('예산은 0원 이상이어야 합니다'); return; }
-    if (settleEdit) settleSet(settleEdit.kind, settleEdit.key, c.value);
+    const fm = isFormulaText(raw) ? formulaText(raw) : '';
+    if (settleEdit) settleSet(settleEdit.kind, settleEdit.key, c.value, fm);
     else renderSettle();
   }
 });
@@ -9224,6 +9512,7 @@ window.addEventListener('keydown', ev=>{
   hlLoad();
   loadState();
   loadLimits();
+  loadLimitFormula();
   mileageLoad();
   loadAiConfig();
   loadSyncConfig();
