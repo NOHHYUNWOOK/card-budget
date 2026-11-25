@@ -482,8 +482,36 @@ td.cat{white-space:nowrap}
 .table-foot .spacer{margin-left:auto}
 /* ---------- 상세 내역 · 편집 모드 (2026-11-22) ---------- */
 .table-card .card-head .head-actions{display:flex;gap:6px;flex:none}
-#btnEditMode.onedit{background:#eef4ff;border-color:#c4d6f8;color:#1d4ed8}
-#btnEditMode.onedit:hover{background:#e3edff}
+/* ---------- 패널 자물쇠 토글 (2026-11-25) ----------
+   편집할 수 있는 모든 패널은 제목 옆 자물쇠 하나로 편집을 열고 닫습니다. 기본은 잠금.
+   잠긴 동안에는 조회용 UI(검색·필터·하이라이트 색 필터)만 남고 편집 손잡이는 사라집니다. */
+.lockslot{display:inline-flex;flex:none}
+.lockbtn{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:none;
+  border:1px solid #e2e7f0;background:#fff;color:#9aa3b2;border-radius:9px;padding:0;cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s,box-shadow .15s;vertical-align:middle}
+.lockbtn:hover{border-color:#c3cddd;background:#f7f9fc;color:#5b6474}
+.lockbtn:active{transform:scale(.97)}
+.lockbtn .lk{display:inline-flex}
+.lockbtn .lk-open{display:none}
+.lockbtn svg{display:block;pointer-events:none}
+.lockbtn.on{color:#1d4ed8;border-color:#9dbcf7;background:#eef4ff;box-shadow:0 0 0 2px rgba(59,130,246,.14)}
+.lockbtn.on:hover{background:#e3edff;border-color:#7fabf4}
+.lockbtn.on .lk-closed{display:none}
+.lockbtn.on .lk-open{display:inline-flex}
+.card-head h2 + .lockslot{margin-left:-4px}
+.limit-head .lbl + .lockslot{margin-left:4px}
+/* 잠긴 패널 — 조회용 UI만 남기고 편집 손잡이는 감춥니다 */
+.locked .catbtn,.locked .hlbtn,.locked .exctag{cursor:default;pointer-events:none}
+.locked .catbtn .car{display:none}
+.locked tbody tr{cursor:default}
+#bankDetailCard.locked #btnBankAdd{display:none}
+/* 잠긴 정산 요약 — disabled 버튼은 흐려지지 않게, 이름은 같은 색으로 그대로 */
+.locked .scg-row button[disabled],.locked .setrow button[disabled]{opacity:1;cursor:default}
+.locked .setrow .budbtn:hover{background:transparent;color:var(--ink)}
+.scg-row .inm.ro,.scg-row .inm.ro:hover{cursor:default;background:transparent}
+.scg-row .inm.ro.in,.scg-row .inm.ro.in:hover{color:#0f7a42}
+.scg-row .inm.ro.out,.scg-row .inm.ro.out:hover{color:#c8251c}
+.scg-row.mv .inm.ro,.scg-row.mv .inm.ro:hover{color:#111827;text-decoration:none}
 /* ---------- 결제예정 미반영 (2026-11-23) ---------- */
 tbody tr[data-exc="1"]{background:#fbfbfc}
 tbody tr[data-exc="1"] td.date,tbody tr[data-exc="1"] td:nth-child(2),
@@ -522,7 +550,7 @@ body.editmode tbody tr{cursor:pointer}
 body.editmode tbody tr:hover{background:#f7faff}
 body.editmode tbody tr.sel-on{background:#f1f6ff}
 body.editmode tbody tr.sel-on:hover{background:#e9f1ff}
-body.editmode tbody tr .catbtn{pointer-events:none;opacity:.62}
+body.editmode tbody tr .catbtn{opacity:.9}
 body.editmode tbody tr.dragging{background:#fff;box-shadow:0 10px 24px rgba(17,24,39,.16);position:relative;z-index:3}
 body.editmode tbody tr.dragging td{border-bottom-color:transparent}
 .qdel{border:0;background:transparent;padding:2px 4px;margin-left:5px;font-size:12.5px;line-height:1;color:var(--muted);border-radius:7px;vertical-align:middle}
@@ -850,9 +878,10 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .catopt .pick{font-size:13.5px;padding:10px 11px;min-height:44px}
   .table-foot{font-size:12.5px;padding:10px 12px}
   .table-scroll{overflow-x:visible}
-  .table-card .card-head{display:grid;grid-template-columns:1fr auto;gap:6px 8px}
+  .table-card .card-head{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px}
   .table-card .card-head h2{grid-column:1;grid-row:1}
-  .table-card .card-head .head-actions{grid-column:2;grid-row:1;justify-self:end}
+  .table-card .card-head .lockslot{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
+  .table-card .card-head .head-actions{grid-column:3;grid-row:1;justify-self:end}
   .table-card .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0;text-align:left;line-height:1.4}
   /* 편집 모드: 행 왼쪽에 드래그 핸들 + 선택 칸, 오른쪽 위에 바로 삭제 */
   body.editmode tbody tr{grid-template-columns:auto auto auto 1fr auto;
@@ -1230,8 +1259,9 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 82px}
   .scg.w3 .scg-row .num.bud{padding-right:8px}
   .scg.w3 .scg-row .num.act{padding-left:8px}
-  /* 세로 스택에서는 빈 채움 행을 숨겨 여백이 늘지 않게 (2026-11-24) */
-  .scg-row.ph{display:none}
+  /* 세로 스택에서는 잠금 상태의 빈 채움 행을 숨겨 여백이 늘지 않게 (2026-11-24 → 2026-11-25)
+     잠금을 풀면 빈칸이 드래그 목표가 되므로 보입니다. */
+  #bankItemsCard.locked .scg-row.ph{display:none}
   .scg-row{font-size:12.8px;padding:6px 0}
   .scg-row button.num{font-size:12px}
   .scg-cols{font-size:10px}
@@ -1375,10 +1405,11 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   body.editmode #bankTable td.bacc{grid-column:3}
   body.editmode #bankTable td.bname{grid-column:2}
   body.editmode #bankTable td.bamt{grid-column:3}
-  #bankDetailCard .card-head{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-  #bankDetailCard .card-head h2{width:100%}
-  #bankDetailCard .card-head .hint{margin-left:0}
-  #bankDetailCard .card-head .head-actions{margin-left:0;justify-content:flex-start;flex-wrap:wrap;width:100%}
+  #bankDetailCard .card-head{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 8px}
+  #bankDetailCard .card-head h2{width:auto;grid-column:1;grid-row:1}
+  #bankDetailCard .card-head .lockslot{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
+  #bankDetailCard .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0}
+  #bankDetailCard .card-head .head-actions{margin-left:0;justify-content:flex-start;flex-wrap:wrap;width:100%;grid-column:1 / -1;grid-row:3}
   #bankDetailCard .card-head .head-actions .btn{padding:6px 10px;font-size:12px}
   #bankTable.nodate td.bacc{grid-row:1;grid-column:1;text-align:left}
   body.editmode #bankTable.nodate td.bacc{grid-column:2}
@@ -1442,6 +1473,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
     <div class="limit-box" id="limitBox">
       <div class="limit-head">
         <span class="lbl">카드별 한도</span>
+        <span class="lockslot" data-lock="limit"></span>
         <span class="hint" id="limitHint"></span>
       </div>
       <div class="limit-grid" id="limitGrid"></div>
@@ -1512,10 +1544,10 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   <section class="card table-card cv-card" id="detailCard">
     <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
+      <span class="lockslot" data-lock="cardDetail"></span>
       <span class="hint" id="tableHint"></span>
       <div class="head-actions">
         <button class="btn" id="btnCapture2" style="padding:5px 10px;font-size:12.5px" title="카드 사용내역 캡처 이미지로 내역 추가">📸 캡처로 추가</button>
-        <button class="btn" id="btnEditMode" style="padding:5px 10px;font-size:12.5px" title="행을 끌어 순서를 바꾸거나, 골라서 지웁니다">편집 모드</button>
       </div>
     </div>
     <div class="detail-search">
@@ -1577,6 +1609,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   <section class="card cv-bank" id="bankItemsCard">
     <div class="card-head">
       <h2>정산 요약</h2>
+      <span class="lockslot" data-lock="bankItems"></span>
       <span class="hint" id="bankItemsHint"></span>
     </div>
     <div class="sc2" id="bankItems"></div>
@@ -1585,11 +1618,11 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   <section class="card table-card cv-bank" id="bankDetailCard">
     <div class="card-head" style="padding-bottom:10px">
       <h2>현금 상세 내역</h2>
+      <span class="lockslot" data-lock="bankDetail"></span>
       <span class="hint" id="bankTableHint"></span>
       <div class="head-actions">
         <button class="btn" id="btnBankCapture" style="padding:5px 10px;font-size:12.5px" title="은행 앱 거래내역 캡처로 추가">📸 캡처로 추가</button>
         <button class="btn" id="btnBankAdd" style="padding:5px 10px;font-size:12.5px" title="거래를 직접 입력">+ 직접 추가</button>
-        <button class="btn" id="btnBankEdit" style="padding:5px 10px;font-size:12.5px" title="행을 끌어 순서를 바꾸거나, 골라서 지웁니다">편집 모드</button>
       </div>
     </div>
     <div class="detail-search">
@@ -1638,6 +1671,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   <section class="card cv-settle" id="settleCard">
     <div class="card-head">
       <h2>정산</h2>
+      <span class="lockslot" data-lock="settle"></span>
       <span class="tm-chip" id="settleMonthChip"></span>
       <span class="hint" id="settleHint">예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동</span>
     </div>
@@ -2539,30 +2573,33 @@ function limitContext(){
   if (m) S.rows.forEach(r=>{ if (r.month === m && !isExc(r)) spent.set(r.card, (spent.get(r.card)||0) + (+r.amount||0)); });
   return {month:m, spent, latest: F.month === 'all'};
 }
-function limitTileHtml(c, ctx){
+function limitTileHtml(c, ctx, unlocked){
   const lim = limitOf(c);
   const used = ctx.spent.get(c) || 0;
   const nm = '<span class="dot" style="background:'+cardColor(c)+'"></span>' +
     '<span class="nm">' + esc(shortCard(c)) + '</span>' +
     '<span class="use' + (used ? '' : ' zero') + '">' + fmt(used) + '원</span>';
+  /* 잠금 상태에서는 누를 수 없는 div 로 그립니다 — 칸을 눌러도 한도 입력줄이 열리지 않습니다 */
+  const tag = unlocked ? 'button' : 'div';
+  const tap = unlocked ? ' type="button" data-limcard="'+esc(c)+'"' : '';
   if (!limitIsSet(c)){
-    return '<button class="lim-item unset" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 월 한도 설정">'+
+    return '<'+tag+' class="lim-item unset"'+tap+' title="'+esc(shortCard(c))+(unlocked ? ' 월 한도 설정' : ' 월 한도 — 제목 옆 자물쇠를 열어 입력')+'">'+
       '<span class="top">'+nm+'</span>'+
       '<span class="rem">한도 설정</span>'+
-      '<span class="meta">눌러서 한도 입력</span>'+
-      '</button>';
+      '<span class="meta">'+(unlocked ? '눌러서 한도 입력' : '자물쇠를 열어 입력')+'</span>'+
+      '</'+tag+'>';
   }
   const rem = lim - used;                     /* 0원 한도면 남은 한도 = −사용액 */
   const over = rem < 0;
   const p = lim > 0 ? Math.min(100, Math.max(0, Math.round(used / lim * 1000) / 10))
                     : (used > 0 ? 100 : 0);
   const near = !over && p >= 90;
-  return '<button class="lim-item'+(over ? ' over' : (near ? ' near' : ''))+'" data-limcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 한도 수정'+(limitFormulaOf(c) ? ' · ' + esc(limitFormulaOf(c)) : '')+'">'+
+  return '<'+tag+' class="lim-item'+(over ? ' over' : (near ? ' near' : ''))+'"'+tap+' title="'+esc(shortCard(c))+(unlocked ? ' 한도 수정' : ' 한도 — 제목 옆 자물쇠를 열어 수정')+(limitFormulaOf(c) ? ' · ' + esc(limitFormulaOf(c)) : '')+'">'+
     '<span class="top">'+nm+'</span>'+
     '<span class="rem">'+(over ? '−' : '')+fmt(Math.abs(rem))+'<small>원 '+(over ? '초과' : '남음')+'</small></span>'+
     '<span class="bar"><i style="width:'+p+'%"></i></span>'+
     '<span class="meta">한도 '+(lim ? shortKrw(lim) : '0원')+'</span>'+
-    '</button>';
+    '</'+tag+'>';
 }
 function limitEditorHtml(c){
   const lim = limitOf(c);
@@ -2585,16 +2622,18 @@ function renderLimits(){
   const box = $('#limitBox'), grid = $('#limitGrid');
   if (!box || !grid) return;
   const cards = limitCards();
+  const unlocked = lockOpen('limit');
   box.classList.toggle('hidden', !(S.rows.length && cards.length));
   const ctx = limitContext();
   const hint = $('#limitHint');
   if (hint) hint.textContent = ctx.month
     ? ((ctx.latest ? '최근 ' : '') + monthLabel(ctx.month).replace(/^\d{4}년 /, '') + ' 사용액 기준')
     : '';
-  grid.innerHTML = cards.map(c=> limitEdit === c ? limitEditorHtml(c) : limitTileHtml(c, ctx)).join('');
+  grid.innerHTML = cards.map(c=> limitEdit === c ? limitEditorHtml(c) : limitTileHtml(c, ctx, unlocked)).join('');
   renderFeedback(ctx);
 }
 function openLimitEditor(c){
+  if (!lockOpen('limit')){ toast('카드별 한도가 잠겨 있습니다 — 제목 옆 자물쇠를 열어 주세요'); return; }
   limitEdit = c; renderLimits();
   const i = $('#limInput');
   if (i){ i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){} }
@@ -3830,6 +3869,80 @@ function renderTable(rows, sum){
 let EDITMODE = false;
 let SELROWS = new Set();              /* 편집 모드에서 고른 거래 id */
 
+/* ============================================================
+   패널 자물쇠 토글 (2026-11-25)
+   편집할 수 있는 패널은 모두 제목 옆 자물쇠 하나로 편집을 열고 닫습니다.
+   · 잠금(기본) = 조회만. 편집 손잡이(⠿)·수정/삭제 버튼·추가 버튼이 숨고, 칸을 눌러도 편집창이 열리지 않습니다.
+   · 풀림 = 그 패널의 편집 기능이 모두 살아나고, 자물쇠가 열린 모양 + 파란 강조로 바뀝니다.
+   패널마다 따로 열고 닫습니다(다른 패널의 자물쇠는 그대로).
+   카드·현금 상세내역은 잠금/풀림이 기존 편집 모드(EDITMODE·BEDITMODE)와 같은 상태입니다.
+   ============================================================ */
+const LOCKS = {limit: false, bankItems: false, settle: false};   /* true = 풀림 (상세내역 2개는 EDITMODE·BEDITMODE 가 맡음) */
+const LOCK_META = {
+  limit:     {name: '카드별 한도', tip: '카드별 한도 잠금을 풀었습니다 — 한도 칸을 눌러 고치세요'},
+  bankItems: {name: '정산 요약',   tip: '정산 요약 잠금을 풀었습니다 — 항목·예산·실행을 누르면 고쳐지고, ⠿로 순서를 바꿉니다'},
+  settle:    {name: '정산 Simulation', tip: '정산 예산 잠금을 풀었습니다 — 예산 칸을 눌러 고치세요'},
+  cardDetail:{name: '카드 상세 내역', tip: '상세 내역 잠금을 풀었습니다 — ✎로 날짜·가맹점·금액 수정, ⊘로 결제예정 미반영, ⠿로 순서 바꾸기, 골라서 삭제'},
+  bankDetail:{name: '현금 상세 내역', tip: '현금 상세 잠금을 풀었습니다 — 행을 눌러 고치고, 골라서 지우고, ⠿로 순서를 바꿉니다'}
+};
+const LOCK_SVG_CLOSED = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+  '<rect x="4.6" y="10.4" width="14.8" height="9.9" rx="2.7"/><path d="M8.2 10.4V7.8a3.8 3.8 0 0 1 7.6 0v2.6"/>' +
+  '<circle cx="12" cy="15.1" r="1.1" fill="currentColor" stroke="none"/></svg>';
+const LOCK_SVG_OPEN = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+  '<rect x="4.6" y="10.4" width="14.8" height="9.9" rx="2.7"/><path d="M8.2 10.4V7.6a3.8 3.8 0 0 1 7.4-1.5"/>' +
+  '<circle cx="12" cy="15.1" r="1.1" fill="currentColor" stroke="none"/></svg>';
+/* 그 패널의 편집이 열려 있는가 (true = 풀림) */
+function lockOpen(key){
+  if (key === 'cardDetail') return !!EDITMODE;
+  if (key === 'bankDetail') return !!BEDITMODE;
+  return !!LOCKS[key];
+}
+/* 자물쇠 버튼(아이콘·툴팁)과 패널 잠금 클래스를 한곳에서 맞춥니다 */
+function renderLocks(){
+  Array.prototype.forEach.call(document.querySelectorAll('.lockslot[data-lock]'), slot=>{
+    const key = slot.dataset.lock;
+    const on = lockOpen(key);
+    const m = LOCK_META[key] || {name: '편집'};
+    slot.innerHTML = '<button type="button" class="lockbtn' + (on ? ' on' : '') + '" data-locktoggle="' + key + '" ' +
+      'aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(m.name) + ' 편집 ' + (on ? '풀림' : '잠김') + '" ' +
+      'title="' + esc(on ? '풀림 — 누르면 이 패널을 잠급니다' : '잠김 — 누르면 이 패널의 편집을 엽니다') + '">' +
+      '<span class="lk lk-closed">' + LOCK_SVG_CLOSED + '</span><span class="lk lk-open">' + LOCK_SVG_OPEN + '</span></button>';
+  });
+  const panelLock = (sel, on)=>{
+    const el = $(sel); if (!el) return;
+    el.classList.toggle('locked', !on);
+    el.classList.toggle('unlocked', !!on);
+  };
+  panelLock('#limitBox', lockOpen('limit'));
+  panelLock('#bankItemsCard', lockOpen('bankItems'));
+  panelLock('#settleCard', lockOpen('settle'));
+  panelLock('#detailCard', lockOpen('cardDetail'));
+  panelLock('#bankDetailCard', lockOpen('bankDetail'));
+}
+/* 자물쇠를 누를 때 — 패널마다 독립 */
+function toggleLock(key){
+  if (key === 'cardDetail'){ setEditMode(!EDITMODE); return; }
+  if (key === 'bankDetail'){ setBankEditMode(!BEDITMODE); return; }
+  const on = !LOCKS[key];
+  LOCKS[key] = on;
+  if (!on){
+    /* 잠그면 열려 있던 입력창은 닫습니다 */
+    if (key === 'limit') limitEdit = null;
+    if (key === 'bankItems'){ scEdit = null; GRIP_S = null; }
+    if (key === 'settle') settleEdit = null;
+  }
+  renderAll();
+  const m = LOCK_META[key] || {name: '편집'};
+  toast(on ? m.tip : m.name + ' 편집을 잠갔습니다', on ? 4200 : 2200);
+}
+/* 자물쇠 버튼 클릭 (한 곳에서 받아 어느 패널이든 같은 방식으로) */
+document.addEventListener('click', ev=>{
+  const b = ev.target.closest && ev.target.closest('[data-locktoggle]');
+  if (!b) return;
+  ev.preventDefault(); ev.stopPropagation();
+  toggleLock(b.dataset.locktoggle);
+}, true);
+
 /* ---------- 편집 모드: 행 하나의 이용일자·가맹점·금액 고치기 (2026-11-23) ----------
    행의 ✎ 를 누르면 그 행 아래에 입력 줄이 열립니다. 입력 중에는 rowEdit 에 값을 들고 있어서
    화면이 다시 그려져도(동기화·필터 변경) 치던 내용이 그대로 남습니다. */
@@ -3909,27 +4022,18 @@ function setEditMode(on){
   SELROWS.clear();
   rowEdit = null;
   if (!EDITMODE) cancelGripDrag();
-  document.body.classList.toggle('editmode', EDITMODE);
+  document.body.classList.toggle('editmode', EDITMODE || BEDITMODE);
   renderAll();
   if (EDITMODE){
-    toast('편집 모드 — ✎로 날짜·가맹점·금액 수정, ⊘로 결제예정 미반영, ⠿로 순서 바꾸기, 골라서 삭제', 4200);
-    const tc = document.querySelector('.table-card');
-    if (tc){ try { tc.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){} }
+    toast(LOCK_META.cardDetail.tip, 4400);
   } else {
-    toast('편집 모드를 끝냈습니다');
+    toast('상세 내역을 잠갔습니다');
   }
 }
-/* 편집 모드 버튼 글자·액션 바(고른 건수·버튼 상태)를 한 곳에서 갱신 */
+/* 편집 액션 바(고른 건수·버튼 상태)를 한 곳에서 갱신 — 자물쇠는 renderLocks 가 맞춥니다 */
 function renderEditBar(totalVisible){
   const bar = $('#editBar');
   if (bar) bar.classList.toggle('hidden', !EDITMODE);
-  const head = $('#btnEditMode');
-  if (head){
-    head.textContent = EDITMODE ? '완료' : '편집 모드';
-    head.classList.toggle('onedit', EDITMODE);
-    head.disabled = !S.rows.length;
-    head.title = EDITMODE ? '편집을 끝내고 일반 화면으로' : '행을 끌어 순서를 바꾸거나, 골라서 지웁니다';
-  }
   if (!EDITMODE) return;
   const n = SELROWS.size;
   const cnt = $('#editCount');
@@ -4239,6 +4343,7 @@ function renderAll(){
   syncJumpNav();
   renderBank();
   renderSettle();
+  renderLocks();
 }
 function updateModeUi(){
   $$('#modeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.mode === S.mode));
@@ -4397,7 +4502,7 @@ $('#limitGrid').addEventListener('click', ev=>{
     }
   }
   const tile = ev.target.closest('[data-limcard]');
-  if (tile) openLimitEditor(tile.dataset.limcard);
+  if (tile && lockOpen('limit')) openLimitEditor(tile.dataset.limcard);
 });
 $('#limitGrid').addEventListener('input', ev=>{
   const t = ev.target;
@@ -4633,8 +4738,11 @@ $('#table').addEventListener('click', ev=>{
   }
   /* 결제예정 미반영 토글 — 배지/⊘ 버튼은 편집 모드에서도 먼저 처리합니다 */
   const exq = ev.target.closest('[data-exctoggle]');
-  if (exq){ toggleRowExcluded(exq.dataset.exctoggle); return; }
-  /* 편집 모드: 행 누름 = 고르기, ✎ = 이용일자·가맹점·금액 수정, 🗑 = 한 건 바로 지우기, ⠿ = 끌어서 순서 바꾸기 */
+  if (exq){
+    if (!lockOpen('cardDetail')){ toast('잠겨 있습니다 — 제목 옆 자물쇠를 열면 미반영을 바꿀 수 있습니다'); return; }
+    toggleRowExcluded(exq.dataset.exctoggle); return;
+  }
+  /* 잠금을 풀었을 때: 행 누름 = 고르기, ✎ = 이용일자·가맹점·금액 수정, 🗑 = 한 건 바로 지우기, ⠿ = 끌어서 순서 바꾸기 */
   if (EDITMODE){
     if (ev.target.closest('[data-reactsave]')){ saveRowEdit(); return; }
     if (ev.target.closest('[data-reactcancel]')){ closeRowEdit(); return; }
@@ -4646,14 +4754,25 @@ $('#table').addEventListener('click', ev=>{
     if (qd){ askDeleteOneRow(qd.dataset.qdel); return; }
     const box = ev.target.closest('input[data-selrow]');
     if (box){ setRowSel(box.dataset.selrow, box.checked); return; }
+    /* 잠금을 풀면 분류·카드사도 그 자리에서 고칠 수 있습니다 (2026-11-25) */
+    const ce = ev.target.closest('[data-catedit]');
+    if (ce){ openCatSheet(ce.dataset.catedit); return; }
+    const cd = ev.target.closest('[data-cardedit]');
+    if (cd){ openCatSheet(cd.dataset.cardedit); return; }
     const tr = ev.target.closest('tbody tr[data-id]');
     if (tr){ toggleRowSel(tr.dataset.id); return; }
     return;
   }
   const b = ev.target.closest('[data-catedit]');
-  if (b){ openCatSheet(b.dataset.catedit); return; }
+  if (b){
+    if (!lockOpen('cardDetail')) return;          /* 잠금 — 분류·카드사·하이라이트는 조회만 */
+    openCatSheet(b.dataset.catedit); return;
+  }
   const cb = ev.target.closest('[data-cardedit]');
-  if (cb){ openCatSheet(cb.dataset.cardedit); return; }
+  if (cb){
+    if (!lockOpen('cardDetail')) return;
+    openCatSheet(cb.dataset.cardedit); return;
+  }
 });
 /* 행 수정 입력 — 치던 값을 rowEdit 에 보관하고, 금액은 천 단위 콤마로 보여 줍니다 */
 $('#table').addEventListener('input', ev=>{
@@ -4839,8 +4958,7 @@ $('#tableFoot').addEventListener('click', ev=>{
   if (ev.target.id === 'btnMore'){ S.ui.limit += 20; renderAll(); }
   if (ev.target.id === 'btnResetLimit'){ S.ui.limit = 20; renderAll(); }
 });
-/* ---------- 편집 모드 ---------- */
-$('#btnEditMode').addEventListener('click', ()=> setEditMode(!EDITMODE));
+/* ---------- 상세 내역 편집 — 제목 옆 자물쇠로 열고 닫습니다 ---------- */
 $('#btnSelDel').addEventListener('click', askDeleteSelected);
 $('#btnSelAll').addEventListener('click', toggleSelectAll);
 $('#btnSelCancel').addEventListener('click', ()=> setEditMode(false));
@@ -7292,6 +7410,72 @@ const TRANSFER_KIND = 'transfer';
 const SCG_GRIP_SVG = '<svg viewBox="0 0 8 14" width="8" height="14" aria-hidden="true" focusable="false"><g fill="currentColor">' +
   '<circle cx="1.7" cy="2" r="1.2"/><circle cx="6.3" cy="2" r="1.2"/><circle cx="1.7" cy="7" r="1.2"/>' +
   '<circle cx="6.3" cy="7" r="1.2"/><circle cx="1.7" cy="12" r="1.2"/><circle cx="6.3" cy="12" r="1.2"/></g></svg>';
+/* 정산 요약의 빈 맞춤 칸(3계좌 총합 높이를 맞추는 spacer)을 순서에 적는 표식 — 2026-11-25
+   rowOrder 안에서 항목 이름 사이에 끼워 두면, 새로고침·동기화 후에도 그 자리에 빈칸이 남습니다. */
+const SC_GAP = '\u0000';
+/* ---------- 모으기 이체 2행 숨김 (2026-11-25) ----------
+   모으기채우기·모으기꺼내기는 계좌마다 고정으로 보이지만, 사용자가 지우면 그 달·그 계좌에서 감춥니다.
+   숨김은 bank-YYYY-MM.json(hiddenMoves·hiddenMovesAt)에 계좌별로 남아 새로고침·동기화 후에도 살아나지 않고,
+   + 항목에서 같은 이름을 '계좌이동'으로 다시 넣으면 그 자리가 되살아납니다. */
+function bankHiddenMoves(month, acc){
+  const d = BANK.months[month];
+  const p = d && d.hiddenMoves && d.hiddenMoves[acc];
+  const out = {};
+  (Array.isArray(p) ? p : []).forEach(k=>{ if (k === 'fill' || k === 'take') out[k] = 1; });
+  return out;
+}
+function bankIsMoveHidden(month, acc, key){ return !!bankHiddenMoves(month, acc)[key]; }
+function bankSetMoveHidden(month, acc, key, hidden){
+  if (key !== 'fill' && key !== 'take') return;
+  const d = ensureBankDoc(month);
+  if (!d.hiddenMoves || typeof d.hiddenMoves !== 'object' || Array.isArray(d.hiddenMoves)) d.hiddenMoves = {};
+  if (!d.hiddenMovesAt || typeof d.hiddenMovesAt !== 'object' || Array.isArray(d.hiddenMovesAt)) d.hiddenMovesAt = {};
+  const cur = bankHiddenMoves(month, acc);
+  if (hidden) cur[key] = 1; else delete cur[key];
+  const list = Object.keys(cur);
+  if (list.length) d.hiddenMoves[acc] = list; else delete d.hiddenMoves[acc];
+  d.hiddenMovesAt[acc] = nowIso();
+  d.updatedAt = nowIso();
+}
+function bankHiddenMovesCopy(month){
+  const d = BANK.months[month] || {};
+  const src = (d.hiddenMoves && typeof d.hiddenMoves === 'object') ? d.hiddenMoves : {};
+  const o = {};
+  MOVE_ACCOUNTS.forEach(a=>{
+    const p = Array.isArray(src[a]) ? src[a].filter(k=> k === 'fill' || k === 'take') : [];
+    if (p.length) o[a] = p;
+  });
+  return o;
+}
+function bankHiddenMovesAtCopy(month){
+  const d = BANK.months[month] || {};
+  const src = (d.hiddenMovesAt && typeof d.hiddenMovesAt === 'object') ? d.hiddenMovesAt : {};
+  const o = {};
+  MOVE_ACCOUNTS.forEach(a=>{ if (src[a]) o[a] = String(src[a]); });
+  return o;
+}
+/* 항목 순서 + 빈칸 위치 → 화면에 늘어놓을 줄 차례 (null = 빈 맞춤 칸) */
+function bankScLayout(rows, order, pads){
+  const byName = new Map();
+  rows.forEach(r=>{ if (!byName.has(r.item)) byName.set(r.item, r); });
+  const used = new Set();
+  const seq = [];
+  (Array.isArray(order) ? order : []).forEach(tok=>{
+    if (tok === SC_GAP){ seq.push(null); return; }
+    if (used.has(tok)) return;
+    if (!byName.has(tok)) return;          /* 지금 없는 항목의 옛 순서는 건너뜁니다 */
+    used.add(tok); seq.push(byName.get(tok));
+  });
+  rows.forEach(r=>{ if (!used.has(r.item)){ used.add(r.item); seq.push(r); } });
+  let left = Math.max(0, pads || 0);
+  const out = [];
+  seq.forEach(x=>{
+    if (x === null){ if (left > 0){ out.push(null); left--; } return; }
+    out.push(x);
+  });
+  while (left-- > 0) out.push(null);
+  return out;
+}
 function bankTransferMap(month){
   const d = BANK.months[month];
   const m = d && d.transfer;
@@ -7939,9 +8123,12 @@ function bankSumItemRows(month, acc){
   Object.keys(trMap).forEach(it=> pushTr(it, trMap[it]));
   bankRowsAll(month).forEach(r=>{ if (r.account === acc && r.kind === TRANSFER_KIND) pushTr(r.item, r.dir || (r.amount > 0 ? 'in' : 'out')); });
   /* 모으기 이체 2행 — 우리은행·토스 입출금에는 어느 달을 열어도 맨 아래(총합 바로 위)에 있습니다.
-     못 채운 달은 '—'로 보이고, 예산·실행을 직접 넣을 수 있습니다 (2026-11-25). */
+     못 채운 달은 '—'로 보이고, 예산·실행을 직접 넣을 수 있습니다 (2026-11-25).
+     사용자가 지운 행은 그 달·그 계좌에서 감춥니다(hiddenMoves) — + 항목으로 다시 넣으면 되살아납니다. */
   if (isMoveAcc){
+    const hid = bankHiddenMoves(month, acc);
     MOVE_ITEMS.forEach(m=>{
+      if (hid[m.key]) return;
       out.push({item: m.item, dir: m.dir, bud: bankBudget(month, acc, m.item),
                 act: bankItemActual(month, acc, m.item), fixed: true});
     });
@@ -7960,8 +8147,10 @@ function bankCarryNotice(acc, item){
   toast('이월금은 ' + lab + ' 총합에서 자동으로 들어갑니다 · ' + lab + '에서 고쳐 주세요');
   return true;
 }
-function bankSumRowHtml(month, acc, row, wide){
+function bankSumRowHtml(month, acc, row, wide, unlocked){
   const bud = row.bud, act = row.act;
+  const canEdit = unlocked !== false;             /* 잠금 상태면 누를 수 없는 버튼(disabled)으로 그립니다 (2026-11-25) */
+  const dis = canEdit ? '' : ' disabled aria-disabled="true"';
   const isCarry = isCarryName(row.item);
   const isMove = isMoveItem(row.item);           /* 모으기채우기·모으기꺼내기 — 이름·금액 모두 검정 */
   const isTr = !isMove && (!!row.transfer || !!bankTransferInfo(month, acc, row.item));   /* 계좌이동 — 같은 검정 둘레 (2026-11-25) */
@@ -7976,18 +8165,23 @@ function bankSumRowHtml(month, acc, row, wide){
   const actFm = bankItemFormula(month, acc, row.item);
   const sym = row.dir === 'in' ? '＋' : '−';
   const budCell = wide
-    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기') + (budFm ? ' · ' + budFm : '')) + '">' +
+    ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '"' + dis + ' title="' + esc(label + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기') + (budFm ? ' · ' + budFm : '')) + '">' +
       (budSigned ? (budSigned > 0 ? '+' : '−') + fmt(Math.abs(budSigned)) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (moveNote ? label + ' 실행 — ' + sym + ' 부호로 들어갑니다' + (isTr ? ' (총 수입·총 지출 제외)' : '') : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '"' + dis + ' title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (moveNote ? label + ' 실행 — ' + sym + ' 부호로 들어갑니다' + (isTr ? ' (총 수입·총 지출 제외)' : '') : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
+  /* 이름 — 편집 가능한 행은 버튼, 잠금 상태에서는 같은 모양의 글자(span)로 */
+  const nameBtn = (cls, title, text)=> canEdit
+    ? '<button type="button" class="' + cls + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + title + '">' + text + '</button>'
+    : '<span class="' + cls + ' ro" title="' + title + '">' + text + '</span>';
   const nameCell = (isMove || isTr)
-    ? '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed mvname" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + (isTr ? ' — 눌러서 이름·삭제 고치기' : ' — 눌러서 이름 고치기') + ' (' + (isTr ? '계좌이동' : '부호') + '·검정색·총 수입/지출 제외는 그대로)') + '">' + esc(label) + '</button>'
+    ? nameBtn('inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed mvname',
+        esc(label + (isTr ? ' — 눌러서 이름·삭제 고치기' : ' — 눌러서 이름 고치기') + ' (' + (isTr ? '계좌이동' : '부호') + '·검정색·총 수입/지출 제외는 그대로)'), esc(label))
     : (row.fixed
       ? '<span class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed" title="' + esc(row.item + ' — 정산 요약 고정 항목') + '">' + esc(label) + '</span>'
-      : '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(label) + '</button>');
+      : nameBtn('inm ' + (row.dir === 'in' ? 'in' : 'out'), esc(row.item + ' — 눌러서 이름 고치기'), esc(label)));
   const pin = isCarry;                                   /* 이월금은 맨 위 고정 — 핸들 없음 */
-  const grip = pin ? '' : '<span class="scgrip" data-scgrip="1" title="끌어서 순서 바꾸기 (모바일은 손가락으로)" aria-label="순서 바꾸기">' + SCG_GRIP_SVG + '</span>';
+  const grip = (pin || !canEdit) ? '' : '<span class="scgrip" data-scgrip="1" title="끌어서 순서 바꾸기 (모바일은 손가락으로)" aria-label="순서 바꾸기">' + SCG_GRIP_SVG + '</span>';
   return '<div class="scg-row' + (isMove ? ' mv' : (isTr ? ' mv tr' : '')) + '" data-item="' + esc(row.item) + '"' + (pin ? ' data-pin="1"' : '') + '>' +
     '<span class="nmcell">' + grip + nameCell + '</span>' + budCell + actCell + '</div>';
 }
@@ -8038,7 +8232,9 @@ function scEditHtml(month, acc){
         '<input id="scName" type="text" maxlength="24" value="' + esc(label) + '" placeholder="' + esc(mv.item) + '" aria-label="항목 이름">' +
         '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
         '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
+        '<button type="button" class="btn danger" data-scdelmove="1">항목 삭제</button>' +
         '<span class="sc-note">이 계좌(' + esc(acc) + ')에만 바뀝니다 — 검정색 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호 · 총 수입/지출 제외 · 비우면 ' + esc(mv.item) + '</span>' +
+        '<span class="sc-note">항목 삭제 — 이 달 이 계좌에서 이 행이 사라집니다. ＋ 항목 → 구분 “계좌이동”으로 같은 이름을 넣으면 다시 보입니다</span>' +
       '</div>';
     }
     return '<div class="sc-edit" ' + st + '>' +
@@ -8066,30 +8262,35 @@ function scEditHtml(month, acc){
 }
 function scGroupHtml(month, acc, rowsArg, padN){
   const wide = acc === '우리은행';
+  const unlocked = lockOpen('bankItems');       /* 잠금이면 ⠿ 핸들·＋ 항목·금액 편집이 사라집니다 (2026-11-25) */
   const rows = rowsArg || bankSumItemRows(month, acc);
   const T = bankTotals(month, acc);
   const editingNew = scEdit && scEdit.field === 'new' && scEdit.acc === acc;
   /* 3계좌 본문 행 수를 가장 많은 계좌에 맞춥니다 — PC 3열에서 총합 행이 같은 높이에 (2026-11-24).
-     빈 행은 세로줄만 이어지고 누를 수 없으며, 모바일 세로 스택에서는 숨깁니다.
-     항목 순서를 드래그로 바꿔도 총합은 항상 맨 아래이므로 빈 행은 항상 마지막에 붙입니다 (2026-11-25). */
+     빈 맞춤 칸은 총합 바로 위에만 몰아 붙이지 않고, 사용자가 드래그로 정한 자리에 놓습니다 (2026-11-25).
+     칸수는 항상 padN - 행수로 같으므로 총합 행 높이 정렬은 그대로입니다. */
   const bodyN = rows.length || (editingNew ? 0 : 1);
   const pads = Math.max(0, (padN || bodyN) - bodyN);
   const padCell = '<span class="phc">&nbsp;</span>';
-  const padHtml = pads ? ('<div class="scg-row ph" aria-hidden="true">' + padCell + (wide ? '<span class="phc"></span>' : '') +
-    '<span class="phc"></span></div>').repeat(pads) : '';
+  const padHtml = '<div class="scg-row ph" aria-hidden="true">' + padCell + (wide ? '<span class="phc"></span>' : '') +
+    '<span class="phc"></span></div>';
   let body = '';
-  rows.forEach(r=>{
-    body += bankSumRowHtml(month, acc, r, wide);
+  const paintRow = (r)=>{
+    body += bankSumRowHtml(month, acc, r, wide, unlocked);
     if (scEdit && scEdit.field !== 'new' && scEdit.acc === acc && scEdit.item === r.item) body += scEditHtml(month, acc);
+  };
+  /* 이월금은 맨 위 고정 — 나머지는 저장한 순서 + 빈칸 위치대로 */
+  rows.filter(r=> isCarryName(r.item)).forEach(paintRow);
+  bankScLayout(rows.filter(r=> !isCarryName(r.item)), bankRowOrder(month, acc), pads).forEach(x=>{
+    if (x) paintRow(x); else body += padHtml;
   });
   if (!rows.length && !editingNew){
     body = '<div class="scg-row"><span class="inm" style="color:var(--muted);font-weight:600;cursor:default">아직 항목이 없습니다</span></div>';
   }
   if (editingNew) body += scEditHtml(month, acc);
-  body += padHtml;
   return '<section class="scg ' + (wide ? 'w3' : 'w2') + '" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
     '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
-      '<button type="button" class="add" data-scadd="' + esc(acc) + '" title="' + esc(acc) + '에 항목 더하기">＋ 항목</button></div>' +
+      (unlocked ? '<button type="button" class="add" data-scadd="' + esc(acc) + '" title="' + esc(acc) + '에 항목 더하기">＋ 항목</button>' : '') + '</div>' +
     '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body +
     (padN || rows.length ? bankSumTotalHtml(month, acc) : '') +
@@ -8118,7 +8319,9 @@ function renderBankItems(){
   })();
   if (hint){
     const autoCarry = BANK_ACCOUNTS.some(a=> bankCarryValue(month, a).auto);
-    hint.textContent = '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가' + (autoCarry ? ' · 이월금은 전월 총합 자동' : '');
+    hint.textContent = lockOpen('bankItems')
+      ? '항목·예산·실행을 눌러 고칩니다 · ＋로 항목 추가' + (autoCarry ? ' · 이월금은 전월 총합 자동' : '')
+      : '자물쇠를 열면 항목·예산·실행 수정과 순서 바꾸기를 할 수 있습니다' + (autoCarry ? ' · 이월금은 전월 총합 자동' : '');
   }
 }
 function focusScInput(id){
@@ -8240,6 +8443,28 @@ function scDeleteItem(){
       toast(item + ' 항목을 지웠습니다' + (k ? ' · 거래 ' + k + '건' : ''));
     });
 }
+/* 모으기 이체 고정 2행(모으기채우기·모으기꺼내기)도 + 항목으로 더한 항목처럼 지웁니다 (2026-11-25)
+   · 그 달·그 계좌에서 행을 감추고(hiddenMoves) 거래·예산을 함께 지웁니다.
+   · ＋ 항목 → 구분 계좌이동으로 같은 이름을 다시 넣으면 그 자리가 되살아납니다. */
+function scDeleteMove(){
+  const e = scEdit; if (!e || !e.item) return;
+  const mv = moveItemInfo(e.item); if (!mv) return;
+  const month = bankCurrentMonth();
+  const acc = moveAccKey(e.acc) || e.acc;
+  const d = BANK.months[month];
+  const n = d ? d.rows.filter(r=> r.account === acc && r.item === mv.item).length : 0;
+  const label = bankMoveLabel(mv.item, acc);
+  askConfirm('모으기 이체 행 "' + label + '"을(를) 지울까요?',
+    (n ? '이 달 ' + acc + '의 거래 ' + n + '건과 ' : '') + '예산이 함께 지워지고, 정산 요약에서 이 행이 사라집니다.\n' +
+    '다시 보이게 하려면 ＋ 항목에서 구분을 "계좌이동"으로 고르고 같은 이름을 넣으세요.',
+    '삭제', ()=>{
+      bankSetMoveHidden(month, acc, mv.key, true);
+      const k = bankDeleteItem(month, acc, mv.item);
+      scEdit = null;
+      bankSave(); renderAll(); markBankDirty(month);
+      toast(label + ' 행을 지웠습니다' + (k ? ' · 거래 ' + k + '건' : ''));
+    });
+}
 function scSave(){
   const e = scEdit; if (!e) return;
   const month = bankCurrentMonth();
@@ -8250,7 +8475,6 @@ function scSave(){
     if (!name){ toast('항목 이름을 넣어주세요'); if (nameEl) nameEl.focus(); return; }
     const list = bankItemList(month, acc);
     if (list.in.indexOf(name) >= 0 || list.out.indexOf(name) >= 0){ toast('이미 있는 항목입니다'); if (nameEl) nameEl.focus(); return; }
-    if (moveAnyInfo(acc, name) || isCarryName(name)){ toast('그 이름은 이미 쓰는 항목입니다 — 다른 이름으로 넣어주세요'); if (nameEl) nameEl.focus(); return; }
     const mode = dirEl ? dirEl.value : 'out';
     const isTr = mode === 'move';                       /* 계좌이동 — 방향은 아래 토글 (2026-11-25) */
     const mvEl = document.querySelector('input[name="scNewMove"]:checked');
@@ -8271,6 +8495,37 @@ function scSave(){
       if (isFormulaText(amtEl.value)) amtFm = formulaText(amtEl.value);
     }
     if (!bud && !amt){ toast('예산이나 금액 중 하나는 넣어주세요'); return; }
+    /* 지웠던 모으기 이체 행을 계좌이동으로 다시 넣는 경우 — 새 줄을 만들지 않고 그 자리를 되살립니다 (2026-11-25) */
+    const mvBack = isTr ? moveAnyInfo(acc, name) : null;
+    if (mvBack){
+      const mAcc = moveAccKey(acc);
+      if (mAcc && bankIsMoveHidden(month, mAcc, mvBack.key)){
+        const d2 = ensureBankDoc(month);
+        if (bud){
+          if (!d2.budgets[acc]) d2.budgets[acc] = {};
+          d2.budgets[acc][mvBack.item] = bud;
+          if (budFm){
+            if (!d2.budgetFormula || typeof d2.budgetFormula !== 'object') d2.budgetFormula = {};
+            if (!d2.budgetFormula[acc]) d2.budgetFormula[acc] = {};
+            d2.budgetFormula[acc][mvBack.item] = budFm;
+          }
+        }
+        if (amt){
+          const nr = {id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: mvBack.item,
+            name: bankMoveLabel(mvBack.item, acc), amount: moveSignedAmount(mvBack.item, amt), memo: '',
+            order: bankNewOrder(d2), orderAt: nowIso()};
+          if (amtFm) nr.formula = amtFm;
+          d2.rows.push(nr);
+        }
+        bankSetMoveHidden(month, mAcc, mvBack.key, false);
+        d2.updatedAt = nowIso();
+        scEdit = null; bankSave(); renderAll(); markBankDirty(month);
+        toast(bankMoveLabel(mvBack.item, mAcc) + ' 행을 다시 보이게 했습니다' + (bud ? ' · 예산 ' + fmt(bud) + '원' : '') +
+          (amt ? ' · 실행 ' + fmt(amt) + '원' : ''));
+        return;
+      }
+    }
+    if (mvBack || isCarryName(name)){ toast('그 이름은 이미 쓰는 항목입니다 — 다른 이름으로 넣어주세요'); if (nameEl) nameEl.focus(); return; }
     const d = ensureBankDoc(month);
     if (bud){
       if (!d.budgets[acc]) d.budgets[acc] = {};
@@ -8459,7 +8714,7 @@ function renderBankDetail(){
   }
   const foot = $('#bankTableFoot');
   if (foot) foot.innerHTML = '<span>표시 <b>' + fmt(rows.length) + '</b>건</span><span class="spacer"></span>' +
-    '<span class="muted">' + esc(monthLabel(month)) + ' · 메모는 거래 줄 아래 · ' + (BEDITMODE ? '✎로 수정, ⠿로 순서' : '행을 누르면 수정') + '</span>';
+    '<span class="muted">' + esc(monthLabel(month)) + ' · 메모는 거래 줄 아래 · ' + (BEDITMODE ? '✎로 수정, ⠿로 순서' : '자물쇠를 열면 수정·삭제') + '</span>';
 }
 function bankRowEditHtml(d0, r){
   const d = d0 || {};
@@ -8496,12 +8751,6 @@ function bankRowEditHtml(d0, r){
 function renderBankEditBar(totalVisible){
   const bar = $('#bankEditBar');
   if (bar) bar.classList.toggle('hidden', !BEDITMODE);
-  const head = $('#btnBankEdit');
-  if (head){
-    head.textContent = BEDITMODE ? '완료' : '편집 모드';
-    head.classList.toggle('onedit', BEDITMODE);
-    head.title = BEDITMODE ? '편집을 끝내고 일반 화면으로' : '행을 끌어 순서를 바꾸거나, 골라서 지웁니다';
-  }
   if (!BEDITMODE) return;
   const n = BSEL.size;
   const cnt = $('#bankEditCount');
@@ -8591,6 +8840,7 @@ function settleSet(kind, key, v, formula){
 }
 function settleRowHtml(kind, key, label, bud, act, opts){
   const o = opts || {};
+  const settleLocked = !lockOpen('settle');       /* 잠금이면 예산 칸을 눌러도 편집되지 않습니다 (2026-11-25) */
   const editing = settleEdit && settleEdit.kind === kind && (kind === 'salary' || settleEdit.key === key);
   const fm = settleFormula(bankCurrentMonth(), kind, key);   /* 적어 둔 수식이 있으면 그대로 */
   const diff = bud - act;
@@ -8605,7 +8855,7 @@ function settleRowHtml(kind, key, label, bud, act, opts){
       ? '<span class="bedit"><input id="setBudInput" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (bud ? fmt(bud) : '')) + '" placeholder="=100+100" aria-label="' + esc(label) + ' 예산">' +
         '<button type="button" class="btn primary" data-setsave="yes">확인</button><button type="button" class="btn ghost" data-setcancel="1">✕</button>' +
         '<span class="calc-hint" id="calcHint"></span></span>'
-      : '<button type="button" class="budbtn" data-setbud="' + esc(id) + '" title="' + esc('예산 고치기' + (fm ? ' · ' + fm : '')) + '">' + (bud ? fmt(bud) : '—') + '</button>');
+      : '<button type="button" class="budbtn" data-setbud="' + esc(id) + '" title="' + esc('예산 고치기' + (fm ? ' · ' + fm : '')) + '"' + (settleLocked ? ' disabled aria-disabled="true"' : '') + '>' + (bud ? fmt(bud) : '—') + '</button>');
   h += '<span class="num bud">' + budCell + '</span>';
   h += '<span class="num exe' + (act ? '' : ' zero') + '">' + (act ? fmt(act) : '—') + '</span>';
   h += '<span class="num dif' + (diff < 0 ? ' over' : (diff > 0 ? ' good' : '')) + '">' + (bud || act ? bankMoney(diff) : '—') + '</span>';
@@ -8645,9 +8895,11 @@ function renderSettle(){
     '</div>';
   const chip = $('#settleMonthChip'); if (chip) chip.textContent = monthLabel(month);
   const hint = $('#settleHint');
-  if (hint) hint.textContent = sd.copiedFrom
-    ? monthLabel(sd.copiedFrom).replace(/^\d{4}년 /, '') + ' 예산을 복사했습니다 · 예산 칸을 눌러 고치세요'
-    : '예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동';
+  if (hint) hint.textContent = !lockOpen('settle')
+    ? '자물쇠를 열면 예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동'
+    : (sd.copiedFrom
+      ? monthLabel(sd.copiedFrom).replace(/^\d{4}년 /, '') + ' 예산을 복사했습니다 · 예산 칸을 눌러 고치세요'
+      : '예산 칸을 눌러 고칩니다 · 집행은 카드·현금에서 자동');
   const box = $('#settleTable'); if (!box) return;
   const head = '<div class="setrow head"><span class="nm">항목</span><span class="num">예산</span><span class="num">집행</span><span class="num">차액</span></div>';
   let body = settleRowHtml('salary', 'salary', '월급', sd.salary, salAct, {cls: 'salary', tag: salPlanned ? '예정' : '', tagCls: 'plan'});
@@ -8836,6 +9088,8 @@ function bankMonthPayload(month, remoteJson){
     transfer: bankTransferCopy(month),
     rowOrder: bankRowOrderCopy(month),
     rowOrderAt: bankRowOrderAtCopy(month),
+    hiddenMoves: bankHiddenMovesCopy(month),
+    hiddenMovesAt: bankHiddenMovesAtCopy(month),
     budgetFormula: d.budgetFormula || {},
     settlementFormula: d.settlementFormula || {},
     rows: rows.concat(extra),
@@ -8971,6 +9225,21 @@ function applyBankPayload(p){
       if (!(rNameAt > lNameAt)) return;
       if (rp.names[a]) BANK.moveNames[a] = Object.assign({}, rp.names[a]); else delete BANK.moveNames[a];
       BANK.moveNamesAt[a] = rp.at[a];
+      changed++;
+    });
+  }
+  /* 모으기 이체 행 숨김 — 계좌마다 더 나중에 바꾼 쪽을 따릅니다 (2026-11-25) */
+  if (p.hiddenMoves && typeof p.hiddenMoves === 'object' && !Array.isArray(p.hiddenMoves)){
+    if (!doc.hiddenMoves || typeof doc.hiddenMoves !== 'object' || Array.isArray(doc.hiddenMoves)) doc.hiddenMoves = {};
+    if (!doc.hiddenMovesAt || typeof doc.hiddenMovesAt !== 'object' || Array.isArray(doc.hiddenMovesAt)) doc.hiddenMovesAt = {};
+    const hAt = (p.hiddenMovesAt && typeof p.hiddenMovesAt === 'object' && !Array.isArray(p.hiddenMovesAt)) ? p.hiddenMovesAt : {};
+    MOVE_ACCOUNTS.forEach(a=>{
+      const ra = Date.parse(hAt[a] || '') || 0;
+      const la = Date.parse(doc.hiddenMovesAt[a] || '') || 0;
+      if (!(ra > la)) return;
+      const list = (Array.isArray(p.hiddenMoves[a]) ? p.hiddenMoves[a] : []).filter(k=> k === 'fill' || k === 'take');
+      if (list.length) doc.hiddenMoves[a] = list; else delete doc.hiddenMoves[a];
+      doc.hiddenMovesAt[a] = String(hAt[a] || nowIso());
       changed++;
     });
   }
@@ -9151,12 +9420,14 @@ $('#bankActiveBar').addEventListener('click', ev=>{
    HTML5 drag&drop 은 모바일에서 동작하지 않으므로 pointer events 로 처리합니다.
    핸들에 touch-action:none 을 줘서 손가락 드래그 중 페이지가 스크롤되지 않게 합니다. */
 let GRIP_S = null;
-function settleGripRows(group){
-  return Array.prototype.slice.call(group.querySelectorAll('.scg-row[data-item]:not([data-pin])'))
-    .filter(el=> !!el.querySelector('[data-scgrip]'));
+/* 드래그로 옮길 수 있는 대상 — 항목 줄과 빈 맞춤 칸(ph). 이월금·총합은 제외 (2026-11-25) */
+function settleDropRows(group){
+  return Array.prototype.slice.call(group.querySelectorAll('.scg-row:not(.total)'))
+    .filter(el=> !el.dataset.pin && (!!el.dataset.item || el.classList.contains('ph')));
 }
 function startSettleGrip(ev){
   if (GRIP_S) return;
+  if (!lockOpen('bankItems')) return;             /* 잠금 상태에서는 순서를 바꿀 수 없습니다 */
   if (ev.pointerType === 'mouse' && ev.button !== 0) return;
   const grip = ev.target && ev.target.closest ? ev.target.closest('#bankItems [data-scgrip]') : null;
   if (!grip) return;
@@ -9184,7 +9455,7 @@ function onSettleGripMove(ev){
   if (y < edge) window.scrollBy(0, -Math.max(4, (edge - y) / 3));
   else if (y > window.innerHeight - edge) window.scrollBy(0, Math.max(4, (y - (window.innerHeight - edge)) / 3));
   const tr = GRIP_S.el;
-  const rows = settleGripRows(GRIP_S.group);
+  const rows = settleDropRows(GRIP_S.group);
   let ref = null;
   rows.forEach(o=>{
     if (ref || o === tr) return;
@@ -9208,17 +9479,20 @@ function endSettleGrip(){
   if (g.el) g.el.classList.remove('dragging');
   document.body.classList.remove('dragactive');
   if (!g.moved){ renderBankItems(); return; }             /* 누르기만 했으면 그대로 */
-  const names = settleGripRows(g.group).map(el=> el.dataset.item).filter(Boolean);
+  /* 화면에 놓인 차례 그대로 저장 — 빈칸은 SC_GAP 표식으로 자리를 기억합니다 (2026-11-25) */
+  const toks = settleDropRows(g.group).map(el=> el.dataset.item ? el.dataset.item : SC_GAP);
   const month = bankCurrentMonth();
   const cur = bankRowOrder(month, g.acc);
-  if (cur.join('|') === names.join('|')){ renderBankItems(); return; }
-  bankSetRowOrder(month, g.acc, names);
+  if (cur.join('|') === toks.join('|')){ renderBankItems(); return; }
+  bankSetRowOrder(month, g.acc, toks);
   bankSave(); renderBankItems(); markBankDirty(month);
-  toast(g.acc + ' 항목 순서를 바꿨습니다 · 새로고침·다른 기기에도 같은 순서로 남습니다', 3200);
+  const gapN = toks.filter(x=> x === SC_GAP).length;
+  toast(g.acc + ' 항목 순서를 바꿨습니다' + (gapN ? ' · 빈칸 자리 포함' : '') + ' · 새로고침·다른 기기에도 같은 순서로 남습니다', 3200);
 }
 $('#bankItems').addEventListener('pointerdown', startSettleGrip);
 $('#bankItems').addEventListener('click', ev=>{
   if (ev.target.closest('[data-scgrip]')) return;          /* 드래그 핸들 — 다른 동작 없음 */
+  if (!lockOpen('bankItems')) return;                      /* 잠금 상태 — 조회만 (2026-11-25) */
   const add = ev.target.closest('[data-scadd]');
   if (add){
     scEdit = {acc: add.dataset.scadd, field: 'new'};
@@ -9247,6 +9521,7 @@ $('#bankItems').addEventListener('click', ev=>{
   if (ev.target.closest('[data-sccancel]')){ scEdit = null; renderBankItems(); return; }
   if (ev.target.closest('[data-scsave]')){ scSave(); return; }
   if (ev.target.closest('[data-scdel]')){ scDeleteItem(); return; }
+  if (ev.target.closest('[data-scdelmove]')){ scDeleteMove(); return; }
 });
 $('#bankItems').addEventListener('change', ev=>{
   /* ＋ 새 항목 — 구분을 '계좌이동'으로 고르면 방향(− 출금 / + 입금) 토글이 나타납니다 (2026-11-25) */
@@ -9280,8 +9555,10 @@ $('#bankSearch').addEventListener('input', ev=>{
   renderBankDetail();
 });
 $('#btnBankCapture').addEventListener('click', ()=> openCapture('bank'));
-$('#btnBankAdd').addEventListener('click', openBankNew);
-$('#btnBankEdit').addEventListener('click', ()=> setBankEditMode(!BEDITMODE));
+$('#btnBankAdd').addEventListener('click', ()=>{
+  if (!lockOpen('bankDetail')){ toast('지금은 잠겨 있습니다 — 제목 옆 자물쇠를 열면 추가할 수 있습니다'); return; }
+  openBankNew();
+});
 $('#btnBankSelDel').addEventListener('click', ()=>{
   if (!BSEL.size){ toast('지울 내역을 먼저 골라주세요'); return; }
   askBankDelete(Array.from(BSEL));
@@ -9307,14 +9584,12 @@ function setBankEditMode(on){
   BSEL.clear();
   bRowEdit = null;
   if (!BEDITMODE) bankCancelGrip();
-  document.body.classList.toggle('editmode', BEDITMODE);
+  document.body.classList.toggle('editmode', EDITMODE || BEDITMODE);
   renderAll();
   if (BEDITMODE){
-    toast('편집 모드 — 행을 눌러 고치고, 골라서 지우고, ⠿로 순서를 바꿉니다', 3600);
-    const el = $('#bankDetailCard');
-    if (el){ try { el.scrollIntoView({behavior: 'smooth', block: 'start'}); } catch(e){} }
+    toast(LOCK_META.bankDetail.tip, 4000);
   } else {
-    toast('편집 모드를 끝냈습니다');
+    toast('현금 상세 내역을 잠갔습니다');
   }
 }
 function setBankSel(id, on){
@@ -9374,6 +9649,11 @@ function saveBankRow(){
   const month = d.month || bankCurrentMonth();
   const account = account0;
   const item = moveHit ? moveHit.item : (itemRaw || '기타');
+  /* 모으기 이체 행을 지워 둔 상태에서 그 항목으로 거래를 넣으면 그 행을 다시 보이게 합니다 */
+  if (moveHit){
+    const mAcc0 = moveAccKey(account);
+    if (mAcc0 && bankIsMoveHidden(month, mAcc0, moveHit.key)) bankSetMoveHidden(month, mAcc0, moveHit.key, false);
+  }
   /* 계좌이동 — 구분에서 고른 방향, 또는 정산 요약에서 계좌이동으로 정한 항목이면 그 방향 (2026-11-25) */
   const dirSel = String(d.dir || '');
   const moveSel = /^move-/.test(dirSel);
@@ -9588,6 +9868,7 @@ $('#btbody').addEventListener('pointerdown', startBankGrip);
 $('#settleTable').addEventListener('click', ev=>{
   const bud = ev.target.closest('[data-setbud]');
   if (bud){
+    if (!lockOpen('settle')){ toast('정산 예산이 잠겨 있습니다 — 제목 옆 자물쇠를 열어 주세요'); return; }
     const k = bud.dataset.setbud.split('|');
     settleEdit = {kind: k[0], key: k.slice(1).join('|')};
     renderSettle();
@@ -9875,6 +10156,7 @@ document.addEventListener('click', ev=>{
   const btn = ev.target.closest && ev.target.closest('[data-hlm]');
   if (btn){
     ev.preventDefault(); ev.stopPropagation();
+    if (btn.closest('.locked')) return;            /* 잠긴 패널에서는 하이라이트도 바꾸지 않습니다 */
     openHlPop(btn, btn.dataset.hlm, btn.dataset.id);
     return;
   }
