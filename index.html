@@ -6562,6 +6562,7 @@ async function runSync(quiet){
       else mergePayload(p, stats);
     });
     payloads.forEach(p=> mileageApply(p));
+    seedCarryBudgetDefault();   /* 다른 기기 자료에 빠져 있으면 첫 달 이월금 예산을 채웁니다 */
     /* 2) settings.json — 더 최신 쪽 채택 (한도·목표·분류·규칙) */
     let setApplied = '';
     if (g && SYNC.token){
@@ -7388,6 +7389,9 @@ const normBankAccount = v => {
    저장된 옛 이름은 같은 항목으로 읽고, 저장할 때는 '이월금' 하나로 정리합니다. */
 const CARRY_ITEM = '이월금';
 const CARRY_ITEM_OLD = '전월이월금';
+/* 첫 달(전월 자료가 없는 달) 우리은행 이월금 '예산' 기본값 — 11월 51,886원 (2026-11-25 요청).
+   한 번 저장되면 사용자가 자물쇠를 열어 고친 값이 우선합니다. */
+const CARRY_BUDGET_DEFAULT = 51886;
 function isCarryName(n){ const s = String(n == null ? '' : n).replace(/\s+/g, ''); return s === CARRY_ITEM || s === CARRY_ITEM_OLD; }
 function normItemName(n){ const s = String(n == null ? '' : n).trim(); return isCarryName(s) ? CARRY_ITEM : s; }
 /* 모으기 이체 — 토스 모으기로 넣고(채우기) 빼는(꺼내기) 돈을 우리은행·토스 입출금 정산 요약 맨 아래에
@@ -7774,7 +7778,10 @@ function migrateBankNames(d){
     const o = d[k]; if (!o || typeof o !== 'object') return;
     Object.keys(o).forEach(a=>{
       const m = o[a]; if (!m || typeof m !== 'object') return;
-      Object.keys(m).filter(isCarryName).forEach(key=>{
+      /* 옛 이름('전월이월금' 등)만 '이월금'으로 옮깁니다.
+         이미 '이월금'인 칸은 그대로 둬야 합니다 — 예전에는 이 칸을 스스로 지워서
+         새로고침마다 이월금 예산이 사라졌습니다 (2026-11-25 수정). */
+      Object.keys(m).filter(k=> isCarryName(k) && String(k).trim() !== CARRY_ITEM).forEach(key=>{
         if (!Object.prototype.hasOwnProperty.call(m, CARRY_ITEM)) m[CARRY_ITEM] = m[key];
         delete m[key]; ch = true;
       });
@@ -7878,6 +7885,34 @@ function carryBudgetStored(d, account){
   if (Object.prototype.hasOwnProperty.call(b, CARRY_ITEM_OLD)) return Math.round(+b[CARRY_ITEM_OLD] || 0);
   return 0;
 }
+/* 저장된 이월금 예산이 아예 없으면 null — 기본값과 구분하려고 (0으로 저장한 값은 0 그대로) */
+function carryBudgetHas(d, account){
+  const b = ((d || {}).budgets || {})[account] || {};
+  return Object.prototype.hasOwnProperty.call(b, CARRY_ITEM) || Object.prototype.hasOwnProperty.call(b, CARRY_ITEM_OLD);
+}
+/* 첫 달 우리은행 이월금 예산 기본값 — 첫 달(전월 자료 없음)에만, 저장값이 없을 때만 */
+function carryBudgetDefaultFor(month, account){
+  if (account !== '우리은행') return 0;
+  if (!month) return 0;
+  if (bankPrevAccountData(month, account)) return 0;
+  if (bankMonths()[0] !== month) return 0;
+  return CARRY_BUDGET_DEFAULT;
+}
+/* 첫 달 이월금 예산을 실제 예산으로 저장 — 새로고침·동기화(bank-YYYY-MM.json)에도 남게 (2026-11-25) */
+function seedCarryBudgetDefault(){
+  const ms = bankMonths();
+  if (!ms.length) return false;
+  const month = ms[0];
+  if (bankPrevAccountData(month, '우리은행')) return false;
+  const d = ensureBankDoc(month);
+  if (!d.budgets['우리은행'] || typeof d.budgets['우리은행'] !== 'object') d.budgets['우리은행'] = {};
+  if (carryBudgetHas(d, '우리은행')) return false;
+  d.budgets['우리은행'][CARRY_ITEM] = CARRY_BUDGET_DEFAULT;
+  d.updatedAt = nowIso();
+  bankSave();
+  try { markBankDirty(month); } catch(e){}   /* 다른 기기·저장소에도 같은 값이 남도록 */
+  return true;
+}
 /* 이월금 연동 값 (2026-11-24)
    · 직전 달에 이 계좌 자료가 있으면 그 달 총합을 자동으로 가져옵니다 — 11월을 고치면 12월, 12월을 고치면 1월로 연쇄됩니다.
      우리은행: 예산 = 직전 달 예산 총합, 실행 = 직전 달 실행 총합
@@ -7887,7 +7922,9 @@ function bankCarryValue(month, account){
   const d = BANK.months[month];
   const stored = d && (d.rows || []).find(r=> r.account === account && r.carry);
   if (!bankPrevAccountData(month, account)){
-    return {auto: false, src: null, act: stored ? stored.amount : null, bud: carryBudgetStored(d, account)};
+    const hasBud = carryBudgetHas(d, account);
+    return {auto: false, src: null, act: stored ? stored.amount : null,
+      bud: hasBud ? carryBudgetStored(d, account) : carryBudgetDefaultFor(month, account)};
   }
   const prev = ymShift(month, -1);
   return {auto: true, src: prev, act: bankTotals(prev, account).bal,
@@ -7949,7 +7986,7 @@ function bankBudget(month, account, item){
   if (account === '우리은행' && item === '카드요금' && bankCardLinked(month)) return cardTotalFor(month);
   if (isCarryName(item)){
     const cv = bankCarryValue(month, account);
-    if (cv.auto) return Math.round(cv.bud || 0);
+    if (cv.auto || cv.bud) return Math.round(cv.bud || 0);   /* 연동값 · 첫 달 기본값(51,886) */
   }
   if (/^(월급|급여)$/.test(item)){
     const sv = bankSalaryBudget(month, account, item);
@@ -10488,6 +10525,7 @@ window.addEventListener('keydown', ev=>{
   loadAiConfig();
   loadSyncConfig();
   loadOutbox();
+  seedCarryBudgetDefault();   /* 첫 달 우리은행 이월금 예산 51,886원 — 저장·동기화 (2026-11-25) */
   migrateCategoryNames();   /* 엑셀 시드에 남은 예전 분류 이름도 새 이름으로 */
   if (PUBLIC_BUILD){
     const seg = $('#modeSeg'); if (seg) seg.style.display = 'none';
