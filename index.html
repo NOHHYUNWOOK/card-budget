@@ -9566,8 +9566,8 @@ function bankMonthPayload(month, remoteJson){
   /* 원격에서 지운 줄은 올리지 않습니다 — 옛 상태 기기가 삭제를 되살리지 못하게 (2026-11-25) */
   if (remoteDel.length && Array.isArray(d.rows) && d.rows.length){
     const before = d.rows.length;
-    d.rows = d.rows.filter(r=> !remoteDel.some(x=> ((x.id && x.id === r.id) || (x.k && x.k === bankRowKey(r))) &&
-      !bankEditedAfter(r, x.at)));
+    d.rows = d.rows.filter(r=> !remoteDel.some(x=> x.at && ((x.id && x.id === r.id) || (x.k && x.k === bankRowKey(r))) &&
+      !bankEditedAfter(r, x.at)));   /* 시각이 있는 삭제 기록만 — 예전 형식(키만)은 살아 있는 줄을 지우지 않습니다 */
     if (d.rows.length !== before){
       d.updatedAt = nowIso();
       try { bankSave(); } catch(e){}
@@ -10328,6 +10328,7 @@ function saveBankRow(){
     const nr = {id: uid(), month: month, account: account, date: date, item: item, name: name,
       amount: amount, memo: memo, order: bankNewOrder(doc), orderAt: nowIso(), createdAt: nowIso(), editedAt: nowIso()};
     putFm(nr); putKind(nr);
+    clearBankTomb(bankRowKey(nr), nr.id);   /* 예전에 지웠던 것과 같은 줄을 일부러 다시 넣으면 삭제 기록을 풉니다 */
     doc.rows.push(nr);
   } else {
     const r = doc.rows.find(x=> x.id === d.id);
