@@ -1348,7 +1348,25 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   .scg-row button.num{font-size:12px}
   .scg-h .nm{font-size:14px}
 }
-@media (max-width:620px){
+/* 폴드 펼친·태블릿 폭(640px ~ 1023px): 우리은행은 윗줄 전체 폭, 토스 입출금·토스 모으기는 아랫줄 2열 (2026-11-25)
+   — 3열로 좁아지면 우리은행 항목명(담보대출상환 등)이 잘려서, 폭이 넓은 우리은행만 한 줄을 다 씁니다.
+   맞춤 빈 행은 renderBankItems 가 이 폭에서 우리은행 0개 · 토스 두 계좌끼리만 맞추도록 계산합니다. */
+@media (min-width:640px) and (max-width:1023px){
+  .sc2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #bankItems > .scg.w3{grid-column:1 / -1}
+  .scg{padding:9px 11px 11px}
+  .scg-h{padding:4px 0 8px}
+  .scg-h .nm{font-size:15.5px}
+  /* 윗줄 전체 폭이 된 우리은행 — 항목명 자리를 넉넉히 두고 예산·실행 열은 조금 넓게 */
+  .scg.w3{--actw:94px;--budw:96px}
+  .scg.w3 .scg-cols,.scg.w3 .scg-row{grid-template-columns:minmax(0,1fr) 96px 94px}
+  /* 아랫줄 2열 토스 두 계좌 — 긴 항목명(토스페이충전_알리구매 등)이 잘리지 않게 실행 열을 조금 줄임 */
+  .scg.w2 .scg-cols,.scg.w2 .scg-row{grid-template-columns:minmax(0,1fr) 80px}
+  .scg-row{font-size:12.6px}
+  .scg-row button.num{font-size:12.4px}
+  .scg-row .inm{font-size:12.6px;padding:1px 4px}
+}
+@media (max-width:639px){
   .sc2{display:block;padding:2px 16px 12px}
   /* 좁은 화면에서는 위 「계좌별 잔액」 박스도 한 줄씩(전체 폭) — 아래 정산 요약 칸과 폭·좌우 끝선을 맞춤 */
   #bankAccGrid{grid-template-columns:1fr}
@@ -7495,6 +7513,11 @@ document.addEventListener('keydown', ev=>{
    · 개인 이름·금액은 코드에 넣지 않습니다 — 공개 배포본은 비어 있고, 자료는 비공개 저장소에서만 들어옵니다.
    ============================================================ */
 const BANK_ACCOUNTS = ['우리은행', '토스 입출금', '토스 모으기'];
+/* 예산·실행 3열 표라 폭이 넓어야 하는 계좌 — 폴드 펼친 폭에서는 혼자 윗줄 전체 폭을 씁니다 (2026-11-25) */
+const WIDE_ACC = '우리은행';
+/* 계좌내역이 윗줄(우리은행 전체 폭) + 아랫줄(토스 2열)로 나뉘는 폭 — CSS 미디어쿼리와 같은 경계 */
+const SC_SPLIT_MQ = window.matchMedia('(min-width: 640px) and (max-width: 1023px)');
+const scSplitLayout = ()=> !!SC_SPLIT_MQ.matches;
 const BANK_ACC_COLORS = {'우리은행': '#0067ac', '토스 입출금': '#3182f6', '토스 모으기': '#12b886'};
 const BANK_ACC_DARK = {'우리은행': '#00477a', '토스 입출금': '#1b56c4', '토스 모으기': '#08795a'};
 const BANK_ACC_SOFT = {'우리은행': 'rgba(0,103,172,.07)', '토스 입출금': 'rgba(49,130,246,.09)', '토스 모으기': 'rgba(18,184,134,.10)'};
@@ -8991,6 +9014,13 @@ function renderBankItems(){
     /* 행 수 기준: 3계좌 중 항목이 가장 많은 계좌 */
     const lists = BANK_ACCOUNTS.map(a=> ({acc: a, rows: bankSumItemRows(month, a)}));
     const maxN = lists.reduce((m, x)=> Math.max(m, x.rows.length), 0);
+    /* 폴드 펼친 폭(640~1023px)에서는 우리은행이 윗줄 전체 폭 · 토스 두 계좌가 아랫줄 2열이므로
+       맞춤 빈 행도 줄 단위로 — 우리은행은 빈 행 없이, 토스 두 계좌끼리만 총합 행 높이를 맞춥니다 (2026-11-25). */
+    if (scSplitLayout()){
+      const pairN = lists.filter(x=> x.acc !== WIDE_ACC)
+        .reduce((m, x)=> Math.max(m, x.rows.length), 0);
+      return lists.map(x=> scGroupHtml(month, x.acc, x.rows, x.acc === WIDE_ACC ? x.rows.length : pairN)).join('');
+    }
     return lists.map(x=> scGroupHtml(month, x.acc, x.rows, maxN)).join('');
   })();
   if (hint){
@@ -9000,6 +9030,11 @@ function renderBankItems(){
       : '자물쇠를 열면 항목·예산·실행 수정과 순서 바꾸기를 할 수 있습니다' + (autoCarry ? ' · 이월금은 전월 총합 자동' : '');
   }
 }
+/* 폴드 펼침·회전·창 크기 변화로 3열 ↔ (우리은행 전체 폭 + 토스 2열)이 바뀌면
+   맞춤 빈 행을 다시 계산해 그립니다 (2026-11-25) */
+const onScSplitChange = ()=>{ try { renderBankItems(); } catch(e){} };
+if (SC_SPLIT_MQ.addEventListener) SC_SPLIT_MQ.addEventListener('change', onScSplitChange);
+else if (SC_SPLIT_MQ.addListener) SC_SPLIT_MQ.addListener(onScSplitChange);
 function focusScInput(id){
   const i = document.getElementById(id);
   if (i){ i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){} }
