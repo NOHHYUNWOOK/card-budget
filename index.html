@@ -4144,7 +4144,7 @@ function saveRowEdit(){
     rowEdit = null; renderTableNow(); toast('바뀐 내용이 없습니다'); return;
   }
   const oldKey = rowKey(row);
-  row.date = date; row.merchant = merchant; row.amount = amount; row.edited = true;
+  row.date = date; row.merchant = merchant; row.amount = amount; rowEdited(row);
   /* 금액을 '=100+100' 수식으로 적었으면 계산값과 함께 원문도 남깁니다 (2026-11-25) */
   const fm = isFormulaText(d.amount) ? formulaText(d.amount) : '';
   if (fm) row.formula = fm; else delete row.formula;
@@ -4829,7 +4829,7 @@ function askDeleteCategory(name, after){
 function deleteCategory(name, target){
   let moved = 0;
   const touched = new Set();
-  S.rows.forEach(r=>{ if (r.category === name){ r.category = target; r.edited = true; moved++; touched.add(r.month); } });
+  S.rows.forEach(r=>{ if (r.category === name){ r.category = target; rowEdited(r); moved++; touched.add(r.month); } });
   S.rules.forEach(rule=>{ if (rule.category === name) rule.category = target; });
   S.categories = S.categories.filter(c=> c.name !== name);
   const off = annualOffList(); const oi = off.indexOf(name); if (oi >= 0) off.splice(oi,1);
@@ -5019,7 +5019,7 @@ function setRowCard(card){
   const prev = row.card;
   if (prev === card){ closeCatSheet(); return; }
   row.card = card;
-  row.edited = true;
+  rowEdited(row);
   saveState();
   renderAll();
   closeCatSheet();
@@ -5051,7 +5051,7 @@ function assignCatToSheetRow(name){
   if (!row) return;
   const prev = row.category;
   row.category = name;
-  row.edited = true;
+  rowEdited(row);
   saveState();
   markDirtyMonth(row.month);
   renderAll();
@@ -5344,7 +5344,7 @@ function saveCategories(){
     const before = r.category;
     if (rename.has(r.category)) r.category = rename.get(r.category);
     if (!valid.has(r.category)){ r.category = names[0]; moved++; }
-    if (r.category !== before){ r.edited = true; touched.add(r.month); }
+    if (r.category !== before){ rowEdited(r); touched.add(r.month); }
   });
   S.rules.forEach(rule=>{
     if (rename.has(rule.category)) rule.category = rename.get(rule.category);
@@ -5437,7 +5437,7 @@ function bindRuleTab(){
     const touched = new Set();
     S.rows.forEach(r=>{
       const c = autoCategory(r.merchant, r.amount, S.rules);
-      if (c && c !== r.category && (ow || !r.category || r.category === '미분류')){ r.category = c; r.edited = true; n++; touched.add(r.month); }
+      if (c && c !== r.category && (ow || !r.category || r.category === '미분류')){ r.category = c; rowEdited(r); n++; touched.add(r.month); }
     });
     saveState(); renderAll();
     touched.forEach(m=> markDirtyMonth(m));
@@ -6058,6 +6058,8 @@ let outboxTimer = null, pushQueue = Promise.resolve();
 let READONLY_NOTICED = false;
 
 function nowIso(){ return new Date().toISOString(); }
+/* 카드 거래를 고쳤을 때 — 삭제·편집 시각을 남겨 동기화에서 옛 값이 되살아나지 않게 합니다 (2026-11-25) */
+function rowEdited(r){ if (!r) return; r.edited = true; r.editedAt = nowIso(); if (!r.createdAt) r.createdAt = r.editedAt; return r; }
 function ghParse(){
   for (const u of (SYNC.urls || [])){
     const m = /^https:\/\/api\.github\.com\/repos\/([^\/]+)\/([^\/]+)\/contents\/?(.*)$/.exec(String(u).trim());
@@ -6171,9 +6173,11 @@ async function ghPutFileObj(path, obj, sha, message){
 /* 저장소에 넣을 행 모양 — 화면 전용 필드(id·편집표시·캡처출처)는 빼고,
    편집 모드에서 끌어 정한 순서(order)는 함께 넣습니다. */
 function rowForStore(r){
-  const out = {month:r.month, card:r.card, date:r.date, merchant:String(r.merchant || '').trim(),
+  const out = {id: r.id, month:r.month, card:r.card, date:r.date, merchant:String(r.merchant || '').trim(),
           amount:Math.round(+r.amount || 0), category:r.category || '', memo:r.memo || '',
           cardName:r.cardName || '', payType:r.payType || ''};
+  if (r.editedAt) out.editedAt = String(r.editedAt);
+  if (r.createdAt) out.createdAt = String(r.createdAt);
   /* 결제예정 미반영 — 되돌린 것도 시각과 함께 올려 다른 기기에서 최신 상태로 적용되게 합니다 */
   out.excluded = !!r.excluded;
   if (r.excludedAt) out.excludedAt = r.excludedAt;
@@ -6193,13 +6197,15 @@ function monthPayload(month, remoteJson){
   const rows = S.rows.filter(r=> r.month === month);
   const counts = new Map();
   const currentKeys = new Set();
-  rows.forEach(r=>{ const k = rowKey(r); currentKeys.add(k); counts.set(k, (counts.get(k) || 0) + 1); });
+  const currentIds = new Set();
+  rows.forEach(r=>{ const k = rowKey(r); currentKeys.add(k); counts.set(k, (counts.get(k) || 0) + 1); if (r.id) currentIds.add(r.id); });
   const tombs = tombSet();
   const extra = [];
   const remoteRows = (remoteJson && Array.isArray(remoteJson.rows)) ? remoteJson.rows : [];
   remoteRows.forEach(raw=>{
     const nr = normalizeRow(raw);
     if (!nr) return;
+    if (currentIds.has(nr.id)) return;                 /* 같은 줄(id)은 금액이 달라도 이 기기 값이 우선 — 옛 금액이 새 줄로 되살아나지 않음 */
     const k = rowKey(nr);
     const n = counts.get(k) || 0;
     if (n > 0){ counts.set(k, n - 1); return; }        /* 이 기기에도 있는 건은 이 기기 값이 우선 */
@@ -6471,7 +6477,7 @@ function normalizeRow(raw){
   /* order = 편집 모드에서 끌어 정한 순서. 없으면 null (날짜순으로 보입니다) */
   const ord = (raw.order !== null && raw.order !== undefined && raw.order !== '' && isFinite(+raw.order)) ? +raw.order : null;
   return {
-    id: raw.id || uid(),
+    id: bankKeepId(raw.id),
     month: raw.month || date.slice(0,7),
     card: raw.card ? normCard(raw.card) : '내 카드',
     date, merchant, amount,
@@ -6483,7 +6489,8 @@ function normalizeRow(raw){
     formula: (raw.formula && /^\s*=/.test(String(raw.formula))) ? String(raw.formula).trim().slice(0, 80) : '',
     highlight: hlKey(raw.highlight),
     highlightAt: String(raw.highlightAt || ''),
-    order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')
+    order: ord, orderAt: ord == null ? '' : String(raw.orderAt || ''),
+    editedAt: String(raw.editedAt || ''), createdAt: String(raw.createdAt || '')
   };
 }
 function mergePayload(payload, stats){
@@ -6491,7 +6498,8 @@ function mergePayload(payload, stats){
   const tombs = tombSet();                 /* 이 기기에서 지웠거나 고쳐서 더 이상 없는 건 */
   // 같은 날짜·가맹점·금액의 거래가 여러 건일 수 있으므로 "몇 번째 같은 건"으로 짝을 맞춥니다
   const index = new Map();
-  S.rows.forEach(r=>{ const k = rowKey(r); if (!index.has(k)) index.set(k, []); index.get(k).push(r); });
+  const idIndex = new Map();
+  S.rows.forEach(r=>{ const k = rowKey(r); if (!index.has(k)) index.set(k, []); index.get(k).push(r); if (r.id) idIndex.set(r.id, r); });
   const seen = new Map();
   rows.forEach(raw=>{
     const r = normalizeRow(raw);
@@ -6499,14 +6507,34 @@ function mergePayload(payload, stats){
     const k = rowKey(r);
     const arr = index.get(k) || [];
     if (!index.has(k)) index.set(k, arr);
-    const n = seen.get(k) || 0;
-    seen.set(k, n + 1);
-    const ex = arr[n];
+    /* 같은 id 면 금액을 고쳐도 같은 줄 — 예전 금액이 새 줄처럼 되살아나지 않습니다 (2026-11-25) */
+    let ex = (r.id && idIndex.get(r.id)) || null;
+    if (!ex){
+      const n = seen.get(k) || 0;
+      seen.set(k, n + 1);
+      ex = arr[n];
+      if (ex) ex.id = r.id;            /* 옛 자료의 id 를 이어받아 다음부터 같은 줄로 맞춥니다 */
+    }
     if (ex){
       let ch = false;
-      if (!ex.edited && r.category && r.category !== ex.category){ ex.category = r.category; ch = true; }
-      if (!ex.edited && r.memo && r.memo !== ex.memo){ ex.memo = r.memo; ch = true; }
-      if (!ex.formula && r.formula){ ex.formula = r.formula; ch = true; }   /* 수식 원문만 비어 있으면 받아 둠 */
+      const rt = Date.parse(r.editedAt || '') || 0, lt = Date.parse(ex.editedAt || '') || 0;
+      if (rt > lt){
+        /* 원격이 더 나중에 고친 같은 줄 — 내용을 그대로 받습니다 (옛 값으로 되돌리지 않음) */
+        if (r.amount !== ex.amount){ ex.amount = r.amount; ch = true; }
+        if (r.date !== ex.date){ ex.date = r.date; ch = true; }
+        if (r.month && r.month !== ex.month){ ex.month = r.month; ch = true; }
+        if (r.merchant !== ex.merchant){ ex.merchant = r.merchant; ch = true; }
+        if (r.card !== ex.card){ ex.card = r.card; ch = true; }
+        if (r.category && r.category !== ex.category){ ex.category = r.category; ch = true; }
+        if (r.memo !== ex.memo){ ex.memo = r.memo; ch = true; }
+        if (String(r.formula || '') !== String(ex.formula || '')){ if (r.formula) ex.formula = r.formula; else delete ex.formula; ch = true; }
+        ex.editedAt = r.editedAt;
+        if (r.createdAt && !ex.createdAt) ex.createdAt = r.createdAt;
+      } else {
+        if (!ex.edited && r.category && r.category !== ex.category){ ex.category = r.category; ch = true; }
+        if (!ex.edited && r.memo && r.memo !== ex.memo){ ex.memo = r.memo; ch = true; }
+        if (!ex.formula && r.formula){ ex.formula = r.formula; ch = true; }   /* 수식 원문만 비어 있으면 받아 둠 */
+      }
       /* 결제예정 미반영 — 더 최근에 바꾼 쪽(excludedAt)을 따릅니다 */
       if (r.excludedAt){
         const re = Date.parse(r.excludedAt) || 0, le = Date.parse(ex.excludedAt || '') || 0;
@@ -6538,7 +6566,7 @@ function mergePayload(payload, stats){
       if (tombs.has(k)) return;          /* 지웠거나 고친 건은 받아오기로 되살리지 않음 */
       if (!r.category){ const c = autoCategory(r.merchant, r.amount, S.rules); r.category = c || '기타'; }
       if (!S.categories.some(c=> c.name === r.category)) S.categories.push({name:r.category, color:'#64748b'});
-      arr.push(r); S.rows.push(r); stats.added++;
+      arr.push(r); S.rows.push(r); if (r.id) idIndex.set(r.id, r); stats.added++;
     }
   });
   if (payload && Array.isArray(payload.deleted) && payload.deleted.length){
@@ -6572,11 +6600,9 @@ async function runSync(quiet){
   setSyncState('busy', '동기화 중… (캐시 무시하고 새로 받는 중)');
   let pushed = 0;
   try {
-    /* 1) 이 기기에서 바꾼 내용이 있으면 먼저 올리고 병합 — 다른 기기 변경과 함께 살아남게 */
+    /* 1) 먼저 원격을 받아 병합합니다 — 이 기기의 옛 상태를 먼저 올려 다른 기기의 삭제·편집을
+       덮어쓰는 일을 막습니다. 올리기는 병합 뒤에 합니다 (2026-11-25) */
     const g = ghParse();
-    if (g && SYNC.token){
-      try { const r = await flushOutbox(true); pushed = (r && r.pushed) || 0; } catch(e){}
-    }
     let payloads = [];
     for (const u of SYNC.urls) payloads = payloads.concat(await fetchSyncSource(u));
     const stats = {added:0, updated:0};
@@ -6593,9 +6619,13 @@ async function runSync(quiet){
       try { const st = await ghGetFileObj(settingsPath(g)); if (st && st.json) setApplied = applyRemoteSettings(st.json); }
       catch(e){ /* settings.json 이 없거나 못 읽어도 동기화는 계속합니다 */ }
     }
-    /* 3) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
+    /* 3) 병합이 끝난 이 기기 상태를 올립니다 — 아직 못 올린 편집과 새로 받은 내용이 함께 저장되게 */
+    if (g && SYNC.token){
+      try { const r = await flushOutbox(true); pushed = (r && r.pushed) || 0; } catch(e){}
+    }
+    /* 4) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
     monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));
-    /* 4) 이 기기에서 캡처로 넣어 둔 내역이 저장소에 아직 없으면 함께 올립니다
+    /* 5) 이 기기에서 캡처로 넣어 둔 내역이 저장소에 아직 없으면 함께 올립니다
        (업그레이드 전에 넣어 둔 캡처분이 이 기기에만 남지 않도록) */
     let catchup = 0;
     const remoteKeys = new Map();
@@ -7232,7 +7262,8 @@ function capAddSelected(){
     const row = {
       id: uid(), month: month, card: (CAP.card || it.card || '내 카드'), date: it.date,
       merchant: String(it.merchant).trim(), amount: Math.round(+it.amount || 0),
-      category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture'
+      category: cat, memo: it.note || '', cardName: '', payType: '', src: 'capture',
+      createdAt: nowIso(), editedAt: nowIso()
     };
     if (it.formula) row.formula = it.formula;   /* 캡처 검토에서 적은 수식 원문도 함께 */
     S.rows.push(row);
@@ -7833,11 +7864,14 @@ function bankNormalizeRow(raw){
   const name = normItemName(String(raw.name || raw.내용 || raw.적요 || item || '').trim().slice(0, 60));
   if (!amount || (!item && !name)) return null;
   const ord = (raw.order !== null && raw.order !== undefined && raw.order !== '' && isFinite(+raw.order)) ? +raw.order : null;
-  const r = {id: raw.id || uid(), month: String(raw.month || '').slice(0, 7),
+  const r = {id: bankKeepId(raw.id), month: String(raw.month || '').slice(0, 7),
     account: normBankAccount(raw.account) || '우리은행',
     date: toDateStr(raw.date) || '', item: item || name, name: name || item,
     amount: amount, memo: String(raw.memo || '').trim().slice(0, 80),
     order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')};
+  /* 편집 시각 — 동기화에서 '누가 나중에 고쳤나'를 이 값으로 따집니다 (2026-11-25) */
+  if (raw.editedAt) r.editedAt = String(raw.editedAt);
+  if (raw.createdAt) r.createdAt = String(raw.createdAt);
   if (raw.carry) r.carry = true;
   if (raw.kind === TRANSFER_KIND || raw.transfer === true){
     /* 계좌이동 줄 — 방향은 부호와 항상 같게 맞춥니다 (2026-11-25) */
@@ -7864,9 +7898,18 @@ function bankMonths(){
   return Object.keys(BANK.months).filter(m=> Array.isArray(BANK.months[m].rows) && BANK.months[m].rows.length).sort();
 }
 function bankRowKey(r){ return [r.account || '', String(r.date || '').slice(0, 10), merchKey(r.name || r.item || ''), Math.round(+r.amount || 0)].join('|'); }
+/* 행 고유 id — 저장소에도 그대로 실어 보내, 금액을 고쳐도 같은 줄로 알아보게 합니다 (2026-11-25) */
+function bankKeepId(id){
+  const s = String(id == null ? '' : id);
+  return /^[A-Za-z0-9_-]{3,40}$/.test(s) ? s : uid();
+}
+function bankStamp(r, at){ if (r) r.editedAt = at || nowIso(); return r; }
+function rowForStoreTs(r){ return Date.parse((r && r.editedAt) || '') || 0; }
 function bankRowForStore(r){
-  const o = {month: r.month, account: r.account, date: r.date || '', item: r.item || '', name: r.name || '',
+  const o = {id: r.id, month: r.month, account: r.account, date: r.date || '', item: r.item || '', name: r.name || '',
     amount: Math.round(+r.amount || 0), memo: r.memo || '', highlight: hlKey(r.highlight)};
+  if (r.editedAt) o.editedAt = String(r.editedAt);
+  if (r.createdAt) o.createdAt = String(r.createdAt);
   if (r.formula) o.formula = String(r.formula).slice(0, 80);   /* '=100+100' 수식 원문 (2026-11-25) */
   if (r.highlightAt) o.highlightAt = r.highlightAt;
   if (r.carry) o.carry = true;
@@ -7994,6 +8037,12 @@ function bankFootTotals(sel, acc){
   const ms = isMonthSel(sel) ? [sel] : monthsInSel(sel, bankMonths());
   let inc = 0, exp = 0;
   ms.forEach(m=>{
+    /* 줄의 부호가 아니라 '그 항목이 수입 항목인지 지출 항목인지'(bankItemList)로 더합니다.
+       같은 항목에 +·− 조정 줄이 함께 있으면(정산 요약에서 직접 입력) 항목 실행 합계에서는
+       상쇄되므로, 부호로만 더하면 수입·지출이 같은 금액만큼 함께 부풀려집니다 (2026-11-25).
+       이렇게 하면 하단 수입·지출·차액이 항상 위 행의 실행 합계와 1원까지 맞습니다. */
+    const list = bankItemList(m, acc);
+    const inItems = new Set(list.in), outItems = new Set(list.out);
     bankRowsAll(m).forEach(r=>{
       if (r.account !== acc) return;
       if (r.carry || isCarryName(r.item)) return;                              /* 이월금 */
@@ -8001,7 +8050,8 @@ function bankFootTotals(sel, acc){
       if (bankTransferInfo(m, acc, r.item) || bankTransferInfo(m, acc, r.name)) return;
       if (isMoveItem(r.item) || moveAnyInfo(acc, r.item)) return;             /* 모으기채우기·꺼내기(이름 바꾼 것 포함) */
       if (acc === '토스 모으기' && /^(채우기|꺼내기)$/.test(String(r.item || r.name || '').trim())) return;   /* 모으기 계좌의 채우기·꺼내기도 계좌 사이 돈 */
-      if (r.amount > 0) inc += r.amount; else exp -= r.amount;
+      const dir = inItems.has(r.item) ? 'in' : (outItems.has(r.item) ? 'out' : (r.amount > 0 ? 'in' : 'out'));
+      if (dir === 'in') inc += r.amount; else exp -= r.amount;
     });
   });
   return {inc: inc, exp: exp, net: inc - exp};
@@ -8012,8 +8062,8 @@ function scgFootHtml(sel, acc, T){
   const cls = net > 0 ? 'pos' : (net < 0 ? 'neg' : 'zero');
   const sign = net > 0 ? '+' : (net < 0 ? '−' : '');
   return '<div class="scg-foot">' +
-    '<span class="in">수입 <b>+' + fmt(T.inc) + '</b></span>' +
-    '<span class="out">지출 <b>' + (T.exp ? '−' + fmt(T.exp) : '0') + '</b></span>' +
+    '<span class="in">수입 <b>' + (T.inc > 0 ? '+' : (T.inc < 0 ? '−' : '')) + fmt(Math.abs(T.inc)) + '</b></span>' +
+    '<span class="out">지출 <b>' + (T.exp > 0 ? '−' + fmt(T.exp) : (T.exp < 0 ? '+' + fmt(Math.abs(T.exp)) : '0')) + '</b></span>' +
     '<span class="net ' + cls + '" title="차액 = 수입 − 지출 (계좌이동·이월금 제외)">차액 <b>' + sign + fmt(Math.abs(net)) + '</b></span>' +
   '</div>';
 }
@@ -8697,7 +8747,8 @@ function bankRenameItem(month, acc, oldName, newName){
     const oldK = bankRowKey(r);
     r.item = newName;
     if (!r.name || r.name === oldName) r.name = newName;
-    if (bankRowKey(r) !== oldK) addBankTomb(oldK, month);
+    bankStamp(r);                        /* 이름을 고친 시각 */
+    if (bankRowKey(r) !== oldK) addBankTomb(oldK, month, r.id);
     n++;
   });
   const b = d.budgets[acc];
@@ -8721,12 +8772,18 @@ function bankRenameItem(month, acc, oldName, newName){
 function bankDeleteItem(month, acc, item){
   const d = ensureBankDoc(month);
   const rows = d.rows.filter(r=> r.account === acc && r.item === item);
-  rows.forEach(r=> addBankTomb(bankRowKey(r), month));
+  rows.forEach(r=> addBankTomb(bankRowKey(r), month, r.id));
   d.rows = d.rows.filter(r=> !(r.account === acc && r.item === item));
   const b = d.budgets[acc];
-  if (b && Object.prototype.hasOwnProperty.call(b, item)) delete b[item];
+  /* 지운 항목의 예산은 값 대신 null 로 남깁니다 — 다른 기기의 옛 예산이 동기화·새로고침에서
+     되살아나 빈 줄이 다시 생기지 않게 (2026-11-25) */
+  if (b && Object.prototype.hasOwnProperty.call(b, item)){
+    b[item] = null;
+    if (!d.budgetAt || typeof d.budgetAt !== 'object') d.budgetAt = {};
+    if (!d.budgetAt[acc]) d.budgetAt[acc] = {};
+    d.budgetAt[acc][item] = nowIso();
+  }
   if (d.budgetFormula && d.budgetFormula[acc]) delete d.budgetFormula[acc][item];
-  if (d.budgetAt && d.budgetAt[acc]) delete d.budgetAt[acc][item];
   if (d.transfer && d.transfer[acc]){
     delete d.transfer[acc][item];
     if (!Object.keys(d.transfer[acc]).length) delete d.transfer[acc];
@@ -8751,7 +8808,7 @@ function bankSetItemActual(month, acc, item, target, dir, formula){
   const real = d.rows.filter(r=> r.account === acc && r.item === item);
   if (isCarryName(item) && !real.length){
     const r0 = {id: uid(), month: month, account: acc, date: '', item: item, name: item,
-      amount: signed, memo: '정산 요약에서 직접 입력', carry: true, order: 0};
+      amount: signed, memo: '정산 요약에서 직접 입력', carry: true, order: 0, createdAt: nowIso(), editedAt: nowIso()};
     putFm(r0); putKind(r0);
     d.rows.push(r0);
     d.updatedAt = nowIso();
@@ -8762,7 +8819,8 @@ function bankSetItemActual(month, acc, item, target, dir, formula){
     const oldK = bankRowKey(r);
     r.amount = signed;
     putFm(r); putKind(r);
-    if (bankRowKey(r) !== oldK){ addBankTomb(oldK, month); clearBankTomb(bankRowKey(r)); }
+    bankStamp(r);                        /* 실행 금액을 고친 시각 — 새로고침·동기화에서 옛 값이 되살아나지 않게 */
+    if (bankRowKey(r) !== oldK){ addBankTomb(oldK, month, r.id); clearBankTomb(bankRowKey(r)); }
     d.updatedAt = nowIso();
     return null;
   }
@@ -8776,8 +8834,25 @@ function bankSetItemActual(month, acc, item, target, dir, formula){
     return 0;
   }
   const adj = {id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: item, name: item + ' (정산 조정)',
-    amount: delta, memo: '정산 요약에서 직접 입력', order: bankNewOrder(d), orderAt: nowIso()};
+    amount: delta, memo: '정산 요약에서 직접 입력', order: bankNewOrder(d), orderAt: nowIso(), createdAt: nowIso(), editedAt: nowIso()};
   putFm(adj); putKind(adj);
+  /* 이미 조정 줄이 있으면 새 줄을 또 만들지 않고 그 줄의 금액만 고칩니다 — 고칠 때마다 줄이 쌓여
+     +·− 짝이 늘어나는 일을 막습니다 (2026-11-25) */
+  const prevAdj = real.filter(r=> /정산 요약에서 직접 입력/.test(r.memo || '')).slice(-1)[0];
+  if (prevAdj){
+    const next = Math.round((+prevAdj.amount || 0) + delta);
+    if (!next){
+      const k = bankRowKey(prevAdj);
+      d.rows = d.rows.filter(x=> x !== prevAdj);
+      addBankTomb(k, month, prevAdj.id);
+    } else {
+      prevAdj.amount = next;
+      putFm(prevAdj); putKind(prevAdj);
+      bankStamp(prevAdj);
+    }
+    d.updatedAt = nowIso();
+    return delta;
+  }
   d.rows.push(adj);
   d.updatedAt = nowIso();
   return delta;
@@ -9438,14 +9513,41 @@ function renderSettleCharts(){ renderSettleAnnual(); renderSettleCat(); }
    · 비공개 저장소 data/bank-YYYY-MM.json 한 파일에 거래·예산·정산을 함께 둡니다.
    · 올리기 전에 항상 최신 원격을 GET 해 sha 를 확인하고 병합 → 다른 기기의 거래를 지우지 않음.
    ============================================================ */
-function addBankTomb(k, month){
-  if (!k) return;
+function addBankTomb(k, month, id, at){
+  if (!k && !id) return;
   if (!Array.isArray(OUTBOX.bdeleted)) OUTBOX.bdeleted = [];
-  if (OUTBOX.bdeleted.some(x=> x.k === k)) return;
-  OUTBOX.bdeleted.push({k: k, m: month || '', at: nowIso()});
+  const t = at || nowIso();
+  const hit = OUTBOX.bdeleted.find(x=> (k && x.k === k) || (id && x.id === id));
+  if (hit){
+    /* 원격에서 받은 더 나중 삭제 시각을 보존합니다 — 옛 기기가 다시 살려 올리지 못하게 */
+    if (Date.parse(t) > (Date.parse(hit.at || '') || 0)) hit.at = t;
+    if (id && !hit.id) hit.id = id;
+    saveOutbox();
+    return;
+  }
+  OUTBOX.bdeleted.push(Object.assign({k: k || '', m: month || '', at: t}, id ? {id: id} : {}));
   saveOutbox();
 }
-function bankTombSet(){ const s = new Set(); (OUTBOX.bdeleted || []).forEach(x=> s.add(x.k)); return s; }
+function bankTombSet(){ const s = new Set(); (OUTBOX.bdeleted || []).forEach(x=> { if (x.k) s.add(x.k); }); return s; }
+function bankTombIds(){ const s = new Set(); (OUTBOX.bdeleted || []).forEach(x=> { if (x.id) s.add(x.id); }); return s; }
+/* 원격 파일의 삭제 기록 — 옛 형식(키 문자열)과 새 형식({k,id,at}) 둘 다 읽습니다 */
+function bankDeletesOf(json){
+  const out = [];
+  if (!json || !Array.isArray(json.deleted)) return out;
+  json.deleted.forEach(x=>{
+    if (typeof x === 'string'){ if (x) out.push({k: x, id: '', at: ''}); return; }
+    if (!x || typeof x !== 'object') return;
+    const k = String(x.k || ''), id = String(x.id || ''), at = String(x.at || '');
+    if (k || id) out.push({k: k, id: id, at: at});
+  });
+  return out;
+}
+/* 이 줄의 편집 시각이 삭제 기록보다 나중인가 — 나중이면 지우지 않고 살립니다 */
+function bankEditedAfter(r, at){
+  const t = Date.parse(at || '') || 0;
+  if (!t) return false;
+  return rowForStoreTs(r) > t;
+}
 function markBankDirty(month){
   if (!month) return;
   if (!OUTBOX.bmonths || typeof OUTBOX.bmonths !== 'object') OUTBOX.bmonths = {};
@@ -9454,19 +9556,94 @@ function markBankDirty(month){
 }
 function bankMonthPayload(month, remoteJson){
   const d = BANK.months[month] || {};
+  const remoteDel = bankDeletesOf(remoteJson);
+  /* 원격에서 지운 줄은 올리지 않습니다 — 옛 상태 기기가 삭제를 되살리지 못하게 (2026-11-25) */
+  if (remoteDel.length && Array.isArray(d.rows) && d.rows.length){
+    const before = d.rows.length;
+    d.rows = d.rows.filter(r=> !remoteDel.some(x=> ((x.id && x.id === r.id) || (x.k && x.k === bankRowKey(r))) &&
+      !bankEditedAfter(r, x.at)));
+    if (d.rows.length !== before){
+      d.updatedAt = nowIso();
+      try { bankSave(); } catch(e){}
+    }
+  }
   const rows = (d.rows || []).map(bankRowForStore);
   const keys = new Set(rows.map(r=> bankRowKey(r)));
-  const tombs = bankTombSet();
+  const ids = new Set(rows.map(r=> r.id).filter(Boolean));
+  const tombs = bankTombSet(), tombIds = bankTombIds();
   const extra = [];
   ((remoteJson && remoteJson.rows) || []).forEach(raw=>{
     const nr = bankNormalizeRow(raw);
     if (!nr) return;
     const k = bankRowKey(nr);
-    if (keys.has(k) || tombs.has(k)) return;
+    if (ids.has(nr.id) || keys.has(k)) return;      /* 같은 줄(id) 또는 같은 내용의 줄은 이 기기 값이 우선 */
+    if (tombs.has(k) || tombIds.has(nr.id)) return; /* 지운 줄은 올리지도, 되살리지도 않음 */
+    /* 원격이 '지웠다'고 남긴 기록이 이 줄보다 나중이면 이 줄도 지운 것으로 — 옛 기기가 되살리지 못하게 */
+    if (remoteDel.some(x=> ((x.id && x.id === nr.id) || (x.k && x.k === k)) && !bankEditedAfter(nr, x.at))) return;
     extra.push(bankRowForStore(nr));
-    keys.add(k);
+    ids.add(nr.id); keys.add(k);
   });
-  const live = new Set(rows.concat(extra).map(r=> bankRowKey(r)));
+  const allStored = rows.concat(extra);
+  const live = new Set(allStored.map(r=> bankRowKey(r)));
+  const liveIds = new Set(allStored.map(r=> r.id).filter(Boolean));
+  /* 삭제 기록: 이 기기의 것 + 원격에만 있던 것(지금 살아 있는 줄이 덮지 않은 것)까지 함께 보존합니다 */
+  const delOut = [];
+  const delSeen = new Set();
+  (OUTBOX.bdeleted || []).forEach(x=>{
+    if (x.m && x.m !== month) return;
+    if ((x.k && live.has(x.k)) || (x.id && liveIds.has(x.id))) return;
+    const key = x.id || ('k:' + x.k);
+    if (delSeen.has(key)) return;
+    delSeen.add(key);
+    delOut.push(Object.assign({k: x.k || '', at: x.at || ''}, x.id ? {id: x.id} : {}));
+  });
+  remoteDel.forEach(x=>{
+    if ((x.k && live.has(x.k)) || (x.id && liveIds.has(x.id))) return;
+    const key = x.id || ('k:' + x.k);
+    if (delSeen.has(key)) return;
+    delSeen.add(key);
+    delOut.push(Object.assign({k: x.k || '', at: x.at || ''}, x.id ? {id: x.id} : {}));
+  });
+  /* 예산 — 이 기기에 없거나 원격이 더 나중에 고친 항목만 원격 값을 씁니다.
+     옛 상태 기기가 올려도 다른 기기의 최신 예산을 덮어쓰지 않게 (2026-11-25) */
+  const lBud = (d.budgets && typeof d.budgets === 'object') ? d.budgets : {};
+  const lBAt = (d.budgetAt && typeof d.budgetAt === 'object') ? d.budgetAt : {};
+  const rBud = (remoteJson && remoteJson.budgets && typeof remoteJson.budgets === 'object') ? remoteJson.budgets : {};
+  const rBAt = (remoteJson && remoteJson.budgetAt && typeof remoteJson.budgetAt === 'object') ? remoteJson.budgetAt : {};
+  const outBud = {}, outBAt = {}, fromRemote = {};
+  const accUnion = new Set(Object.keys(lBud).concat(Object.keys(rBud)));
+  accUnion.forEach(a=>{
+    const lm = (lBud[a] && typeof lBud[a] === 'object' && !Array.isArray(lBud[a])) ? lBud[a] : {};
+    const rm = (rBud[a] && typeof rBud[a] === 'object' && !Array.isArray(rBud[a])) ? rBud[a] : {};
+    const la = (lBAt[a] && typeof lBAt[a] === 'object') ? lBAt[a] : {};
+    const ra = (rBAt[a] && typeof rBAt[a] === 'object') ? rBAt[a] : {};
+    const m = {}, at = {}, pick = {};
+    new Set(Object.keys(lm).concat(Object.keys(rm))).forEach(it=>{
+      const hasL = Object.prototype.hasOwnProperty.call(lm, it);
+      const hasR = Object.prototype.hasOwnProperty.call(rm, it);
+      const lt = Date.parse(la[it] || '') || 0, rt = Date.parse(ra[it] || '') || 0;
+      if (hasL && (!hasR || lt >= rt)){ m[it] = lm[it]; if (la[it]) at[it] = la[it]; }
+      else if (hasR){ m[it] = rm[it]; if (ra[it]) at[it] = ra[it]; pick[it] = true; }
+    });
+    if (Object.keys(m).length) outBud[a] = m;
+    if (Object.keys(at).length) outBAt[a] = at;
+    if (Object.keys(pick).length) fromRemote[a] = pick;
+  });
+  /* 예산 수식 원문도 예산과 짝 — 원격 예산 값을 받은 항목은 그 수식도 함께 */
+  const lBF = (d.budgetFormula && typeof d.budgetFormula === 'object') ? d.budgetFormula : {};
+  const rBF = (remoteJson && remoteJson.budgetFormula && typeof remoteJson.budgetFormula === 'object') ? remoteJson.budgetFormula : {};
+  const outBF = {};
+  new Set(Object.keys(lBF).concat(Object.keys(rBF))).forEach(a=>{
+    const lm = (lBF[a] && typeof lBF[a] === 'object') ? lBF[a] : {};
+    const rm = (rBF[a] && typeof rBF[a] === 'object') ? rBF[a] : {};
+    const pick = fromRemote[a] || {};
+    const m = {};
+    new Set(Object.keys(lm).concat(Object.keys(rm))).forEach(it=>{
+      const v = pick[it] ? rm[it] : (Object.prototype.hasOwnProperty.call(lm, it) ? lm[it] : rm[it]);
+      if (v != null && String(v).trim()) m[it] = String(v);
+    });
+    if (Object.keys(m).length) outBF[a] = m;
+  });
   return {v: 1, kind: 'bank', month: month, updatedAt: nowIso(), accounts: BANK_ACCOUNTS,
     cardLink: d.cardLink !== false,
     moveNames: bankMoveNamesCopy(),
@@ -9476,14 +9653,14 @@ function bankMonthPayload(month, remoteJson){
     rowOrderAt: bankRowOrderAtCopy(month),
     hiddenMoves: bankHiddenMovesCopy(month),
     hiddenMovesAt: bankHiddenMovesAtCopy(month),
-    budgetFormula: d.budgetFormula || {},
+    budgetFormula: outBF,
     settlementFormula: d.settlementFormula || {},
     rows: rows.concat(extra),
-    budgets: d.budgets || {},
-    budgetAt: d.budgetAt || {},
+    budgets: outBud,
+    budgetAt: outBAt,
     map: d.map || ((remoteJson && remoteJson.map) || {}),
     settlement: d.settlement || ((remoteJson && remoteJson.settlement) || null),
-    deleted: (OUTBOX.bdeleted || []).filter(x=> x.m === month && !live.has(x.k)).map(x=> x.k).slice(-200)};
+    deleted: delOut.slice(-300)};
 }
 async function pushBankMonth(month){
   const g = ghParse(); if (!g) throw new Error('저장소 주소가 없습니다');
@@ -9513,59 +9690,111 @@ function applyBankPayload(p){
   const doc = ensureBankDoc(month);
   const localAt = Date.parse(doc.updatedAt || '') || 0;
   const remoteAt = Date.parse(p.updatedAt || '') || 0;
-  const tombs = bankTombSet();
-  const index = new Map();
-  doc.rows.forEach(r=> index.set(bankRowKey(r), r));
+  const tombs = bankTombSet(), tombIds = bankTombIds();
+  const idIdx = new Map();
+  const keyQ = new Map();
+  const used = new Set();
+  doc.rows.forEach(r=>{
+    if (r.id) idIdx.set(r.id, r);
+    const k = bankRowKey(r);
+    if (!keyQ.has(k)) keyQ.set(k, []);
+    keyQ.get(k).push(r);
+  });
   let changed = 0;
   (Array.isArray(p.rows) ? p.rows : []).forEach(raw=>{
     const r = bankNormalizeRow(raw);
     if (!r) return;
     r.month = month;
     const k = bankRowKey(r);
-    const ex = index.get(k);
+    /* 1) 같은 id — 금액을 고쳐도 같은 줄로 알아보고, 더 나중에 고친 쪽을 따릅니다 */
+    let ex = idIdx.get(r.id) || null;
+    if (ex && used.has(ex)) ex = null;
+    if (!ex){
+      /* 2) id 가 없던 옛 자료 — 같은 내용(키)으로 짝을 맞추고 원격 id 를 이어받습니다.
+         같은 금액·날짜·내용이 여러 건이면 남은 줄에서 차례로 하나씩 */
+      const q = keyQ.get(k) || [];
+      const cand = q.find(c=> !used.has(c));
+      if (cand){ ex = cand; cand.id = r.id; idIdx.set(r.id, cand); changed++; }
+    }
     if (ex){
-      if (remoteAt > localAt){
+      used.add(ex);
+      const rt = Date.parse(r.editedAt || '') || 0, lt = Date.parse(ex.editedAt || '') || 0;
+      if (rt > lt){
+        /* 원격이 더 나중에 고친 같은 줄 — 내용을 그대로 받습니다 (이 기기의 옛 값으로 되돌리지 않음) */
+        if (r.amount !== ex.amount){ ex.amount = r.amount; changed++; }
+        if (r.date !== ex.date){ ex.date = r.date; changed++; }
+        if (r.item !== ex.item){ ex.item = r.item; changed++; }
+        if (r.name !== ex.name){ ex.name = r.name; changed++; }
+        if (r.memo !== ex.memo){ ex.memo = r.memo; changed++; }
+        if (String(r.formula || '') !== String(ex.formula || '')){ if (r.formula) ex.formula = r.formula; else delete ex.formula; changed++; }
+        if (!!r.carry !== !!ex.carry){ if (r.carry) ex.carry = true; else delete ex.carry; changed++; }
+        if ((r.kind === TRANSFER_KIND) !== (ex.kind === TRANSFER_KIND)){
+          if (r.kind === TRANSFER_KIND){ ex.kind = TRANSFER_KIND; ex.dir = r.dir; } else { delete ex.kind; delete ex.dir; }
+          changed++;
+        } else if (r.kind === TRANSFER_KIND && r.dir !== ex.dir){ ex.dir = r.dir; changed++; }
+        if (hasBOrder(r) && r.order !== ex.order){ ex.order = r.order; ex.orderAt = r.orderAt; changed++; }
+        ex.editedAt = r.editedAt;
+        if (r.createdAt && !ex.createdAt) ex.createdAt = r.createdAt;
+      } else if (remoteAt > localAt){
+        /* 예전처럼 문서 시각만 있는 자료 — 메모·항목 이름만 받습니다 */
         if (r.memo !== ex.memo){ ex.memo = r.memo; changed++; }
         if (r.item !== ex.item){ ex.item = r.item; changed++; }
         if (hasBOrder(r) && r.order !== ex.order){ ex.order = r.order; ex.orderAt = r.orderAt; changed++; }
-        if (r.highlightAt){
-          const rh = Date.parse(r.highlightAt) || 0, lh = Date.parse(ex.highlightAt || '') || 0;
-          if (rh > lh && hlKey(ex.highlight) !== hlKey(r.highlight)){ ex.highlight = hlKey(r.highlight); ex.highlightAt = r.highlightAt; changed++; }
-          else if (rh > lh && !ex.highlightAt) ex.highlightAt = r.highlightAt;
-        }
+      }
+      if (r.highlightAt){
+        const rh = Date.parse(r.highlightAt) || 0, lh = Date.parse(ex.highlightAt || '') || 0;
+        if (rh > lh && hlKey(ex.highlight) !== hlKey(r.highlight)){ ex.highlight = hlKey(r.highlight); ex.highlightAt = r.highlightAt; changed++; }
+        else if (rh > lh && !ex.highlightAt) ex.highlightAt = r.highlightAt;
       }
       return;
     }
-    if (tombs.has(k)) return;
+    /* 3) 이 기기에 없는 줄 — 지운 줄이면 살리지 않고, 원격 삭제 기록보다 나중에 만든 줄만 새로 더합니다 */
+    if (tombs.has(k) || tombIds.has(r.id)) return;
     doc.rows.push(r);
-    index.set(k, r);
+    used.add(r);
+    idIdx.set(r.id, r);
+    if (!keyQ.has(k)) keyQ.set(k, []);
+    keyQ.get(k).push(r);
     changed++;
   });
-  if (Array.isArray(p.deleted) && p.deleted.length){
-    const del = new Set(p.deleted.map(k=> String(k)));
-    const before = doc.rows.length;
-    doc.rows = doc.rows.filter(r=> !del.has(bankRowKey(r)));
-    const removed = before - doc.rows.length;
-    if (removed){
-      changed += removed;
-      del.forEach(k=> addBankTomb(k, month));
-    }
-  }
-  if (p.budgets && typeof p.budgets === 'object'){
-    if (remoteAt > localAt) doc.budgets = p.budgets;
-    else {
-      Object.keys(p.budgets).forEach(a=>{
-        if (!doc.budgets[a]) doc.budgets[a] = {};
-        Object.keys(p.budgets[a] || {}).forEach(it=>{
-          if (!Object.prototype.hasOwnProperty.call(doc.budgets[a], it)) doc.budgets[a][it] = p.budgets[a][it];
-        });
+  /* 원격 삭제 기록 — 이 기기에서 그 뒤에 고친 줄은 살립니다 (2026-11-25) */
+  const dels = bankDeletesOf(p);
+  if (dels.length){
+    let removed = 0;
+    dels.forEach(dl=>{
+      doc.rows = doc.rows.filter(r=>{
+        const hit = (dl.id && r.id === dl.id) || (dl.k && bankRowKey(r) === dl.k);
+        if (!hit) return true;
+        if (bankEditedAfter(r, dl.at)) return true;      /* 삭제보다 나중에 고친 줄 — 살립니다 */
+        removed++;
+        return false;
       });
-    }
+      addBankTomb(dl.k, month, dl.id, dl.at);             /* 원격 삭제 시각을 그대로 보존 */
+    });
+    if (removed) changed += removed;
   }
-  if (p.budgetAt && typeof p.budgetAt === 'object'){
-    if (remoteAt > localAt) doc.budgetAt = p.budgetAt;
-    else if (!doc.budgetAt) doc.budgetAt = p.budgetAt;
+  /* 예산 — 문서 통째 교체가 아니라 항목마다 budgetAt 이 더 나중인 값만 받습니다
+     (다른 기기의 옛 값이 이 기기의 편집을 덮어쓰지 않게, 2026-11-25) */
+  if (p.budgets && typeof p.budgets === 'object'){
+    const rAt = (p.budgetAt && typeof p.budgetAt === 'object') ? p.budgetAt : {};
+    Object.keys(p.budgets).forEach(a=>{
+      const rp = p.budgets[a];
+      if (!rp || typeof rp !== 'object') return;
+      if (!doc.budgets[a]) doc.budgets[a] = {};
+      if (!doc.budgetAt || typeof doc.budgetAt !== 'object') doc.budgetAt = {};
+      if (!doc.budgetAt[a]) doc.budgetAt[a] = {};
+      const rap = (rAt[a] && typeof rAt[a] === 'object') ? rAt[a] : {};
+      Object.keys(rp).forEach(it=>{
+        const hasLocal = Object.prototype.hasOwnProperty.call(doc.budgets[a], it);
+        const rt = Date.parse(rap[it] || '') || 0, lt = Date.parse(doc.budgetAt[a][it] || '') || 0;
+        if (!hasLocal || rt > lt){
+          if (doc.budgets[a][it] !== rp[it]){ doc.budgets[a][it] = rp[it]; changed++; }
+          if (rap[it]) doc.budgetAt[a][it] = rap[it];
+        }
+      });
+    });
   }
+  if (p.budgetAt && typeof p.budgetAt === 'object' && !doc.budgetAt) doc.budgetAt = p.budgetAt;
   /* 계좌이동 구분·방향(transfer) — 예산과 같은 규칙: 더 최신 쪽을 따르고, 아니면 빠진 것만 채웁니다 (2026-11-25) */
   if (p.transfer && typeof p.transfer === 'object' && !Array.isArray(p.transfer)){
     const clean = {};
@@ -9740,10 +9969,10 @@ function capAddBank(){
     const r = {id: uid(), month: month, account: normBankAccount(it.account) || it.account,
       date: it.date, item: String(it.item || '').trim() || bankAutoItem(it.merchant, it.note, it.amount),
       name: String(it.merchant).trim(), amount: Math.round(+it.amount || 0),
-      memo: String(it.note || '').trim(), order: bankNewOrder(doc), orderAt: nowIso(), src: 'capture'};
+      memo: String(it.note || '').trim(), order: bankNewOrder(doc), orderAt: nowIso(), src: 'capture', createdAt: nowIso(), editedAt: nowIso()};
     doc.rows.push(r);
     doc.updatedAt = nowIso();
-    clearBankTomb(bankRowKey(r));
+    clearBankTomb(bankRowKey(r), r.id);
     added++;
   });
   bRowEdit = null;
@@ -9752,10 +9981,10 @@ function capAddBank(){
   const dupN = CAP.results.filter(r=> r.dup && !r.on).length;
   toast(added + '건을 ' + monthLabel(month) + ' 현금 내역에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : ''));
 }
-function clearBankTomb(k){
-  if (!k || !Array.isArray(OUTBOX.bdeleted) || !OUTBOX.bdeleted.length) return;
+function clearBankTomb(k, id){
+  if ((!k && !id) || !Array.isArray(OUTBOX.bdeleted) || !OUTBOX.bdeleted.length) return;
   const n = OUTBOX.bdeleted.length;
-  OUTBOX.bdeleted = OUTBOX.bdeleted.filter(x=> x.k !== k);
+  OUTBOX.bdeleted = OUTBOX.bdeleted.filter(x=> !(k && x.k === k) && !(id && x.id === id));
   if (OUTBOX.bdeleted.length !== n) saveOutbox();
 }
 
@@ -10091,7 +10320,7 @@ function saveBankRow(){
   };
   if (d.isNew){
     const nr = {id: uid(), month: month, account: account, date: date, item: item, name: name,
-      amount: amount, memo: memo, order: bankNewOrder(doc), orderAt: nowIso()};
+      amount: amount, memo: memo, order: bankNewOrder(doc), orderAt: nowIso(), createdAt: nowIso(), editedAt: nowIso()};
     putFm(nr); putKind(nr);
     doc.rows.push(nr);
   } else {
@@ -10100,7 +10329,8 @@ function saveBankRow(){
     const oldKey = bankRowKey(r);
     r.account = account; r.date = date; r.item = item; r.name = name; r.amount = amount; r.memo = memo;
     putFm(r); putKind(r);
-    if (bankRowKey(r) !== oldKey) addBankTomb(oldKey, month);
+    bankStamp(r);                        /* 이 줄을 나중에 고친 것으로 기록 — 동기화에서 옛 값이 되살아나지 않게 */
+    if (bankRowKey(r) !== oldKey) addBankTomb(oldKey, month, r.id);
   }
   /* 새 이름으로 계좌이동을 고르면 그 달 정산 요약에도 계좌이동 항목으로 등록 */
   if (isTr) bankSetTransfer(month, account, item, mdir);
@@ -10133,7 +10363,7 @@ function deleteBankRows(ids){
     const before = d.rows.length;
     d.rows = d.rows.filter(r=>{
       if (!set.has(r.id)) return true;
-      addBankTomb(bankRowKey(r), m); n++;
+      addBankTomb(bankRowKey(r), m, r.id); n++;
       return false;
     });
     if (d.rows.length !== before){ d.updatedAt = nowIso(); markBankDirty(m); }
