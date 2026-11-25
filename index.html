@@ -2076,6 +2076,7 @@ function saveState(){
 }
 function loadState(){
   let raw = null;
+  let idFixed = false;
   try { raw = localStorage.getItem(LS_KEY); } catch(e){ LS_OK = false; return; }
   if(!raw) return;
   try {
@@ -2083,7 +2084,7 @@ function loadState(){
     if(!p || !Array.isArray(p.rows)) return;
     S = seedState();
     S.mode = p.mode === 'empty' ? 'empty' : 'mine';
-    S.rows = p.rows.map(r=>({...r, id:r.id||uid()}));
+    S.rows = p.rows.map(r=>{ if (!r.id) idFixed = true; return {...r, id:r.id||uid()}; });
     if(Array.isArray(p.categories) && p.categories.length) S.categories = p.categories.map(c=>({...c}));
     if(Array.isArray(p.rules)) S.rules = p.rules.map(r=>({...r}));
     if(p.dueDates && typeof p.dueDates === 'object') S.dueDates = p.dueDates;
@@ -2095,6 +2096,7 @@ function loadState(){
     if(p.ui && (p.ui.view === 'bank' || p.ui.view === 'settle')) { S.ui.view = p.ui.view; VIEW = p.ui.view; }
   } catch(e){ /* ignore broken storage */ }
   migrateCategoryNames();
+  if (idFixed) saveState();   /* 붙인 행 id 를 바로 저장 — 다시 열어도 같은 줄 */
 }
 
 /* ---------- 카드별 월 한도 (localStorage 전용 — 동기화 토큰은 읽기 전용) ---------- */
@@ -7791,6 +7793,7 @@ let GRIP_B = null, GRIP_B_SKIP = false;
 
 function bankLoad(){
   BANK = BANK_EMPTY();
+  let idFixed = false;
   try {
     const raw = localStorage.getItem(BANK_KEY);
     if (raw){
@@ -7818,10 +7821,13 @@ function bankLoad(){
   Object.keys(BANK.months).forEach(m=>{
     const d = BANK.months[m];
     d.month = m; d.kind = 'bank';
+    const hadNoId = (d.rows || []).some(r=> !r.id);
     d.rows = (d.rows || []).map(r=> bankNormalizeRow(r)).filter(Boolean);
+    if (hadNoId) idFixed = true;      /* 이 번에 붙인 행 id — 다시 열어도 같은 줄로 알아보게 바로 저장 */
     if (!d.budgets || typeof d.budgets !== 'object') d.budgets = {};
     migrateBankNames(d);            /* 옛 항목 이름을 이월금으로 정리 */
   });
+  if (idFixed) bankSave();
 }
 /* 저장된 자료의 옛 항목 이름을 지금 이름으로 옮깁니다 — 같은 돈이 두 줄로 생기지 않게.
    거래 줄(item·name), 예산·예산수정시각, 정산 매핑까지 모두 '이월금'으로 맞춥니다. */
