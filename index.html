@@ -8566,8 +8566,8 @@ function renderBankSummary(){
         line('act', '실행', (act.inc ? '+' : '') + fmt(act.inc)) +
         '<span class="x">' + inX + '</span></div>' +
       '<div class="bs out"><span class="k">총 지출</span>' +
-        line('bud', '예산', '−' + fmt(budExp)) +
-        line('act', '실행', '−' + fmt(act.exp)) +
+        line('bud', '예산', (budExp ? '−' : '') + fmt(budExp)) +
+        line('act', '실행', (act.exp ? '−' : '') + fmt(act.exp)) +
         '<span class="x">' + outX + '</span></div>' +
       '<div class="bs bal"><span class="k">' + (yMode ? (isYearSel(F.month) ? '연말 잔액' : '최근 잔액') : '현재 총 잔액') + '</span><span class="v">' + fmt(bal) + '<small>원</small></span>' +
         '<span class="x">우리 + 토스 입출금 + 모으기</span></div>' +
