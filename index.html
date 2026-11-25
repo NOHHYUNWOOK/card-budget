@@ -8000,6 +8000,7 @@ function bankFootTotals(sel, acc){
       if (r.kind === TRANSFER_KIND) return;                                    /* 계좌이동 */
       if (bankTransferInfo(m, acc, r.item) || bankTransferInfo(m, acc, r.name)) return;
       if (isMoveItem(r.item) || moveAnyInfo(acc, r.item)) return;             /* 모으기채우기·꺼내기(이름 바꾼 것 포함) */
+      if (acc === '토스 모으기' && /^(채우기|꺼내기)$/.test(String(r.item || r.name || '').trim())) return;   /* 모으기 계좌의 채우기·꺼내기도 계좌 사이 돈 */
       if (r.amount > 0) inc += r.amount; else exp -= r.amount;
     });
   });
