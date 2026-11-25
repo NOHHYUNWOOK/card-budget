@@ -1855,7 +1855,12 @@ function billingMonthFor(date){
   if (day >= 13) return m === 12 ? (y+1) + '-01' : y + '-' + String(m+1).padStart(2,'0');
   return y + '-' + String(m).padStart(2,'0');
 }
-const AUTO_MONTH = billingMonthFor();   // 페이지를 열 때의 기본 결제월 (동기화 뒤에도 이 달을 우선)
+/* 실제 달력 기준 오늘의 연·월 — 페이지를 열 때의 기본 선택 월 (2026-11-25 요청) */
+function calendarMonthFor(date){
+  const d = date || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
+}
+const AUTO_MONTH = calendarMonthFor();  // 페이지를 열 때의 기본 선택 월 · 상단 '이번달' 버튼 (동기화·새로고침 뒤에도 이 달로 시작)
 /* 결제월 계산 도우미 — 상단 '지난달·이번달' 버튼과 '다른 월' 팝오버가 함께 씁니다 */
 function ymShift(m, n){
   const y = +String(m).slice(0,4), mi = +String(m).slice(5,7) - 1 + (n || 0);
@@ -2357,9 +2362,10 @@ function renderFilters(){
   // month — 상단에는 '전체 · 지난달 · 이번달 · 다른 월 ▾' 4개만 두고, 나머지 달은 팝오버에서 고른다(2026-11-23)
   const ms = viewMonths();          /* 탭마다 자료가 있는 달이 다릅니다 (카드/현금/정산) */
   if (!F.monthUser){
-    F.month = (AUTO_MONTH && ms.indexOf(AUTO_MONTH) >= 0)
-      ? AUTO_MONTH
-      : (ms.length ? ms[ms.length-1] : 'all');
+    /* 기본 선택 월은 실제 달력 기준 이번 달(AUTO_MONTH) — 카드·현금·정산 모든 탭 공통.
+       그 달 내역이 아직 없어도 이번 달을 보여 주고, 내역이 하나도 없는 새 사용자만 '전체'로 둡니다.
+       (새로고침·재접속하면 저장된 마지막 달과 상관없이 이번 달로 시작, 2026-11-25) */
+    F.month = ms.length ? AUTO_MONTH : 'all';
   } else if (!ms.length) F.month = 'all';   /* 자료를 다 지운 경우만 되돌림 — 내역 없는 달을 일부러 고른 것은 유지 */
   const mSeg = $('#monthSeg');
   const mNum = m => (+String(m).slice(5,7)) + '월';
@@ -7624,7 +7630,7 @@ function viewMonths(){
     const s = new Set(bankMonths()); s.add(AUTO_MONTH); return Array.from(s).filter(Boolean).sort();
   }
   if (VIEW === 'settle'){
-    const s = new Set(bankMonths().concat(monthsIn(S.rows))); return Array.from(s).filter(Boolean).sort();
+    const s = new Set(bankMonths().concat(monthsIn(S.rows))); s.add(AUTO_MONTH); return Array.from(s).filter(Boolean).sort();
   }
   return monthsIn(S.rows);
 }
