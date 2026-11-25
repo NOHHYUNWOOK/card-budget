@@ -7147,36 +7147,108 @@ function moveItemInfo(n){
   for (let i = 0; i < MOVE_ITEMS.length; i++) if (MOVE_ITEMS[i].item === k) return MOVE_ITEMS[i];
   return null;
 }
-/* 모으기 이체 2행의 보이는 이름 — 슬롯(fill/take)에 붙여 두고, 바꾼 이름은 모든 달·두 계좌에 같이 보입니다.
+/* 모으기 이체 이름은 계좌별로 따로 보관합니다 — 우리은행의 채우기/꺼내기 이름과
+   토스 입출금의 채우기/꺼내기 이름이 서로 바뀌지 않습니다 (2026-11-25).
+   저장 모양(새 형식): moveNames = {'우리은행': {fill, take}, '토스 입출금': {fill, take}}
+   옛 형식(2026-11-25 오전 배포분)은 moveNames = {fill, take} 하나로 두 계좌 공통이었으므로,
+   읽을 때 그 값을 두 계좌에 같은 이름으로 옮겨 담습니다(하위 호환). */
+function moveAccKey(acc){
+  const s = String(acc == null ? '' : acc).trim();
+  if (MOVE_ACCOUNTS.indexOf(s) >= 0) return s;
+  const n = normBankAccount(s);
+  return MOVE_ACCOUNTS.indexOf(n) >= 0 ? n : '';
+}
+function isLegacyMoveNames(src){
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return false;
+  return Object.prototype.hasOwnProperty.call(src, 'fill') || Object.prototype.hasOwnProperty.call(src, 'take');
+}
+/* moveNames(+ moveNamesAt)를 새 형식으로 읽어 {names, at, legacy} 로 돌려줍니다.
+   옛 공통 형식은 두 계좌에 같은 이름·같은 시각으로 펼칩니다. */
+function bankMoveNamesParse(src, atSrc){
+  const out = {names: {}, at: {}, legacy: false};
+  const put = (a, key, v)=>{
+    const s = String(v == null ? '' : v).trim().slice(0, 24);
+    if (!s) return;
+    if (!out.names[a]) out.names[a] = {};
+    out.names[a][key] = s;
+  };
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return out;
+  if (isLegacyMoveNames(src)){
+    out.legacy = true;
+    const legacyAt = (typeof atSrc === 'string' && Date.parse(atSrc)) ? atSrc : '';
+    MOVE_ACCOUNTS.forEach(a=>{
+      MOVE_ITEMS.forEach(m=> put(a, m.key, src[m.key]));
+      if (legacyAt) out.at[a] = legacyAt;
+    });
+    return out;
+  }
+  MOVE_ACCOUNTS.forEach(a=>{
+    const at = (atSrc && typeof atSrc === 'object' && !Array.isArray(atSrc)) ? atSrc[a]
+             : (typeof atSrc === 'string' ? atSrc : '');
+    if (at && Date.parse(at)) out.at[a] = String(at);
+    const p = src[a];
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return;
+    MOVE_ITEMS.forEach(m=> put(a, m.key, p[m.key]));
+  });
+  return out;
+}
+/* 다른 기기·저장소(bank-YYYY-MM.json)로 보낼 사본 — 계좌별 이름만 담습니다 */
+function bankMoveNamesCopy(){
+  const o = {};
+  MOVE_ACCOUNTS.forEach(a=>{
+    const p = BANK.moveNames && BANK.moveNames[a];
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return;
+    const q = {};
+    MOVE_ITEMS.forEach(m=>{ const v = String(p[m.key] == null ? '' : p[m.key]).trim().slice(0, 24); if (v) q[m.key] = v; });
+    if (Object.keys(q).length) o[a] = q;
+  });
+  return o;
+}
+function bankMoveNamesAtCopy(){
+  const o = {};
+  MOVE_ACCOUNTS.forEach(a=>{ const v = BANK.moveNamesAt && BANK.moveNamesAt[a]; if (v) o[a] = String(v); });
+  return o;
+}
+/* 모으기 이체 2행의 보이는 이름 — 계좌마다 따로 붙습니다.
    저장은 이 기기(localStorage)와 비공개 저장소의 bank-YYYY-MM.json(moveNames)에 함께 남습니다.
-   이름을 비우면 기본 이름(모으기채우기 / 모으기꺼내기)으로 돌아갑니다.
+   이름을 비우면 그 계좌의 기본 이름(모으기채우기 / 모으기꺼내기)으로 돌아갑니다.
    이름만 바뀌고 슬롯의 성격(검정색·−/+ 부호·총 수입/지출 제외·총합 바로 위 자리)은 그대로입니다 (2026-11-25). */
-function bankMoveLabel(item){
+function bankMoveLabel(item, acc){
   const m = moveItemInfo(item);
   if (!m) return String(item == null ? '' : item);
-  const raw = BANK.moveNames && BANK.moveNames[m.key];
-  const nm = String(raw == null ? '' : raw).trim().slice(0, 24);
+  const a = moveAccKey(acc);
+  const p = a && BANK.moveNames ? BANK.moveNames[a] : null;
+  const nm = String(p && p[m.key] != null ? p[m.key] : '').trim().slice(0, 24);
   return nm || m.item;
 }
-function bankSetMoveName(key, name){
+function bankSetMoveName(acc, key, name){
+  const a = moveAccKey(acc);
+  if (!a) return;
   const s = String(name == null ? '' : name).trim().slice(0, 24);
   if (!BANK.moveNames || typeof BANK.moveNames !== 'object' || Array.isArray(BANK.moveNames)) BANK.moveNames = {};
-  if (s) BANK.moveNames[key] = s; else delete BANK.moveNames[key];
-  BANK.moveNamesAt = nowIso();
+  if (isLegacyMoveNames(BANK.moveNames)) BANK.moveNames = bankMoveNamesParse(BANK.moveNames).names;
+  if (!BANK.moveNames[a] || typeof BANK.moveNames[a] !== 'object' || Array.isArray(BANK.moveNames[a])) BANK.moveNames[a] = {};
+  if (s) BANK.moveNames[a][key] = s; else delete BANK.moveNames[a][key];
+  if (!Object.keys(BANK.moveNames[a]).length) delete BANK.moveNames[a];
+  if (!BANK.moveNamesAt || typeof BANK.moveNamesAt !== 'object' || Array.isArray(BANK.moveNamesAt)) BANK.moveNamesAt = {};
+  BANK.moveNamesAt[a] = nowIso();
 }
-/* 바꾼 이름으로 입력한 거래도 같은 슬롯으로 읽습니다 — 저절로 줄이 하나 더 생기지 않게 */
-function moveLabelInfo(n){
+/* 바꾼 이름으로 입력한 거래도 그 계좌의 같은 슬롯으로 읽습니다 — 저절로 줄이 하나 더 생기지 않게 */
+function moveLabelInfo(acc, n){
+  const a = moveAccKey(acc);
   const k = String(n == null ? '' : n).replace(/\s+/g, '');
-  if (!k) return null;
+  if (!a || !k) return null;
+  const p = BANK.moveNames && BANK.moveNames[a];
+  if (!p) return null;
   for (let i = 0; i < MOVE_ITEMS.length; i++){
-    const raw = BANK.moveNames && BANK.moveNames[MOVE_ITEMS[i].key];
+    const raw = p[MOVE_ITEMS[i].key];
     const nm = String(raw == null ? '' : raw).replace(/\s+/g, '');
     if (nm && nm === k) return MOVE_ITEMS[i];
   }
   return null;
 }
-/* 이름 → 슬롯 (기본 이름과 바꾼 이름 모두) */
-function moveAnyInfo(n){ return moveItemInfo(n) || moveLabelInfo(n); }
+/* 이름 → 슬롯 (기본 이름과 그 계좌에서 바꾼 이름 모두) */
+function moveAnyInfo(acc, n){ return moveItemInfo(n) || moveLabelInfo(acc, n); }
 function isMoveItem(n){ return !!moveItemInfo(n); }
 /* 모으기 이체 금액의 부호 — 채우기는 음수(−), 꺼내기는 양수(+) */
 function moveSignedAmount(item, raw){
@@ -7187,7 +7259,8 @@ function moveSignedAmount(item, raw){
 /* 현금 탭 맨 위 '총 수입'·'총 지출'에서 빠지는 줄 — 토스 모으기 계좌 전체 + 모으기채우기/모으기꺼내기 */
 function isKpiExcludedRow(r){
   if (!r) return false;
-  return r.account === '토스 모으기' || isMoveItem(r.item) || isMoveItem(r.name);
+  return r.account === '토스 모으기' || isMoveItem(r.item) || isMoveItem(r.name) ||
+         !!moveLabelInfo(r.account, r.item) || !!moveLabelInfo(r.account, r.name);
 }
 /* 기본 항목 — 범용 이름만. 실제 쓰는 이름(예: 가족 이름이 든 항목)은 비공개 저장소의 월별 자료에서 그대로 나타납니다. */
 const BANK_ITEMS_BASE = {
@@ -7233,14 +7306,12 @@ function bankLoad(){
     if (raw){
       const p = JSON.parse(raw);
       if (p && p.ui && typeof p.ui === 'object') BANK.ui = Object.assign({account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}, p.ui);
-      /* 모으기 이체 2행의 바꾼 이름 — fill(채우기)·take(꺼내기) */
+      /* 모으기 이체 2행의 바꾼 이름 — 계좌별 fill(채우기)·take(꺼내기). 옛 공통 형식은 두 계좌로 펼칩니다 */
       if (p && p.moveNames && typeof p.moveNames === 'object' && !Array.isArray(p.moveNames)){
-        MOVE_ITEMS.forEach(m=>{
-          const v = String(p.moveNames[m.key] == null ? '' : p.moveNames[m.key]).trim().slice(0, 24);
-          if (v) BANK.moveNames[m.key] = v;
-        });
+        const mp = bankMoveNamesParse(p.moveNames, p.moveNamesAt);
+        BANK.moveNames = mp.names;
+        BANK.moveNamesAt = mp.at;
       }
-      if (p && p.moveNamesAt) BANK.moveNamesAt = String(p.moveNamesAt);
       if (p && p.months && typeof p.months === 'object'){
         Object.keys(p.months).forEach(m=>{
           if (!/^\d{4}-\d{2}$/.test(m)) return;
@@ -7488,15 +7559,23 @@ function bankBudgetFormula(month, account, item){
 }
 /* 실행 금액 수식 원문 — 그 항목 줄에 적어 둔 수식을 찾아 돌려줍니다 */
 function bankItemFormula(month, account, item){
-  const rs = bankRowsAll(month).filter(r=> r.account === account && r.item === item);
+  const slot = moveItemInfo(normItemName(item));
+  const rs = bankRowsAll(month).filter(r=> r.account === account &&
+    (r.item === item || (slot && moveLabelInfo(account, r.item) === slot)));   /* 바꾼 모으기 이름도 같은 슬롯 */
   if (rs.length === 1 && rs[0].formula) return String(rs[0].formula);
   const adj = rs.filter(r=> r.formula && /정산 요약에서 직접 입력/.test(r.memo || ''));
   return adj.length ? String(adj[adj.length - 1].formula) : '';
 }
 function bankItemActual(month, account, item){
   item = normItemName(item);
+  const slot = moveItemInfo(item);
   let s = 0;
-  bankRowsAll(month).forEach(r=>{ if (r.account === account && r.item === item) s += r.amount; });
+  bankRowsAll(month).forEach(r=>{
+    if (r.account !== account) return;
+    if (r.item === item) s += r.amount;
+    /* 그 계좌에서 바꾼 모으기 이름으로 적힌 거래도 같은 슬롯으로 셉니다 */
+    else if (slot && moveLabelInfo(account, r.item) === slot) s += r.amount;
+  });
   return s;
 }
 function bankItemList(month, account){
@@ -7687,7 +7766,7 @@ function bankSumItemRows(month, acc){
   const out = [];
   const isMoveAcc = MOVE_ACCOUNTS.indexOf(acc) >= 0;
   const push = (item, dir) => {
-    if (isMoveAcc && isMoveItem(item)) return;   /* 모으기채우기·모으기꺼내기는 아래 고정 2행으로만 */
+    if (isMoveAcc && moveAnyInfo(acc, item)) return;   /* 모으기채우기·모으기꺼내기(그 계좌에서 바꾼 이름 포함)는 아래 고정 2행으로만 */
     const bud = bankBudget(month, acc, item);
     const act = bankItemActual(month, acc, item);
     /* 빈 항목은 감춰 한눈에 보이게. 이월금은 이 계좌에 자료가 있을 때만 보입니다. */
@@ -7719,7 +7798,7 @@ function bankSumRowHtml(month, acc, row, wide){
   const bud = row.bud, act = row.act;
   const isCarry = isCarryName(row.item);
   const isMove = isMoveItem(row.item);           /* 모으기채우기·모으기꺼내기 — 이름·금액 모두 검정 */
-  const label = isMove ? bankMoveLabel(row.item) : row.item;   /* 바꾼 이름이 있으면 그 이름으로 */
+  const label = isMove ? bankMoveLabel(row.item, acc) : row.item;   /* 그 계좌에서 바꾼 이름이 있으면 그 이름으로 */
   const cv = isCarry ? bankCarryValue(month, acc) : null;
   const carryNote = cv && cv.auto ? monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합에서 자동' : '';
   /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24)
@@ -7776,14 +7855,14 @@ function scEditHtml(month, acc){
   if (e.field === 'name'){
     const mv = moveItemInfo(item);
     if (mv){
-      /* 모으기 이체 2행 — 이름만 바꾸고 슬롯 성격은 그대로 (2026-11-25) */
-      const label = bankMoveLabel(item);
+      /* 모으기 이체 2행 — 이 계좌의 이름만 바꾸고 슬롯 성격은 그대로 (2026-11-25) */
+      const label = bankMoveLabel(item, acc);
       return '<div class="sc-edit" ' + st + '>' +
-        '<span class="who">모으기 이체 · 이름</span>' +
+        '<span class="who">' + esc(acc) + ' · 모으기 이체 · 이름</span>' +
         '<input id="scName" type="text" maxlength="24" value="' + esc(label) + '" placeholder="' + esc(mv.item) + '" aria-label="항목 이름">' +
         '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
         '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
-        '<span class="sc-note">이름만 바뀝니다 — 검정색 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호 · 총 수입/지출 제외 · 두 계좌 공통 · 비우면 ' + esc(mv.item) + '</span>' +
+        '<span class="sc-note">이 계좌(' + esc(acc) + ')에만 바뀝니다 — 검정색 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호 · 총 수입/지출 제외 · 비우면 ' + esc(mv.item) + '</span>' +
       '</div>';
     }
     return '<div class="sc-edit" ' + st + '>' +
@@ -8015,26 +8094,26 @@ function scSave(){
   }
   if (e.field === 'name'){
     const el = $('#scName');
-    /* 모으기 이체 2행(모으기채우기·모으기꺼내기) — 슬롯에 붙은 이름만 바꿉니다.
+    /* 모으기 이체 2행(모으기채우기·모으기꺼내기) — 그 계좌의 슬롯에 붙은 이름만 바꿉니다.
        거래·예산 이름은 그대로 두어 부호·검정색·총 수입/지출 제외·자리가 모두 유지됩니다 (2026-11-25). */
     const mv = moveItemInfo(e.item);
     if (mv){
+      const mAcc = moveAccKey(acc);
       const raw = String(el ? el.value : '').trim().replace(/\s+/g, ' ');
       const nn = raw.slice(0, 24);
-      const back = !nn || nn === mv.item;   /* 빈 값이면 기본 이름으로 */
+      const back = !nn || nn === mv.item;   /* 빈 값이면 그 계좌의 기본 이름으로 */
       if (!back){
-        const taken = BANK_ACCOUNTS.some(a=>{
-          const l = bankItemList(month, a);
-          return l.in.concat(l.out).some(x=> x === nn && !moveItemInfo(x));
-        });
-        if (taken){ toast('이미 있는 항목 이름입니다 — 다른 이름으로 넣어주세요'); if (el) el.focus(); return; }
-        const other = moveAnyInfo(nn);
-        if (other && other.key !== mv.key){ toast('다른 모으기 이체 행이 쓰는 이름입니다'); if (el) el.focus(); return; }
+        /* 같은 계좌의 다른 항목과 이름이 걸치면 거부 — 다른 계좌의 이름과는 상관없음 */
+        const l = bankItemList(month, mAcc);
+        const taken = l.in.concat(l.out).some(x=> x === nn && !moveItemInfo(x));
+        if (taken){ toast('이 계좌에 이미 있는 항목 이름입니다 — 다른 이름으로 넣어주세요'); if (el) el.focus(); return; }
+        const other = moveAnyInfo(mAcc, nn);
+        if (other && other.key !== mv.key){ toast('이 계좌의 다른 모으기 이체 행이 쓰는 이름입니다'); if (el) el.focus(); return; }
       }
-      bankSetMoveName(mv.key, back ? '' : nn);
+      bankSetMoveName(mAcc, mv.key, back ? '' : nn);
       scEdit = null; bankSave(); renderAll(); markBankDirty(month);
-      toast(back ? '이름을 기본값 "' + mv.item + '"(으)로 되돌렸습니다'
-                 : '이름을 "' + nn + '"(으)로 바꿨습니다 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호와 총 수입/지출 제외는 그대로');
+      toast(back ? mAcc + ' 이름을 기본값 "' + mv.item + '"(으)로 되돌렸습니다'
+                 : mAcc + ' 이름을 "' + nn + '"(으)로 바꿨습니다 · ' + (mv.sign < 0 ? '−' : '+') + ' 부호와 총 수입/지출 제외는 그대로');
       return;
     }
     const nn = String(el ? el.value : '').trim().slice(0, 24);
@@ -8187,7 +8266,7 @@ function bankRowEditHtml(d0, r){
   if (d.item && items.indexOf(d.item) < 0) items = [d.item].concat(items);
   /* 모으기 이체 항목은 정산 요약 고정 행이라 항목 목록에 안 나와도 여기서 고를 수 있게 (2026-11-25) */
   if (MOVE_ACCOUNTS.indexOf(acc) >= 0) MOVE_ITEMS.forEach(m=>{
-    [m.item, bankMoveLabel(m.item)].forEach(x=>{ if (x && items.indexOf(x) < 0) items.push(x); });
+    [m.item, bankMoveLabel(m.item, acc)].forEach(x=>{ if (x && items.indexOf(x) < 0) items.push(x); });
   });
   const accOpts = BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
   const itemOpts = items.map(it=> '<option value="' + esc(it) + '"></option>').join('');
@@ -8546,8 +8625,8 @@ function bankMonthPayload(month, remoteJson){
   const live = new Set(rows.concat(extra).map(r=> bankRowKey(r)));
   return {v: 1, kind: 'bank', month: month, updatedAt: nowIso(), accounts: BANK_ACCOUNTS,
     cardLink: d.cardLink !== false,
-    moveNames: Object.assign({}, (BANK.moveNames || {})),
-    moveNamesAt: BANK.moveNamesAt || '',
+    moveNames: bankMoveNamesCopy(),
+    moveNamesAt: bankMoveNamesAtCopy(),
     budgetFormula: d.budgetFormula || {},
     settlementFormula: d.settlementFormula || {},
     rows: rows.concat(extra),
@@ -8653,20 +8732,19 @@ function applyBankPayload(p){
     }
   });
   if (p.map && typeof p.map === 'object' && (!doc.map || remoteAt > localAt)) doc.map = p.map;
-  /* 모으기 이체 2행의 바꾼 이름 — 더 나중에 고친 쪽을 따릅니다 */
+  /* 모으기 이체 2행의 바꾼 이름 — 계좌마다 더 나중에 고친 쪽을 따릅니다 */
   if (p.moveNames && typeof p.moveNames === 'object' && !Array.isArray(p.moveNames)){
-    const rNameAt = Date.parse(p.moveNamesAt || '') || 0;
-    const lNameAt = Date.parse(BANK.moveNamesAt || '') || 0;
-    if (rNameAt > lNameAt){
-      const next = {};
-      MOVE_ITEMS.forEach(m=>{
-        const v = String(p.moveNames[m.key] == null ? '' : p.moveNames[m.key]).trim().slice(0, 24);
-        if (v) next[m.key] = v;
-      });
-      BANK.moveNames = next;
-      BANK.moveNamesAt = p.moveNamesAt;
+    const rp = bankMoveNamesParse(p.moveNames, p.moveNamesAt);
+    if (!BANK.moveNames || typeof BANK.moveNames !== 'object' || Array.isArray(BANK.moveNames)) BANK.moveNames = {};
+    if (!BANK.moveNamesAt || typeof BANK.moveNamesAt !== 'object' || Array.isArray(BANK.moveNamesAt)) BANK.moveNamesAt = {};
+    MOVE_ACCOUNTS.forEach(a=>{
+      const rNameAt = Date.parse(rp.at[a] || '') || 0;
+      const lNameAt = Date.parse(BANK.moveNamesAt[a] || '') || 0;
+      if (!(rNameAt > lNameAt)) return;
+      if (rp.names[a]) BANK.moveNames[a] = Object.assign({}, rp.names[a]); else delete BANK.moveNames[a];
+      BANK.moveNamesAt[a] = rp.at[a];
       changed++;
-    }
+    });
   }
   if (p.settlement && (!doc.settlement || remoteAt > localAt)) doc.settlement = p.settlement;
   if (typeof p.cardLink === 'boolean' && (!doc.cardLink || remoteAt > localAt)) doc.cardLink = p.cardLink;
@@ -8954,8 +9032,9 @@ function bankNewOrder(doc){
 function saveBankRow(){
   const d = bRowEdit; if (!d) return;
   const itemRaw = String(d.item || '').trim();
-  const moveHit = moveAnyInfo(itemRaw);            /* 바꿔 둔 모으기 이름으로 넣어도 같은 슬롯 (2026-11-25) */
-  const name = String(d.name || '').trim() || (moveHit ? bankMoveLabel(moveHit.item) : itemRaw);
+  const account0 = normBankAccount(d.account) || d.account || '우리은행';
+  const moveHit = moveAnyInfo(account0, itemRaw);            /* 그 계좌에서 바꿔 둔 모으기 이름으로 넣어도 같은 슬롯 (2026-11-25) */
+  const name = String(d.name || '').trim() || (moveHit ? bankMoveLabel(moveHit.item, account0) : itemRaw);
   const calc = calcAmount(d.amount);
   if (calc.ok && Math.abs(calc.value) === 0){ toast('금액은 0원보다 커야 합니다'); return; }
   if (!name){ toast('항목이나 내용을 넣어주세요'); return; }
@@ -8965,7 +9044,7 @@ function saveBankRow(){
     return moveHit ? moveSignedAmount(moveHit.item, calc.value) : base;   /* 채우기 −, 꺼내기 + 로 정리 */
   })();
   const month = d.month || bankCurrentMonth();
-  const account = normBankAccount(d.account) || d.account || '우리은행';
+  const account = account0;
   const item = moveHit ? moveHit.item : (itemRaw || '기타');
   const date = d.date ? toDateStr(d.date) : '';
   const memo = String(d.memo || '').trim().slice(0, 80);
@@ -9054,7 +9133,7 @@ $('#bankDetailCard').addEventListener('input', ev=>{
   bRowEdit[f] = t.value;
   /* 항목에 모으기채우기·모으기꺼내기를 넣으면 구분을 부호에 맞게 바꿔 줍니다 (2026-11-25) */
   if (f === 'item'){
-    const m = moveAnyInfo(t.value);
+    const m = moveAnyInfo(bRowEdit.account, t.value);
     if (m){
       bRowEdit.dir = m.sign < 0 ? 'out' : 'in';
       const sel = document.querySelector('#bankEditPanel [data-bf="dir"]');
