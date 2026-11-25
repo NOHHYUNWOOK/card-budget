@@ -1119,7 +1119,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 /* 예산 열 왼쪽(항목/예산 경계)에도 세로줄 — 헤더부터 총합 행까지 (2026-11-24) */
 .scg.w3 .scg-cols::before,.scg.w3 .scg-row::before{content:'';position:absolute;top:0;bottom:0;
   right:calc(var(--actw) + var(--budw) + 6px);width:1px;background:#dfe4ee;pointer-events:none}
-.scg-row{padding:5px 0;border-bottom:1px solid var(--line2);font-size:12.8px}
+.scg-row{padding:5px 0;border-bottom:1px solid var(--line2);font-size:12.8px;min-height:32px}
 .scg-row:last-child{border-bottom:0}
 .scg-row .inm{min-width:0;text-align:left;border:0;background:transparent;padding:1px 2px;border-radius:6px;font:inherit;
   font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
@@ -1148,6 +1148,18 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 /* 모으기 이체 2행도 이름은 고칠 수 있습니다 — 자리·부호·검정색은 그대로 (2026-11-25) */
 .scg-row.mv .inm.fixed.mvname{cursor:pointer;text-decoration:underline dotted rgba(17,24,39,.28);text-underline-offset:3px;text-decoration-thickness:1px}
 .scg-row.mv .inm.fixed.mvname:hover{background:var(--acs);color:#111827;text-decoration-color:rgba(17,24,39,.55)}
+/* 정산 요약 항목 순서 드래그 — 왼쪽 ⠿ 핸들. 이월금·총합에는 없음 (2026-11-25)
+   touch-action:none 으로 모바일에서도 손가락 드래그가 페이지 스크롤과 겹치지 않게 합니다 */
+.scg-row .nmcell{display:flex;align-items:center;gap:2px;min-width:0}
+.scg-row .nmcell > .inm{flex:1 1 auto;min-width:0}
+.scg-row .scgrip{display:inline-flex;align-items:center;justify-content:center;width:13px;height:18px;flex:none;
+  border-radius:5px;color:#c3cad6;cursor:grab;touch-action:none;opacity:.5;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.scg-row .scgrip svg{display:block;pointer-events:none}
+.scg-row:hover .scgrip{opacity:1}
+.scg-row .scgrip:hover{background:rgba(17,24,39,.06);color:#78808e}
+.scg-row .scgrip:active{cursor:grabbing;color:#1d4ed8}
+.scg-row.dragging{opacity:.55;background:#f1f6ff;border-radius:6px}
 /* 맨 아래 총합 — 예산 합(우리은행)·실행 합을 수입·지출 합산 순합계로 */
 .scg-row.total{border-top:1px solid #d7dde8;border-bottom:0;padding-top:7px;font-weight:800}
 .scg-row.total .inm{color:var(--ink);font-weight:800;cursor:default}
@@ -1155,7 +1167,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 /* 총합 숫자도 일반 행 숫자와 같은 오른쪽 정렬·같은 우측 여백 (2026-11-24) */
 .scg-row.total .num{font-weight:800;text-align:right;padding:1px 2px;justify-content:flex-end}
 /* 빈 채움 행 — 세로줄은 이어지고 눌리지 않습니다 (2026-11-24) */
-.scg-row.ph{cursor:default}
+.scg-row.ph{cursor:default;min-height:32px}
 .scg-row.ph:hover{background:transparent}
 .scg-row.ph .phc{display:block;padding:1px 2px;min-height:1.4em}
 .scg-row.secs .inm{color:var(--muted);font-size:10.5px;font-weight:800;letter-spacing:.02em;cursor:default;padding:0}
@@ -1186,6 +1198,13 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .sc-edit .fld{display:flex;flex-direction:column;gap:2px;flex:1 1 92px;min-width:76px}
 .sc-edit .fld > span{font-size:10px;color:var(--muted);font-weight:700}
 .sc-edit .fld input,.sc-edit .fld select{flex:1 1 auto;min-width:0;width:100%}
+/* 계좌이동 방향 고르기 — − 출금 / + 입금 두 칸 토글 (2026-11-25) */
+.sc-edit .seg2{display:inline-flex;gap:4px;flex:1 1 92px;min-width:76px}
+.sc-edit .seg2 label{flex:1 1 0;position:relative;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:9px;padding:6px 4px;font-size:12px;font-weight:700;color:var(--muted);
+  background:#fff;cursor:pointer;white-space:nowrap}
+.sc-edit .seg2 label:has(input:checked){border-color:var(--ac);color:#111827;background:var(--acs);box-shadow:inset 0 0 0 1px var(--ac)}
+.sc-edit .seg2 input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;flex:none;min-width:0}
 @media (max-width:900px){
   .sc2{grid-template-columns:repeat(3,minmax(0,1fr))}
   .scg{padding:8px 10px 10px}
@@ -7262,9 +7281,112 @@ function moveSignedAmount(item, raw){
   const sg = m ? m.sign : (Math.round(+raw || 0) < 0 ? -1 : 1);
   return sg * Math.abs(Math.round(+raw || 0));
 }
-/* 현금 탭 맨 위 '총 수입'·'총 지출'에서 빠지는 줄 — 토스 모으기 계좌 전체 + 모으기채우기/모으기꺼내기 */
+/* ---------- 계좌이동 (2026-11-25) ----------
+   정산 요약에서 사용자가 직접 더하는 '계좌이동' 구분.
+   · 이름과 방향(in 입금 / out 출금)을 그 달 문서의 계좌별 표(transfer)에 남깁니다 —
+     금액이 아직 없는(예산만 있는) 항목도 구분이 유지됩니다.
+   · 거래 줄에도 kind:'transfer'와 dir을 적어 두어 이름을 바꿔도 성격이 남습니다.
+   · 총 수입·총 지출에서는 빠지고, 계좌 잔액·정산 요약 총합에는 그대로 들어갑니다. */
+const TRANSFER_KIND = 'transfer';
+/* 정산 요약 행 드래그 핸들 — 상세내역의 ⠿ 핸들과 같은 점 6개 모양 (2026-11-25) */
+const SCG_GRIP_SVG = '<svg viewBox="0 0 8 14" width="8" height="14" aria-hidden="true" focusable="false"><g fill="currentColor">' +
+  '<circle cx="1.7" cy="2" r="1.2"/><circle cx="6.3" cy="2" r="1.2"/><circle cx="1.7" cy="7" r="1.2"/>' +
+  '<circle cx="6.3" cy="7" r="1.2"/><circle cx="1.7" cy="12" r="1.2"/><circle cx="6.3" cy="12" r="1.2"/></g></svg>';
+function bankTransferMap(month){
+  const d = BANK.months[month];
+  const m = d && d.transfer;
+  return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
+}
+/* 다른 기기·저장소(bank-YYYY-MM.json)로 보낼 사본 — 계좌별 이름·방향만 담습니다 */
+function bankTransferCopy(month){
+  const m = bankTransferMap(month), o = {};
+  Object.keys(m).forEach(a=>{
+    const p = m[a];
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return;
+    const q = {};
+    Object.keys(p).forEach(it=>{ const d = p[it]; if ((d === 'in' || d === 'out') && String(it).trim()) q[it] = d; });
+    if (Object.keys(q).length) o[a] = q;
+  });
+  return o;
+}
+function bankTransferInfo(month, acc, item){
+  const name = String(item == null ? '' : item).trim();
+  const a = normBankAccount(acc) || String(acc || '');
+  if (!name || !a) return null;
+  const p = bankTransferMap(month)[a];
+  const d = p && p[name];
+  return (d === 'in' || d === 'out') ? {dir: d} : null;
+}
+function bankSetTransfer(month, acc, item, dir){
+  const name = String(item == null ? '' : item).trim();
+  const a = normBankAccount(acc) || String(acc || '');
+  if (!name || !a) return;
+  const d = ensureBankDoc(month);
+  if (!d.transfer || typeof d.transfer !== 'object' || Array.isArray(d.transfer)) d.transfer = {};
+  if (!d.transfer[a] || typeof d.transfer[a] !== 'object' || Array.isArray(d.transfer[a])) d.transfer[a] = {};
+  if (dir === 'in' || dir === 'out') d.transfer[a][name] = dir; else delete d.transfer[a][name];
+  if (!Object.keys(d.transfer[a]).length) delete d.transfer[a];
+  d.updatedAt = nowIso();
+}
+/* 계좌이동 줄인가 — 줄에 적힌 구분(kind) 또는 그 달 문서의 계좌별 표로 판단 */
+function isTransferRow(r){
+  if (!r) return false;
+  if (r.kind === TRANSFER_KIND) return true;
+  if (!r.item && !r.name) return false;
+  const m = String(r.month || bankCurrentMonth()).slice(0, 7);
+  return !!bankTransferInfo(m, r.account, r.item) || !!bankTransferInfo(m, r.account, r.name);
+}
+/* ---------- 항목 순서 드래그 (2026-11-25) ----------
+   정산 요약 각 계좌의 항목 줄을 끌어 순서를 바꿉니다. 이월금은 맨 위, 총합은 맨 아래 고정.
+   저장 모양(새 형식): rowOrder = {'우리은행': [항목, ...], ...}, rowOrderAt = {'우리은행': 시각, ...}
+   저장은 이 기기(localStorage)와 비공개 저장소 bank-YYYY-MM.json(rowOrder·rowOrderAt)에 함께 남고,
+   기기끼리 다를 때는 그 계좌를 더 나중에 바꾼 쪽(rowOrderAt)을 따릅니다. */
+function bankRowOrder(month, acc){
+  const d = BANK.months[month];
+  const o = d && d.rowOrder && d.rowOrder[acc];
+  return Array.isArray(o) ? o.filter(x=> typeof x === 'string' && x) : [];
+}
+function bankOrderRows(rows, order){
+  if (!order || !order.length) return rows;
+  const idx = {};
+  order.forEach((n, i)=>{ if (!Object.prototype.hasOwnProperty.call(idx, n)) idx[n] = i; });
+  return rows.map((r, i)=> ({r: r, i: i})).sort((a, b)=>{
+    const ai = Object.prototype.hasOwnProperty.call(idx, a.r.item) ? idx[a.r.item] : 1e9 + a.i;
+    const bi = Object.prototype.hasOwnProperty.call(idx, b.r.item) ? idx[b.r.item] : 1e9 + b.i;
+    if (ai !== bi) return ai - bi;
+    return a.i - b.i;
+  }).map(x=> x.r);
+}
+function bankSetRowOrder(month, acc, names){
+  const d = ensureBankDoc(month);
+  if (!d.rowOrder || typeof d.rowOrder !== 'object' || Array.isArray(d.rowOrder)) d.rowOrder = {};
+  if (!d.rowOrderAt || typeof d.rowOrderAt !== 'object' || Array.isArray(d.rowOrderAt)) d.rowOrderAt = {};
+  d.rowOrder[acc] = (names || []).filter(x=> typeof x === 'string' && x).slice(0, 60);
+  d.rowOrderAt[acc] = nowIso();
+  d.updatedAt = nowIso();
+}
+function bankRowOrderCopy(month){
+  const d = BANK.months[month] || {};
+  const o = {};
+  const src = (d.rowOrder && typeof d.rowOrder === 'object') ? d.rowOrder : {};
+  Object.keys(src).forEach(a=>{
+    if (!Array.isArray(src[a])) return;
+    const q = src[a].filter(x=> typeof x === 'string' && x).slice(0, 60);
+    if (q.length) o[a] = q;
+  });
+  return o;
+}
+function bankRowOrderAtCopy(month){
+  const d = BANK.months[month] || {};
+  const o = {};
+  const src = (d.rowOrderAt && typeof d.rowOrderAt === 'object') ? d.rowOrderAt : {};
+  Object.keys(src).forEach(a=>{ if (BANK_ACCOUNTS.indexOf(a) >= 0 && src[a]) o[a] = String(src[a]); });
+  return o;
+}
+/* 현금 탭 맨 위 '총 수입'·'총 지출'에서 빠지는 줄 — 토스 모으기 계좌 전체 + 모으기채우기/모으기꺼내기 + 계좌이동 */
 function isKpiExcludedRow(r){
   if (!r) return false;
+  if (isTransferRow(r)) return true;
   return r.account === '토스 모으기' || isMoveItem(r.item) || isMoveItem(r.name) ||
          !!moveLabelInfo(r.account, r.item) || !!moveLabelInfo(r.account, r.name);
 }
@@ -7383,6 +7505,11 @@ function bankNormalizeRow(raw){
     amount: amount, memo: String(raw.memo || '').trim().slice(0, 80),
     order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')};
   if (raw.carry) r.carry = true;
+  if (raw.kind === TRANSFER_KIND || raw.transfer === true){
+    /* 계좌이동 줄 — 방향은 부호와 항상 같게 맞춥니다 (2026-11-25) */
+    r.kind = TRANSFER_KIND;
+    r.dir = (raw.dir === 'in' || raw.dir === 'out') ? raw.dir : (amount > 0 ? 'in' : 'out');
+  }
   if (raw.src) r.src = raw.src;
   if (raw.formula && /^\s*=/.test(String(raw.formula))) r.formula = String(raw.formula).trim().slice(0, 80);
   const hk = hlKey(raw.highlight);
@@ -7392,10 +7519,11 @@ function bankNormalizeRow(raw){
 }
 function ensureBankDoc(month){
   if (!BANK.months[month]) BANK.months[month] = {v: 1, kind: 'bank', month: month, updatedAt: null,
-    rows: [], budgets: {}, cardLink: true, settlement: null, map: null, deleted: []};
+    rows: [], budgets: {}, cardLink: true, settlement: null, map: null, transfer: {}, deleted: []};
   const d = BANK.months[month];
   if (!Array.isArray(d.rows)) d.rows = [];
   if (!d.budgets || typeof d.budgets !== 'object') d.budgets = {};
+  if (!d.transfer || typeof d.transfer !== 'object' || Array.isArray(d.transfer)) d.transfer = {};
   return d;
 }
 function bankMonths(){
@@ -7408,6 +7536,10 @@ function bankRowForStore(r){
   if (r.formula) o.formula = String(r.formula).slice(0, 80);   /* '=100+100' 수식 원문 (2026-11-25) */
   if (r.highlightAt) o.highlightAt = r.highlightAt;
   if (r.carry) o.carry = true;
+  if (r.kind === TRANSFER_KIND){
+    o.kind = TRANSFER_KIND;
+    o.dir = Math.round(+r.amount || 0) > 0 ? 'in' : 'out';   /* 부호가 곧 방향 */
+  }
   if (typeof r.order === 'number' && isFinite(r.order)){ o.order = Math.round(r.order * 100) / 100; if (r.orderAt) o.orderAt = r.orderAt; }
   return o;
 }
@@ -7601,6 +7733,8 @@ function bankItemList(month, account){
   }
   if (!names.length) return {in: base.in.slice(), out: base.out.slice()};
   const isIn = n => {
+    const tr = bankTransferInfo(month, account, n);   /* 계좌이동 — 저장한 방향을 그대로 (2026-11-25) */
+    if (tr) return tr.dir === 'in';
     const r = rows.find(x=> x.item === n);
     if (r) return r.amount > 0;
     if (base.in.indexOf(n) >= 0) return true;
@@ -7701,11 +7835,17 @@ function renderBankSummary(){
   const inReal = kInc - carryIn;
   const inN = kRows.filter(r=> r.amount > 0 && !isCarryName(r.item)).length;
   const outN = kRows.filter(r=> r.amount < 0).length;
-  const mvN = rows.filter(isKpiExcludedRow).length;   /* 총 수입·총 지출에서 뺐 사실을 알려 주기 위한 수 */
+  const exRows = rows.filter(isKpiExcludedRow);
+  const trExN = exRows.filter(isTransferRow).length;   /* 계좌이동 — 사용자가 더한 항목 (2026-11-25) */
+  const mvN = exRows.length - trExN;                   /* 토스 모으기 계좌 전체 + 모으기채우기·꺼내기 */
+  const exLabel = [mvN ? '모으기' : '', trExN ? '계좌이동' : ''].filter(Boolean).join('·');
   const rate = inReal ? kExp / inReal * 100 : 0;
   const w = Math.max(0, Math.min(100, rate));
-  const inX = fmt(inN) + '건' + (carryIn && mvN ? ' · 이월금·모으기 제외' : carryIn ? ' · 이월금 제외' : mvN ? ' · 모으기 제외' : '');
-  const outX = fmt(outN) + '건' + (mvN ? ' · 모으기 제외' : '');
+  const inBits = [];
+  if (carryIn) inBits.push('이월금');
+  if (exLabel) inBits.push(exLabel);
+  const inX = fmt(inN) + '건' + (inBits.length ? ' · ' + inBits.join('·') + ' 제외' : '');
+  const outX = fmt(outN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
   el.innerHTML =
     '<div class="bsum">' +
       '<div class="bs in"><span class="k">총 수입</span><span class="v">' + fmt(inReal) + '<small>원</small></span>' +
@@ -7720,7 +7860,7 @@ function renderBankSummary(){
         '<i class="b1" style="width:' + (100 - w).toFixed(1) + '%"></i></div>' +
       '<div class="cap"><span>수입 대비 지출 ' + (inReal ? Math.round(rate * 10) / 10 : 0) + '%</span>' +
         '<span>남은 몫 ' + (inReal ? Math.round((100 - Math.round(rate * 10) / 10) * 10) / 10 : 0) + '%</span>' +
-        '<span class="sp">' + monthLabel(month) + (mvN ? ' · 모으기 제외 기준' : ' · 3개 계좌 합계') + '</span></div>' +
+        '<span class="sp">' + monthLabel(month) + (exLabel ? ' · ' + exLabel + ' 제외 기준' : ' · 3개 계좌 합계') + '</span></div>' +
     '</div>';
   /* 계좌별 타일 */
   const grid = $('#bankAccGrid');
@@ -7773,6 +7913,8 @@ function bankSumItemRows(month, acc){
   const isMoveAcc = MOVE_ACCOUNTS.indexOf(acc) >= 0;
   const push = (item, dir) => {
     if (isMoveAcc && moveAnyInfo(acc, item)) return;   /* 모으기채우기·모으기꺼내기(그 계좌에서 바꾼 이름 포함)는 아래 고정 2행으로만 */
+    if (bankTransferInfo(month, acc, item)) return;    /* 계좌이동은 아래 맨 아래 구역에서만 (2026-11-25) */
+    if (bankRowsAll(month).some(r=> r.account === acc && r.item === item && r.kind === TRANSFER_KIND)) return;
     const bud = bankBudget(month, acc, item);
     const act = bankItemActual(month, acc, item);
     /* 빈 항목은 감춰 한눈에 보이게. 이월금은 이 계좌에 자료가 있을 때만 보입니다. */
@@ -7781,6 +7923,21 @@ function bankSumItemRows(month, acc){
   };
   list.in.forEach(it=> push(it, 'in'));
   list.out.forEach(it=> push(it, 'out'));
+  /* 계좌이동 — 사용자가 더한 항목을 막내(모으기 2행 위, 총합 바로 위)에 (2026-11-25) */
+  const trMap = bankTransferMap(month)[acc] || {};
+  const trDone = {};
+  const pushTr = (it, dir)=>{
+    const name = String(it == null ? '' : it).trim();
+    if (!name || trDone[name]) return;
+    if (moveAnyInfo(acc, name) || isCarryName(name)) return;
+    const bud = bankBudget(month, acc, name);
+    const act = bankItemActual(month, acc, name);
+    if (!bud && !act) return;                    /* 비어 있는 항목은 감춥니다 */
+    trDone[name] = 1;
+    out.push({item: name, dir: dir === 'in' ? 'in' : 'out', bud: bud, act: act, fixed: true, transfer: true});
+  };
+  Object.keys(trMap).forEach(it=> pushTr(it, trMap[it]));
+  bankRowsAll(month).forEach(r=>{ if (r.account === acc && r.kind === TRANSFER_KIND) pushTr(r.item, r.dir || (r.amount > 0 ? 'in' : 'out')); });
   /* 모으기 이체 2행 — 우리은행·토스 입출금에는 어느 달을 열어도 맨 아래(총합 바로 위)에 있습니다.
      못 채운 달은 '—'로 보이고, 예산·실행을 직접 넣을 수 있습니다 (2026-11-25). */
   if (isMoveAcc){
@@ -7789,7 +7946,10 @@ function bankSumItemRows(month, acc){
                 act: bankItemActual(month, acc, m.item), fixed: true});
     });
   }
-  return out;
+  /* 이월금은 맨 위 고정, 나머지는 저장한 드래그 순서대로 (2026-11-25) */
+  const pin = [], mid = [];
+  out.forEach(r=> (isCarryName(r.item) ? pin : mid).push(r));
+  return pin.concat(bankOrderRows(mid, bankRowOrder(month, acc)));
 }
 /* 이월금은 직전 달 총합에서 자동으로 오므로 이 달에서 직접 고칠 수 없습니다 — 출처를 알려 줍니다 */
 function bankCarryNotice(acc, item){
@@ -7804,27 +7964,32 @@ function bankSumRowHtml(month, acc, row, wide){
   const bud = row.bud, act = row.act;
   const isCarry = isCarryName(row.item);
   const isMove = isMoveItem(row.item);           /* 모으기채우기·모으기꺼내기 — 이름·금액 모두 검정 */
+  const isTr = !isMove && (!!row.transfer || !!bankTransferInfo(month, acc, row.item));   /* 계좌이동 — 같은 검정 둘레 (2026-11-25) */
   const label = isMove ? bankMoveLabel(row.item, acc) : row.item;   /* 그 계좌에서 바꾼 이름이 있으면 그 이름으로 */
   const cv = isCarry ? bankCarryValue(month, acc) : null;
   const carryNote = cv && cv.auto ? monthLabel(cv.src).replace(/^\d{4}년 /, '') + ' 총합에서 자동' : '';
+  const moveNote = isMove ? '이체' : (isTr ? '계좌이동' : '');
   /* 예산: 수입은 +초록, 지출은 −붉은색 — 실행 열과 같은 색 말투 (2026-11-24)
      이월금은 예산 총합이 마이너스(계획상 적자)일 수 있어 부호 그대로 보입니다 */
   const budSigned = bud ? (row.dir === 'in' ? bud : -bud) : 0;
   const budFm = wide ? bankBudgetFormula(month, acc, row.item) : '';
   const actFm = bankItemFormula(month, acc, row.item);
+  const sym = row.dir === 'in' ? '＋' : '−';
   const budCell = wide
     ? '<button type="button" class="num bud ' + (budSigned ? (budSigned > 0 ? 'in' : 'out') : 'zero') + '" data-scbud="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + ' 예산' + (carryNote ? ' · ' + carryNote : ' 고치기') + (budFm ? ' · ' + budFm : '')) + '">' +
       (budSigned ? (budSigned > 0 ? '+' : '−') + fmt(Math.abs(budSigned)) : '—') + '</button>'
     : '';
-  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (isMove ? label + ' 실행 — ' + (row.dir === 'in' ? '＋' : '−') + ' 부호로 들어갑니다' : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
+  const actCell = '<button type="button" class="num act sep ' + (act ? (act > 0 ? 'in' : 'out') : 'none') + '" data-scact="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" data-dir="' + row.dir + '" title="' + esc((carryNote ? '이월금 실행 · ' + carryNote : (moveNote ? label + ' 실행 — ' + sym + ' 부호로 들어갑니다' + (isTr ? ' (총 수입·총 지출 제외)' : '') : '실행 합계 직접 입력')) + (actFm ? ' · ' + actFm : '')) + '">' +
     (act ? (act > 0 ? '+' : '−') + fmt(Math.abs(act)) : '—') + '</button>';
-  const nameCell = isMove
-    ? '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed mvname" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + ' — 눌러서 이름 고치기 (부호·검정색·총 수입/지출 제외는 그대로)') + '">' + esc(label) + '</button>'
+  const nameCell = (isMove || isTr)
+    ? '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed mvname" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(label + (isTr ? ' — 눌러서 이름·삭제 고치기' : ' — 눌러서 이름 고치기') + ' (' + (isTr ? '계좌이동' : '부호') + '·검정색·총 수입/지출 제외는 그대로)') + '">' + esc(label) + '</button>'
     : (row.fixed
       ? '<span class="inm ' + (row.dir === 'in' ? 'in' : 'out') + ' fixed" title="' + esc(row.item + ' — 정산 요약 고정 항목') + '">' + esc(label) + '</span>'
       : '<button type="button" class="inm ' + (row.dir === 'in' ? 'in' : 'out') + '" data-scname="1" data-acc="' + esc(acc) + '" data-item="' + esc(row.item) + '" title="' + esc(row.item) + ' — 눌러서 이름 고치기">' + esc(label) + '</button>');
-  return '<div class="scg-row' + (isMove ? ' mv' : '') + '">' +
-    nameCell + budCell + actCell + '</div>';
+  const pin = isCarry;                                   /* 이월금은 맨 위 고정 — 핸들 없음 */
+  const grip = pin ? '' : '<span class="scgrip" data-scgrip="1" title="끌어서 순서 바꾸기 (모바일은 손가락으로)" aria-label="순서 바꾸기">' + SCG_GRIP_SVG + '</span>';
+  return '<div class="scg-row' + (isMove ? ' mv' : (isTr ? ' mv tr' : '')) + '" data-item="' + esc(row.item) + '"' + (pin ? ' data-pin="1"' : '') + '>' +
+    '<span class="nmcell">' + grip + nameCell + '</span>' + budCell + actCell + '</div>';
 }
 /* 계좌 표 맨 아래 총합 행 — 예산 합(우리은행)·실행 합을 수입·지출 합산 순합계로 (2026-11-24) */
 function bankSumTotalHtml(month, acc){
@@ -7849,10 +8014,15 @@ function scEditHtml(month, acc){
     return '<div class="sc-edit" ' + st + '>' +
       '<span class="who">＋ 새 항목</span>' +
       '<label class="fld"><span>이름</span><input id="scNewName" type="text" maxlength="24" placeholder="항목 이름" autocomplete="off"></label>' +
-      '<label class="fld"><span>구분</span><select id="scNewDir"><option value="out">지출</option><option value="in">수입</option></select></label>' +
+      '<label class="fld"><span>구분</span><select id="scNewDir"><option value="out">지출</option><option value="in">수입</option><option value="move">계좌이동</option></select></label>' +
+      /* 계좌이동을 고를 때만 보이는 방향 토글 — 기본 − 출금 (2026-11-25) */
+      '<span class="fld hidden" id="scNewMoveWrap"><span>방향</span>' +
+        '<span class="seg2"><label><input type="radio" name="scNewMove" value="out" checked><span>− 출금</span></label>' +
+        '<label><input type="radio" name="scNewMove" value="in"><span>+ 입금</span></label></span></span>' +
       (wide ? '<label class="fld"><span>예산(원)</span><input id="scNewBud" type="text" inputmode="decimal" data-calc="1" placeholder="50000+12000"></label>' : '') +
       '<label class="fld"><span>금액(원, 선택)</span><input id="scNewAmt" type="text" inputmode="decimal" data-calc="1" placeholder="비우면 예산만"></label>' +
       '<span class="calc-hint" id="calcHint"></span>' +
+      '<span class="sc-note hidden" id="scNewMoveNote">계좌이동 — 이름·금액 모두 검정, 총 수입·총 지출에서는 빠지고 이 계좌 잔액·정산 총합에만 들어갑니다</span>' +
       '<button type="button" class="btn primary" data-scsave="1">추가</button>' +
       '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
     '</div>';
@@ -7877,19 +8047,21 @@ function scEditHtml(month, acc){
       '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
       '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
       '<button type="button" class="btn danger" data-scdel="1">항목 삭제</button>' +
+      (bankTransferInfo(month, acc, item) ? '<span class="sc-note">계좌이동 항목 — 이름을 바꿔도 검정색·총 수입/지출 제외·이 계좌 총합 포함은 그대로입니다</span>' : '') +
     '</div>';
   }
   const isAct = e.field === 'act';
   const val = isAct ? Math.abs(bankItemActual(month, acc, item)) : bankBudget(month, acc, item);
   const fm = isAct ? bankItemFormula(month, acc, item) : bankBudgetFormula(month, acc, item);   /* 적어 둔 수식이 있으면 그대로 보여 줌 */
   const linked = !isAct && acc === '우리은행' && item === '카드요금' && bankCardLinked(month);
+  const trInfo = bankTransferInfo(month, acc, item);
   return '<div class="sc-edit" ' + st + '>' +
-    '<span class="who">' + esc(bankAccShort(acc)) + ' · ' + (isAct ? '실행 합계' : '예산') + (linked ? ' ⇄' : '') + '</span>' +
+    '<span class="who">' + esc(bankAccShort(acc)) + ' · ' + (isAct ? '실행 합계' : '예산') + (linked ? ' ⇄' : '') + (trInfo ? ' · 계좌이동 ' + (trInfo.dir === 'in' ? '+' : '−') : '') + '</span>' +
     '<input id="scAmt" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (val ? fmt(val) : '')) + '" placeholder="=100+100" aria-label="' + (isAct ? '실행 합계' : '예산') + '">' +
     '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
     '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
     '<span class="calc-hint" id="calcHint"></span>' +
-    (isAct ? '<span class="sc-note">합계를 바꾸면 차액만 조정 줄로 들어갑니다</span>' : '') +
+    (isAct ? '<span class="sc-note">' + (trInfo ? '계좌이동 — ' + (trInfo.dir === 'in' ? '+' : '−') + ' 부호로 들어가고, 총 수입·총 지출에서는 빠집니다' : '합계를 바꾸면 차액만 조정 줄로 들어갑니다') + '</span>' : '') +
   '</div>';
 }
 function scGroupHtml(month, acc, rowsArg, padN){
@@ -7899,23 +8071,22 @@ function scGroupHtml(month, acc, rowsArg, padN){
   const editingNew = scEdit && scEdit.field === 'new' && scEdit.acc === acc;
   /* 3계좌 본문 행 수를 가장 많은 계좌에 맞춥니다 — PC 3열에서 총합 행이 같은 높이에 (2026-11-24).
      빈 행은 세로줄만 이어지고 누를 수 없으며, 모바일 세로 스택에서는 숨깁니다.
-     모으기 이체 고정 2행은 빈 행 뒤가 아니라 총합 바로 위에 붙습니다 (2026-11-25). */
+     항목 순서를 드래그로 바꿔도 총합은 항상 맨 아래이므로 빈 행은 항상 마지막에 붙입니다 (2026-11-25). */
   const bodyN = rows.length || (editingNew ? 0 : 1);
   const pads = Math.max(0, (padN || bodyN) - bodyN);
   const padCell = '<span class="phc">&nbsp;</span>';
   const padHtml = pads ? ('<div class="scg-row ph" aria-hidden="true">' + padCell + (wide ? '<span class="phc"></span>' : '') +
     '<span class="phc"></span></div>').repeat(pads) : '';
-  let body = '', padDone = false;
+  let body = '';
   rows.forEach(r=>{
-    if (r.fixed && !padDone){ body += padHtml; padDone = true; }
     body += bankSumRowHtml(month, acc, r, wide);
     if (scEdit && scEdit.field !== 'new' && scEdit.acc === acc && scEdit.item === r.item) body += scEditHtml(month, acc);
   });
   if (!rows.length && !editingNew){
     body = '<div class="scg-row"><span class="inm" style="color:var(--muted);font-weight:600;cursor:default">아직 항목이 없습니다</span></div>';
   }
-  if (!padDone) body += padHtml;
   if (editingNew) body += scEditHtml(month, acc);
+  body += padHtml;
   return '<section class="scg ' + (wide ? 'w3' : 'w2') + '" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
     '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
       '<button type="button" class="add" data-scadd="' + esc(acc) + '" title="' + esc(acc) + '에 항목 더하기">＋ 항목</button></div>' +
@@ -7978,6 +8149,13 @@ function bankRenameItem(month, acc, oldName, newName){
   if (bf && Object.prototype.hasOwnProperty.call(bf, oldName)){ bf[newName] = bf[oldName]; delete bf[oldName]; }   /* 수식 원문도 함께 */
   const ba = d.budgetAt && d.budgetAt[acc];
   if (ba && Object.prototype.hasOwnProperty.call(ba, oldName)){ ba[newName] = ba[oldName]; delete ba[oldName]; }
+  /* 계좌이동 구분·방향도 이름을 따라 옮깁니다 (2026-11-25) */
+  const trm = d.transfer && d.transfer[acc];
+  if (trm && Object.prototype.hasOwnProperty.call(trm, oldName)){ trm[newName] = trm[oldName]; delete trm[oldName]; }
+  /* 저장한 항목 순서에서도 이름을 바꿔 둡니다 */
+  if (d.rowOrder && typeof d.rowOrder === 'object') Object.keys(d.rowOrder).forEach(a=>{
+    if (Array.isArray(d.rowOrder[a])) d.rowOrder[a] = d.rowOrder[a].map(x=> x === oldName ? newName : x);
+  });
   const map = bankEnsureMap(month);
   Object.keys(map).forEach(k=> map[k] = (map[k] || []).map(x=> x === oldName ? newName : x));
   d.updatedAt = nowIso();
@@ -7992,6 +8170,13 @@ function bankDeleteItem(month, acc, item){
   if (b && Object.prototype.hasOwnProperty.call(b, item)) delete b[item];
   if (d.budgetFormula && d.budgetFormula[acc]) delete d.budgetFormula[acc][item];
   if (d.budgetAt && d.budgetAt[acc]) delete d.budgetAt[acc][item];
+  if (d.transfer && d.transfer[acc]){
+    delete d.transfer[acc][item];
+    if (!Object.keys(d.transfer[acc]).length) delete d.transfer[acc];
+  }
+  if (d.rowOrder && typeof d.rowOrder === 'object') Object.keys(d.rowOrder).forEach(a=>{
+    if (Array.isArray(d.rowOrder[a])) d.rowOrder[a] = d.rowOrder[a].filter(x=> x !== item);
+  });
   if (d.map && typeof d.map === 'object') Object.keys(d.map).forEach(k=> d.map[k] = (d.map[k] || []).filter(x=> x !== item));
   d.updatedAt = nowIso();
   return rows.length;
@@ -8003,11 +8188,14 @@ function bankSetItemActual(month, acc, item, target, dir, formula){
   const signed = dir === 'in' ? target : -target;
   const fm = formula ? formulaText(formula) : '';            /* '=100+100' 수식 원문 (2026-11-25) */
   const putFm = (r)=>{ if (!r) return; if (fm) r.formula = fm; else delete r.formula; };
+  /* 계좌이동 항목이면 명시한 방향을 거래 줄에도 적어 둡니다 (2026-11-25) */
+  const trInfo = bankTransferInfo(month, acc, item);
+  const putKind = (r)=>{ if (!r || !trInfo) return; r.kind = TRANSFER_KIND; r.dir = dir === 'in' ? 'in' : 'out'; };
   const real = d.rows.filter(r=> r.account === acc && r.item === item);
   if (isCarryName(item) && !real.length){
     const r0 = {id: uid(), month: month, account: acc, date: '', item: item, name: item,
       amount: signed, memo: '정산 요약에서 직접 입력', carry: true, order: 0};
-    putFm(r0);
+    putFm(r0); putKind(r0);
     d.rows.push(r0);
     d.updatedAt = nowIso();
     return null;
@@ -8016,7 +8204,7 @@ function bankSetItemActual(month, acc, item, target, dir, formula){
     const r = real[0];
     const oldK = bankRowKey(r);
     r.amount = signed;
-    putFm(r);
+    putFm(r); putKind(r);
     if (bankRowKey(r) !== oldK){ addBankTomb(oldK, month); clearBankTomb(bankRowKey(r)); }
     d.updatedAt = nowIso();
     return null;
@@ -8032,7 +8220,7 @@ function bankSetItemActual(month, acc, item, target, dir, formula){
   }
   const adj = {id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: item, name: item + ' (정산 조정)',
     amount: delta, memo: '정산 요약에서 직접 입력', order: bankNewOrder(d), orderAt: nowIso()};
-  putFm(adj);
+  putFm(adj); putKind(adj);
   d.rows.push(adj);
   d.updatedAt = nowIso();
   return delta;
@@ -8062,7 +8250,11 @@ function scSave(){
     if (!name){ toast('항목 이름을 넣어주세요'); if (nameEl) nameEl.focus(); return; }
     const list = bankItemList(month, acc);
     if (list.in.indexOf(name) >= 0 || list.out.indexOf(name) >= 0){ toast('이미 있는 항목입니다'); if (nameEl) nameEl.focus(); return; }
-    const dir = dirEl && dirEl.value === 'in' ? 'in' : 'out';
+    if (moveAnyInfo(acc, name) || isCarryName(name)){ toast('그 이름은 이미 쓰는 항목입니다 — 다른 이름으로 넣어주세요'); if (nameEl) nameEl.focus(); return; }
+    const mode = dirEl ? dirEl.value : 'out';
+    const isTr = mode === 'move';                       /* 계좌이동 — 방향은 아래 토글 (2026-11-25) */
+    const mvEl = document.querySelector('input[name="scNewMove"]:checked');
+    const dir = isTr ? (mvEl && mvEl.value === 'in' ? 'in' : 'out') : (mode === 'in' ? 'in' : 'out');
     let bud = 0, amt = 0, budFm = '', amtFm = '';
     if (budEl && String(budEl.value).trim()){
       const c = calcAmount(budEl.value);
@@ -8091,11 +8283,16 @@ function scSave(){
       const nr = {id: uid(), month: month, account: acc, date: bankDateForMonth(month), item: name, name: name,
         amount: dir === 'in' ? amt : -amt, memo: '', order: bankNewOrder(d), orderAt: nowIso()};
       if (amtFm) nr.formula = amtFm;
+      if (isTr){ nr.kind = TRANSFER_KIND; nr.dir = dir; }   /* 계좌이동 — 총 수입/지출 제외 근거 */
       d.rows.push(nr);
     }
+    /* 금액이 아직 없어도(예산만) 구분·방향을 그 달 문서에 남깁니다 */
+    if (isTr) bankSetTransfer(month, acc, name, dir);
     d.updatedAt = nowIso();
     scEdit = null; bankSave(); renderAll(); markBankDirty(month);
-    toast((bud ? '예산 ' + fmt(bud) + '원으로 ' : '') + '항목 "' + name + '"을(를) 더했습니다');
+    const tag = (isTr ? '계좌이동(' + (dir === 'in' ? '+ 입금' : '− 출금') + ') ' : '') + '항목 "' + name + '"';
+    toast((bud ? '예산 ' + fmt(bud) + '원으로 ' : '') + tag + '을(를) 더했습니다' +
+      (isTr ? ' · 총 수입/지출 제외' : ''));
     return;
   }
   if (e.field === 'name'){
@@ -8277,13 +8474,16 @@ function bankRowEditHtml(d0, r){
   const accOpts = BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
   const itemOpts = items.map(it=> '<option value="' + esc(it) + '"></option>').join('');
   const isNew = r.id === '__new__' || d.isNew;
-  const dir = d.dir === 'in' ? 'in' : 'out';
+  /* 구분: 지출/수입 + 계좌이동(방향 포함) — 계좌이동은 총 수입·지출에서 빠집니다 (2026-11-25) */
+  const dirVal = /^move-/.test(String(d.dir || '')) ? d.dir : (d.dir === 'in' ? 'in' : 'out');
+  const dirOpt = (v, label)=> '<option value="' + v + '"' + (dirVal === v ? ' selected' : '') + '>' + label + '</option>';
   return '<datalist id="bankItemNames">' + itemOpts + '</datalist>' +
     '<div class="bedit-grid">' +
       (isNew ? '<div class="btop">＋ 새 내역 — 항목에 새 이름을 써도 정산 요약에 그 이름으로 바로 줄이 생깁니다</div>' : '') +
       '<label class="fld"><span>날짜</span><input type="date" data-bf="date" value="' + esc(d.date || '') + '"></label>' +
       '<label class="fld"><span>계좌</span><select data-bf="account">' + accOpts + '</select></label>' +
-      '<label class="fld"><span>구분</span><select data-bf="dir"><option value="out"' + (dir === 'out' ? ' selected' : '') + '>지출 (출금)</option><option value="in"' + (dir === 'in' ? ' selected' : '') + '>수입 (입금)</option></select></label>' +
+      '<label class="fld"><span>구분</span><select data-bf="dir">' + dirOpt('out', '지출 (출금)') + dirOpt('in', '수입 (입금)') +
+        dirOpt('move-out', '계좌이동 · − 출금') + dirOpt('move-in', '계좌이동 · + 입금') + '</select></label>' +
       '<label class="fld"><span>항목</span><input type="text" data-bf="item" list="bankItemNames" maxlength="24" value="' + esc(d.item || '') + '" placeholder="항목 (새 이름도 입력 가능)" autocomplete="off"></label>' +
       '<label class="fld"><span>금액(원)</span><input type="text" data-bf="amount" inputmode="decimal" data-calc="1" value="' + esc(d.amount || '') + '" placeholder="예: 50000+30000"></label>' +
       '<span class="calc-hint" id="calcHint"></span>' +
@@ -8633,6 +8833,9 @@ function bankMonthPayload(month, remoteJson){
     cardLink: d.cardLink !== false,
     moveNames: bankMoveNamesCopy(),
     moveNamesAt: bankMoveNamesAtCopy(),
+    transfer: bankTransferCopy(month),
+    rowOrder: bankRowOrderCopy(month),
+    rowOrderAt: bankRowOrderAtCopy(month),
     budgetFormula: d.budgetFormula || {},
     settlementFormula: d.settlementFormula || {},
     rows: rows.concat(extra),
@@ -8723,6 +8926,27 @@ function applyBankPayload(p){
     if (remoteAt > localAt) doc.budgetAt = p.budgetAt;
     else if (!doc.budgetAt) doc.budgetAt = p.budgetAt;
   }
+  /* 계좌이동 구분·방향(transfer) — 예산과 같은 규칙: 더 최신 쪽을 따르고, 아니면 빠진 것만 채웁니다 (2026-11-25) */
+  if (p.transfer && typeof p.transfer === 'object' && !Array.isArray(p.transfer)){
+    const clean = {};
+    Object.keys(p.transfer).forEach(a=>{
+      const rp = p.transfer[a];
+      if (!rp || typeof rp !== 'object' || Array.isArray(rp)) return;
+      const q = {};
+      Object.keys(rp).forEach(it=>{ const d = rp[it]; if ((d === 'in' || d === 'out') && String(it).trim()) q[it] = d; });
+      if (Object.keys(q).length) clean[a] = q;
+    });
+    if (remoteAt > localAt){ doc.transfer = clean; changed++; }
+    else {
+      if (!doc.transfer || typeof doc.transfer !== 'object' || Array.isArray(doc.transfer)) doc.transfer = {};
+      Object.keys(clean).forEach(a=>{
+        if (!doc.transfer[a] || typeof doc.transfer[a] !== 'object') doc.transfer[a] = {};
+        Object.keys(clean[a]).forEach(it=>{
+          if (doc.transfer[a][it] == null){ doc.transfer[a][it] = clean[a][it]; changed++; }
+        });
+      });
+    }
+  }
   /* 예산·정산 예산의 '=100+100' 수식 원문도 함께 맞춥니다 */
   ['budgetFormula', 'settlementFormula'].forEach(k=>{
     const src = p[k];
@@ -8750,6 +8974,29 @@ function applyBankPayload(p){
       if (rp.names[a]) BANK.moveNames[a] = Object.assign({}, rp.names[a]); else delete BANK.moveNames[a];
       BANK.moveNamesAt[a] = rp.at[a];
       changed++;
+    });
+  }
+  /* 항목 순서 — 그 계좌를 더 나중에 바꾼 쪽의 순서를 따릅니다 (2026-11-25) */
+  if (p.rowOrder && typeof p.rowOrder === 'object' && !Array.isArray(p.rowOrder)){
+    if (!doc.rowOrder || typeof doc.rowOrder !== 'object' || Array.isArray(doc.rowOrder)) doc.rowOrder = {};
+    if (!doc.rowOrderAt || typeof doc.rowOrderAt !== 'object' || Array.isArray(doc.rowOrderAt)) doc.rowOrderAt = {};
+    const rAt = (p.rowOrderAt && typeof p.rowOrderAt === 'object' && !Array.isArray(p.rowOrderAt)) ? p.rowOrderAt : {};
+    BANK_ACCOUNTS.forEach(a=>{
+      const ro = p.rowOrder[a];
+      if (!Array.isArray(ro)) return;
+      const names = ro.filter(x=> typeof x === 'string' && x).slice(0, 60);
+      if (!names.length) return;
+      const ra = Date.parse(rAt[a] || '') || 0;
+      const la = Date.parse(doc.rowOrderAt[a] || '') || 0;
+      if (ra > la){
+        if ((doc.rowOrder[a] || []).join('|') !== names.join('|')) changed++;
+        doc.rowOrder[a] = names;
+        doc.rowOrderAt[a] = rAt[a] ? String(rAt[a]) : nowIso();
+      } else if (!doc.rowOrder[a]){
+        doc.rowOrder[a] = names;
+        doc.rowOrderAt[a] = rAt[a] ? String(rAt[a]) : nowIso();
+        changed++;
+      }
     });
   }
   if (p.settlement && (!doc.settlement || remoteAt > localAt)) doc.settlement = p.settlement;
@@ -8902,7 +9149,78 @@ $('#bankActiveBar').addEventListener('click', ev=>{
   bankSave(); renderAll(); markBankDirty(month);
   toast('이월금을 전월 잔액으로 맞췄습니다');
 });
+/* 정산 요약 항목 순서 — 포인터(마우스·터치) 드래그 (2026-11-25)
+   HTML5 drag&drop 은 모바일에서 동작하지 않으므로 pointer events 로 처리합니다.
+   핸들에 touch-action:none 을 줘서 손가락 드래그 중 페이지가 스크롤되지 않게 합니다. */
+let GRIP_S = null;
+function settleGripRows(group){
+  return Array.prototype.slice.call(group.querySelectorAll('.scg-row[data-item]:not([data-pin])'))
+    .filter(el=> !!el.querySelector('[data-scgrip]'));
+}
+function startSettleGrip(ev){
+  if (GRIP_S) return;
+  if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+  const grip = ev.target && ev.target.closest ? ev.target.closest('#bankItems [data-scgrip]') : null;
+  if (!grip) return;
+  if (scEdit){ scEdit = null; renderBankItems(); return; }     /* 편집창이 열려 있으면 먼저 닫습니다 */
+  const rowEl = grip.closest('.scg-row'), group = grip.closest('.scg');
+  if (!rowEl || !group || !rowEl.dataset.item) return;
+  ev.preventDefault();
+  GRIP_S = {el: rowEl, group: group, acc: group.dataset.acc, item: rowEl.dataset.item,
+            startY: ev.clientY, moved: false};
+  try { grip.setPointerCapture(ev.pointerId); } catch(e){}
+  window.addEventListener('pointermove', onSettleGripMove, {passive: false});
+  window.addEventListener('pointerup', endSettleGrip);
+  window.addEventListener('pointercancel', endSettleGrip);
+}
+function onSettleGripMove(ev){
+  if (!GRIP_S) return;
+  if (!GRIP_S.moved){
+    if (Math.abs(ev.clientY - GRIP_S.startY) < 5) return;
+    GRIP_S.moved = true;
+    GRIP_S.el.classList.add('dragging');
+    document.body.classList.add('dragactive');
+  }
+  if (ev.cancelable) ev.preventDefault();
+  const y = ev.clientY, edge = 76;
+  if (y < edge) window.scrollBy(0, -Math.max(4, (edge - y) / 3));
+  else if (y > window.innerHeight - edge) window.scrollBy(0, Math.max(4, (y - (window.innerHeight - edge)) / 3));
+  const tr = GRIP_S.el;
+  const rows = settleGripRows(GRIP_S.group);
+  let ref = null;
+  rows.forEach(o=>{
+    if (ref || o === tr) return;
+    const rc = o.getBoundingClientRect();
+    if (y < rc.top + rc.height / 2) ref = o;
+  });
+  if (ref){
+    if (tr !== ref && tr.nextElementSibling !== ref) tr.parentNode.insertBefore(tr, ref);
+  } else {
+    const last = rows[rows.length - 1];
+    if (last && last !== tr) tr.parentNode.insertBefore(tr, last.nextSibling);
+  }
+}
+function endSettleGrip(){
+  if (!GRIP_S) return;
+  const g = GRIP_S;
+  GRIP_S = null;
+  window.removeEventListener('pointermove', onSettleGripMove);
+  window.removeEventListener('pointerup', endSettleGrip);
+  window.removeEventListener('pointercancel', endSettleGrip);
+  if (g.el) g.el.classList.remove('dragging');
+  document.body.classList.remove('dragactive');
+  if (!g.moved){ renderBankItems(); return; }             /* 누르기만 했으면 그대로 */
+  const names = settleGripRows(g.group).map(el=> el.dataset.item).filter(Boolean);
+  const month = bankCurrentMonth();
+  const cur = bankRowOrder(month, g.acc);
+  if (cur.join('|') === names.join('|')){ renderBankItems(); return; }
+  bankSetRowOrder(month, g.acc, names);
+  bankSave(); renderBankItems(); markBankDirty(month);
+  toast(g.acc + ' 항목 순서를 바꿨습니다 · 새로고침·다른 기기에도 같은 순서로 남습니다', 3200);
+}
+$('#bankItems').addEventListener('pointerdown', startSettleGrip);
 $('#bankItems').addEventListener('click', ev=>{
+  if (ev.target.closest('[data-scgrip]')) return;          /* 드래그 핸들 — 다른 동작 없음 */
   const add = ev.target.closest('[data-scadd]');
   if (add){
     scEdit = {acc: add.dataset.scadd, field: 'new'};
@@ -8931,6 +9249,15 @@ $('#bankItems').addEventListener('click', ev=>{
   if (ev.target.closest('[data-sccancel]')){ scEdit = null; renderBankItems(); return; }
   if (ev.target.closest('[data-scsave]')){ scSave(); return; }
   if (ev.target.closest('[data-scdel]')){ scDeleteItem(); return; }
+});
+$('#bankItems').addEventListener('change', ev=>{
+  /* ＋ 새 항목 — 구분을 '계좌이동'으로 고르면 방향(− 출금 / + 입금) 토글이 나타납니다 (2026-11-25) */
+  if (!ev.target || ev.target.id !== 'scNewDir') return;
+  const on = ev.target.value === 'move';
+  const wrap = document.getElementById('scNewMoveWrap');
+  const note = document.getElementById('scNewMoveNote');
+  if (wrap) wrap.classList.toggle('hidden', !on);
+  if (note) note.classList.toggle('hidden', !on);
 });
 $('#bankItems').addEventListener('input', ev=>{
   if (!ev.target.dataset || !ev.target.dataset.calc) return;
@@ -9009,7 +9336,8 @@ function openBankRowEdit(id){
   const r = d && d.rows.find(x=> x.id === id);
   if (!r) return;
   bRowEdit = {id: r.id, month: month, account: r.account, date: toDateStr(r.date) || '', item: r.item,
-    name: r.name || '', amount: r.formula || fmt(Math.abs(r.amount)), memo: r.memo || '', isNew: false, dir: r.amount < 0 ? 'out' : 'in'};
+    name: r.name || '', amount: r.formula || fmt(Math.abs(r.amount)), memo: r.memo || '', isNew: false,
+    dir: r.kind === TRANSFER_KIND ? ('move-' + (r.amount > 0 ? 'in' : 'out')) : (r.amount < 0 ? 'out' : 'in')};
   renderBank();
   const panel = $('#bankEditPanel');
   if (panel){ try { panel.scrollIntoView({behavior: 'smooth', block: 'center'}); } catch(e){} }
@@ -9045,36 +9373,49 @@ function saveBankRow(){
   if (calc.ok && Math.abs(calc.value) === 0){ toast('금액은 0원보다 커야 합니다'); return; }
   if (!name){ toast('항목이나 내용을 넣어주세요'); return; }
   if (!calc.ok){ toast('금액: ' + calc.error); const i = document.querySelector('#bankEditPanel [data-bf="amount"]'); if (i) i.focus(); return; }
-  const amount = (()=>{
-    const base = d.dir === 'in' ? Math.abs(calc.value) : -Math.abs(calc.value);
-    return moveHit ? moveSignedAmount(moveHit.item, calc.value) : base;   /* 채우기 −, 꺼내기 + 로 정리 */
-  })();
   const month = d.month || bankCurrentMonth();
   const account = account0;
   const item = moveHit ? moveHit.item : (itemRaw || '기타');
+  /* 계좌이동 — 구분에서 고른 방향, 또는 정산 요약에서 계좌이동으로 정한 항목이면 그 방향 (2026-11-25) */
+  const dirSel = String(d.dir || '');
+  const moveSel = /^move-/.test(dirSel);
+  const regTr = (!moveHit) ? bankTransferInfo(month, account, item) : null;
+  const isTr = moveSel || !!regTr;
+  const mdir = moveSel ? (dirSel === 'move-in' ? 'in' : 'out') : (regTr ? regTr.dir : (dirSel === 'in' ? 'in' : 'out'));
+  const amount = moveHit ? moveSignedAmount(moveHit.item, calc.value)
+                         : (mdir === 'in' ? Math.abs(calc.value) : -Math.abs(calc.value));
   const date = d.date ? toDateStr(d.date) : '';
   const memo = String(d.memo || '').trim().slice(0, 80);
   const fm = isFormulaText(d.amount) ? formulaText(d.amount) : '';   /* '=100+100' 수식 원문 */
   const doc = ensureBankDoc(month);
   const putFm = (r)=>{ if (!r) return; if (fm) r.formula = fm; else delete r.formula; };
+  const putKind = (r)=>{                       /* 계좌이동 표시 — 일반 지출/수입으로 바꾸면 지웁니다 */
+    if (!r) return;
+    if (isTr){ r.kind = TRANSFER_KIND; r.dir = mdir; }
+    else { delete r.kind; delete r.dir; }
+  };
   if (d.isNew){
     const nr = {id: uid(), month: month, account: account, date: date, item: item, name: name,
       amount: amount, memo: memo, order: bankNewOrder(doc), orderAt: nowIso()};
-    putFm(nr);
+    putFm(nr); putKind(nr);
     doc.rows.push(nr);
   } else {
     const r = doc.rows.find(x=> x.id === d.id);
     if (!r){ bRowEdit = null; renderBank(); return; }
     const oldKey = bankRowKey(r);
     r.account = account; r.date = date; r.item = item; r.name = name; r.amount = amount; r.memo = memo;
-    putFm(r);
+    putFm(r); putKind(r);
     if (bankRowKey(r) !== oldKey) addBankTomb(oldKey, month);
   }
+  /* 새 이름으로 계좌이동을 고르면 그 달 정산 요약에도 계좌이동 항목으로 등록 */
+  if (isTr) bankSetTransfer(month, account, item, mdir);
+  else if (regTr) bankSetTransfer(month, account, item, regTr.dir);
   doc.updatedAt = nowIso();
   bRowEdit = null;
   bankSave(); renderAll(); markBankDirty(month);
-  const shownDir = moveHit ? (moveSignedAmount(moveHit.item, calc.value) < 0 ? 'out' : 'in') : d.dir;
-  toast('저장했습니다' + (calc.error ? '' : ' · ' + (shownDir === 'in' ? '+' : '−') + fmt(Math.abs(calc.value)) + '원'));
+  const shownDir = moveHit ? (moveSignedAmount(moveHit.item, calc.value) < 0 ? 'out' : 'in') : mdir;
+  toast('저장했습니다' + (calc.error ? '' : ' · ' + (shownDir === 'in' ? '+' : '−') + fmt(Math.abs(calc.value)) + '원') +
+    (isTr ? ' · 계좌이동(총 수입/지출 제외)' : ''));
 }
 function askBankDelete(ids){
   const month = bankCurrentMonth();
@@ -9144,6 +9485,14 @@ $('#bankDetailCard').addEventListener('input', ev=>{
       bRowEdit.dir = m.sign < 0 ? 'out' : 'in';
       const sel = document.querySelector('#bankEditPanel [data-bf="dir"]');
       if (sel) sel.value = bRowEdit.dir;
+    } else {
+      /* 정산 요약에서 계좌이동으로 정한 항목이면 구분을 계좌이동으로 */
+      const tr = bankTransferInfo(bRowEdit.month || bankCurrentMonth(), bRowEdit.account, t.value);
+      if (tr){
+        bRowEdit.dir = 'move-' + tr.dir;
+        const sel = document.querySelector('#bankEditPanel [data-bf="dir"]');
+        if (sel) sel.value = bRowEdit.dir;
+      }
     }
   }
 });
@@ -9151,7 +9500,7 @@ $('#bankDetailCard').addEventListener('change', ev=>{
   const t = ev.target;
   if (!bRowEdit || !t || !t.dataset || !t.dataset.bf) return;
   if (t.dataset.bf === 'account'){ bRowEdit.account = t.value; bRowEdit.item = ''; renderBank(); }
-  else if (t.dataset.bf === 'dir'){ bRowEdit.dir = t.value === 'in' ? 'in' : 'out'; }
+  else if (t.dataset.bf === 'dir'){ bRowEdit.dir = String(t.value || 'out'); }
 });
 $('#bankDetailCard').addEventListener('keydown', ev=>{
   if (!bRowEdit || !ev.target.closest('#bankEditPanel')) return;
