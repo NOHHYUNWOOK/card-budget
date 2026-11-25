@@ -8936,16 +8936,14 @@ function applyBankPayload(p){
       Object.keys(rp).forEach(it=>{ const d = rp[it]; if ((d === 'in' || d === 'out') && String(it).trim()) q[it] = d; });
       if (Object.keys(q).length) clean[a] = q;
     });
-    if (remoteAt > localAt){ doc.transfer = clean; changed++; }
-    else {
-      if (!doc.transfer || typeof doc.transfer !== 'object' || Array.isArray(doc.transfer)) doc.transfer = {};
-      Object.keys(clean).forEach(a=>{
-        if (!doc.transfer[a] || typeof doc.transfer[a] !== 'object') doc.transfer[a] = {};
-        Object.keys(clean[a]).forEach(it=>{
-          if (doc.transfer[a][it] == null){ doc.transfer[a][it] = clean[a][it]; changed++; }
-        });
+    if (!doc.transfer || typeof doc.transfer !== 'object' || Array.isArray(doc.transfer)) doc.transfer = {};
+    Object.keys(clean).forEach(a=>{
+      if (!doc.transfer[a] || typeof doc.transfer[a] !== 'object' || Array.isArray(doc.transfer[a])) doc.transfer[a] = {};
+      Object.keys(clean[a]).forEach(it=>{
+        /* 같은 이름은 원격 값을 따르고, 이 기기에만 있는 이름은 지우지 않습니다(기기 간 합치기) */
+        if (doc.transfer[a][it] !== clean[a][it]){ doc.transfer[a][it] = clean[a][it]; changed++; }
       });
-    }
+    });
   }
   /* 예산·정산 예산의 '=100+100' 수식 원문도 함께 맞춥니다 */
   ['budgetFormula', 'settlementFormula'].forEach(k=>{
