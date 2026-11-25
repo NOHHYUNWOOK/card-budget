@@ -5782,7 +5782,9 @@ function bindDataTab(){
     if (p.dueDates) S.dueDates = p.dueDates;
     F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
     migrateCategoryNames();
+    const impMonths = monthsIn(S.rows);
     saveState(); renderAll(); pendingImport = null; closeModal();
+    impMonths.forEach(m=> markDirtyMonth(m));   /* 새로 들인 자료를 동기화 대상으로 — 다음 동기화의 서버 기준 정리에서 빠지지 않게 (2026-11-25) */
     toast(fmt(p.rows.length) + '건으로 시작합니다');
   });
   b('btnImportAppend', ()=>{
@@ -6278,6 +6280,18 @@ function pruneOutbox(){
   OUTBOX.bdeleted = (OUTBOX.bdeleted || []).filter(d=>{ const t = Date.parse(d.at || ''); return !(t && t < cut); }).slice(-200);
 }
 function pendingCount(){ return Object.keys(OUTBOX.months || {}).length + Object.keys(OUTBOX.bmonths || {}).length + (OUTBOX.settings ? 1 : 0); }
+/* 이 달에 이 기기에서 아직 올리지 못한 편집이 있는가 — 있으면 서버로 덮어쓰지 않습니다 (2026-11-25) */
+function monthHasPendingLocal(m){
+  if (!m) return false;
+  if (OUTBOX.months && OUTBOX.months[m]) return true;
+  if (OUTBOX.bmonths && OUTBOX.bmonths[m]) return true;
+  return false;
+}
+/* 서버 파일이 그 달의 기준이 되어도 되는가 — 이 기기 편집이 모두 올라가 있는 달만 */
+function monthAutoPrune(m){
+  return /^\d{4}-\d{2}$/.test(String(m || '')) && !monthHasPendingLocal(m);
+}
+let BANK_PRUNE_N = 0;      /* 이번 동기화에서 서버 기준으로 정리한 은행 줄 수 (안내 문구용) */
 function tombSet(){ const s = new Set(); (OUTBOX.deleted || []).forEach(d=> s.add(d.k)); return s; }
 function addTomb(k, month){
   if (!k) return;
@@ -6655,6 +6669,7 @@ function normalizeRow(raw){
 }
 function mergePayload(payload, stats){
   const rows = Array.isArray(payload) ? payload : (payload && payload.rows) || [];
+  const matched = new Set();               /* 서버 파일에도 있는 이 기기 줄 — 정리 때 살립니다 */
   const tombs = tombSet();                 /* 이 기기에서 지웠거나 고쳐서 더 이상 없는 건 */
   // 같은 날짜·가맹점·금액의 거래가 여러 건일 수 있으므로 "몇 번째 같은 건"으로 짝을 맞춥니다
   const index = new Map();
@@ -6676,6 +6691,7 @@ function mergePayload(payload, stats){
       if (ex) ex.id = r.id;            /* 옛 자료의 id 를 이어받아 다음부터 같은 줄로 맞춥니다 */
     }
     if (ex){
+      matched.add(ex);
       let ch = false;
       const rt = Date.parse(r.editedAt || '') || 0, lt = Date.parse(ex.editedAt || '') || 0;
       if (rt > lt){
@@ -6727,6 +6743,7 @@ function mergePayload(payload, stats){
       if (!r.category){ const c = autoCategory(r.merchant, r.amount, S.rules); r.category = c || '기타'; }
       if (!S.categories.some(c=> c.name === r.category)) S.categories.push({name:r.category, color:'#64748b'});
       arr.push(r); S.rows.push(r); if (r.id) idIndex.set(r.id, r); stats.added++;
+      matched.add(r);
     }
   });
   if (payload && Array.isArray(payload.deleted) && payload.deleted.length){
@@ -6748,6 +6765,17 @@ function mergePayload(payload, stats){
     Object.keys(payload.dueDates).forEach(m=>{ S.dueDates[m] = Object.assign({}, S.dueDates[m] || {}, payload.dueDates[m]); });
   }
   if (payload && Array.isArray(payload.rules) && payload.rules.length){ S.rules = payload.rules; RULES_AT = payload.updatedAt || nowIso(); }
+  /* 서버 기준 자동 정리 (2026-11-25) — 이 달에 이 기기에서 아직 못 올린 편집이 없으면,
+     서버 파일에 없는 이 기기 줄(옛 중복·조정 줄)을 지워 서버 자료와 1원까지 맞춥니다.
+     · 아직 올리지 못한 달(OUTBOX 대기)은 그대로 두고 병합만합니다.
+     · 방금 캡처한 줄(src='capture')은 서버에 아직 없어도 살립니다 — 동기화 뒤 올라갑니다. */
+  const pm = (payload && !Array.isArray(payload)) ? String(payload.month || '') : '';
+  if (monthAutoPrune(pm) && Array.isArray(rows)){
+    const before = S.rows.length;
+    S.rows = S.rows.filter(r=> r.month !== pm || matched.has(r) || r.src === 'capture');
+    const gone = before - S.rows.length;
+    if (gone){ stats.pruned = (stats.pruned || 0) + gone; }
+  }
   migrateCategoryNames();   /* 동기화 JSON의 예전 분류 이름도 새 이름으로 */
 }
 async function runSync(quiet){
@@ -6765,8 +6793,9 @@ async function runSync(quiet){
     const g = ghParse();
     let payloads = [];
     for (const u of SYNC.urls) payloads = payloads.concat(await fetchSyncSource(u));
-    const stats = {added:0, updated:0};
+    const stats = {added:0, updated:0, pruned:0};
     let bankFiles = 0;
+    BANK_PRUNE_N = 0;
     payloads.forEach(p=>{
       if (isBankPayload(p)){ if (applyBankPayload(p)) bankFiles++; }
       else mergePayload(p, stats);
@@ -6805,7 +6834,8 @@ async function runSync(quiet){
     });
     if (catchup){ saveOutbox(); scheduleFlush(1500); }
     SYNC.lastSync = nowIso();
-    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (stats.removed ? ' · 삭제 ' + stats.removed + '건' : '') + (setApplied ? ' · 설정 반영' : '');
+    const pruned = (stats.pruned || 0) + BANK_PRUNE_N;
+    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (stats.removed ? ' · 삭제 ' + stats.removed + '건' : '') + (pruned ? ' · 정리 ' + pruned + '건' : '') + (setApplied ? ' · 설정 반영' : '');
     saveSyncConfig(); saveState(); renderAll(); scheduleSyncTimer();
     syncing = false;
     setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
@@ -6815,6 +6845,64 @@ async function runSync(quiet){
     setSyncState('err', '동기화 실패: ' + e.message);
     updateSyncLabel('err', e.message);
     if (!quiet) toast('동기화 실패: ' + e.message);
+  } finally { syncing = false; }
+}
+/* ------------------------------------------------------------
+   서버 데이터로 다시 받기 (2026-11-25)
+   · 이 기기에만 남은 옛 자료(중복 줄·(정산 조정) 줄·삭제 기록·미전송 편집·예산·순서)를 모두 버리고,
+     저장소의 자료를 병합 없이 그대로 다시 받아 채웁니다.
+   · 동기화 주소·토큰·자동 갱신 설정은 그대로 두고, 내려받기만 합니다(올리지 않음).
+   · 내려받기가 끝난 뒤에 지우므로, 통신이 실패하면 이 기기 자료를 잃지 않습니다.
+   ------------------------------------------------------------ */
+async function hardReloadFromServer(){
+  if (!SYNC.urls.length){ toast('설정 → 동기화에서 데이터 주소를 먼저 넣어 주세요'); return; }
+  if (syncing){ toast('지금 동기화 중입니다 — 잠시 뒤 다시 눌러 주세요'); return; }
+  const warn = '이 기기에 저장된 가계부 자료를 모두 지우고, 저장소(서버)의 자료로 다시 채웁니다.\n\n' +
+    '· 이 기기에만 남은 옛 내역·중복 줄·삭제 기록이 사라집니다.\n' +
+    '· 아직 서버로 올리지 못한 편집도 사라집니다.\n' +
+    '· 동기화 주소·토큰·자동 갱신 설정은 그대로 남습니다.\n\n계속할까요?';
+  if (!confirm(warn)) return;
+  syncing = true;
+  setSyncState('busy', '서버 자료로 다시 받는 중…');
+  try {
+    const g = ghParse();
+    let payloads = [];
+    for (const u of SYNC.urls) payloads = payloads.concat(await fetchSyncSource(u));
+    if (!payloads.length) throw new Error('저장소에서 읽을 자료가 없습니다');
+    /* 여기서부터 이 기기 자료를 버립니다 — 통신이 끝난 뒤라 실패해도 잃지 않습니다 */
+    clearTimeout(outboxTimer); outboxTimer = null; pushQueue = Promise.resolve();
+    OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[]};
+    PUSHED = {}; RULES_AT = null;
+    try { localStorage.removeItem(OUTBOX_KEY); localStorage.removeItem(PUSHED_KEY); } catch(e){}
+    S = blankState(); S.mode = 'mine';
+    BANK = BANK_EMPTY();
+    LIMITS = {}; LIMIT_FORMULA = {};
+    scEdit = null; bRowEdit = null; settleEdit = null; BSEL.clear(); SCSEL.clear();
+    /* 저장소 자료를 병합 없이 그대로 — 카드(YYYY-MM.json)·은행(bank-YYYY-MM.json)·마일리지 */
+    let bankFiles = 0;
+    const stats = {added:0, updated:0};
+    payloads.forEach(p=>{ if (isBankPayload(p)){ if (applyBankPayload(p)) bankFiles++; } else mergePayload(p, stats); });
+    payloads.forEach(p=> mileageApply(p));
+    /* settings.json — 이 기기 시각을 비웠으므로 서버 값이 그대로 들어옵니다 (한도·분류·규칙·하이라이트) */
+    let setApplied = '';
+    if (g && SYNC.token){
+      try { const st = await ghGetFileObj(settingsPath(g)); if (st && st.json) setApplied = applyRemoteSettings(st.json); }
+      catch(e){ /* settings.json 이 없어도 나머지는 그대로 받습니다 */ }
+    }
+    seedCarryBudgetDefault();
+    monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));   /* 받은 그대로를 기준으로 기억 — 바로 올리지 않음 */
+    saveState(); bankSave(); saveLimits(); saveOutbox(); saveSyncConfig();
+    const bankRows = Object.keys(BANK.months).reduce((n, m)=> n + (BANK.months[m].rows || []).length, 0);
+    SYNC.lastSync = nowIso();
+    SYNC.lastMsg = '서버에서 다시 받음 · ' + payloads.length + '개 파일 · 카드 ' + fmt(S.rows.length) + '건 · 은행 ' + fmt(bankRows) + '건';
+    saveSyncConfig(); scheduleSyncTimer(); renderAll();
+    syncing = false;
+    setSyncState('ok', SYNC.lastMsg + (setApplied ? ' · 설정 반영' : '') + ' (' + fmtDateTime(SYNC.lastSync) + ')');
+    toast('서버 자료로 다시 받았습니다 · 카드 ' + fmt(S.rows.length) + '건 · 은행 ' + fmt(bankRows) + '건');
+  } catch(e){
+    syncing = false;
+    setSyncState('err', '서버에서 다시 받지 못했습니다: ' + e.message);
+    toast('서버에서 다시 받지 못했습니다: ' + e.message, 4000);
   } finally { syncing = false; }
 }
 function scheduleSyncTimer(){
@@ -6835,7 +6923,8 @@ function refreshNow(){
 
 /* -------- sync settings tab -------- */
 function syncTabHtml(){
-  return '<p class="sec-desc">카드 내역 JSON을 비공개 저장소에 두고, 그 주소만 저장해 두면 앱을 열 때마다 <b>캐시를 무시하고(cache: no-store)</b> 최신 자료를 받아옵니다. 여기서 추가·수정한 내역(카드 한도·목표 마일리지·분류·규칙)은 <b>자동으로 저장소에 올라가 다른 기기와 양방향으로 맞춰집니다.</b></p>'+
+  return '<p class="sec-desc">카드 내역 JSON을 비공개 저장소에 두고, 그 주소만 저장해 두면 앱을 열 때마다 <b>캐시를 무시하고(cache: no-store)</b> 최신 자료를 받아옵니다. 여기서 추가·수정한 내역(카드 한도·목표 마일리지·분류·규칙)은 <b>자동으로 저장소에 올라가 다른 기기와 양방향으로 맞춰집니다.</b><br>'+
+    '이 기기에만 남은 옛 줄·중복 줄(이미 저장소에서 지운 것)은 <b>동기화할 때 서버 자료 기준으로 자동 정리</b>됩니다 — 방금 고쳐 아직 올리지 못한 줄은 그대로 둔 뒤 올립니다.</p>'+
   '<div class="field">'+
     '<label>데이터 주소 (한 줄에 하나)</label>'+
     '<textarea id="syncUrls" rows="3" placeholder="https://api.github.com/repos/USER/card-budget-data/contents/data"></textarea>'+
@@ -6857,6 +6946,11 @@ function syncTabHtml(){
     '</select>'+
   '</div>'+
   '<div class="syncstate" id="syncState">'+(SYNC.lastSync ? '마지막 동기화 ' + fmtDateTime(SYNC.lastSync) + ' · ' + (SYNC.lastMsg||'') : '아직 동기화한 적이 없습니다.')+'</div>'+
+  '<div class="field synchard">'+
+    '<label>서버 데이터로 다시 받기</label>'+
+    '<p class="tiny">이 기기에만 남은 옛 내역·중복 줄을 모두 지우고, 저장소(서버)의 자료를 병합 없이 그대로 다시 받습니다. 동기화 주소·토큰·자동 갱신 설정은 그대로 남습니다.</p>'+
+    '<button class="btn danger" type="button" id="syncHardReload" title="이 기기 자료를 버리고 저장소 자료로 덮어쓰기">서버 데이터로 다시 받기</button>'+
+  '</div>'+
   '<details class="sync-help"><summary>GitHub 비공개 저장소로 쓰는 방법</summary><ol>'+
     '<li>GitHub에서 <b>Private</b> 저장소(예: <code>card-budget-data</code>)를 만들고, 그 안 <code>data/2026-11.json</code>, <code>data/2026-12.json</code> 처럼 JSON을 둡니다.</li>'+
     '<li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> 에서 새 토큰을 만들고, Repository access는 그 저장소만, Permissions → Contents: <b>Read and write</b> 로 저장합니다. (읽기만 하려면 Read-only — 이 떈 이 기기에만 저장됩니다)</li>'+
@@ -6911,6 +7005,10 @@ function bindSyncTab(){
   $('#syncNow').addEventListener('click', async ()=>{
     readForm(); saveSyncConfig(); scheduleSyncTimer();
     await runSync(false);
+  });
+  $('#syncHardReload').addEventListener('click', async ()=>{
+    readForm(); saveSyncConfig();
+    await hardReloadFromServer();
   });
   $('#syncCancel').addEventListener('click', closeModal);
 }
@@ -10365,6 +10463,16 @@ function applyBankPayload(p){
   }
   if (p.settlement && (!doc.settlement || remoteAt > localAt)) doc.settlement = p.settlement;
   if (typeof p.cardLink === 'boolean' && (!doc.cardLink || remoteAt > localAt)) doc.cardLink = p.cardLink;
+  /* 서버 기준 자동 정리 (2026-11-25) — 이 달에 이 기기에서 아직 못 올린 편집이 없으면,
+     서버 파일에 없는 이 기기 은행 줄(옛 중복·(정산 조정) 유령 줄)을 지워 서버와 1원까지 맞춥니다.
+     · 올리지 못한 달(OUTBOX 대기)은 병합만해 방금한 편집을 지키고,
+     · 방금 캡처한 줄(src='capture')은 서버에 아직 없어도 살립니다. */
+  if (Array.isArray(p.rows) && monthAutoPrune(month)){
+    const before = doc.rows.length;
+    doc.rows = doc.rows.filter(r=> used.has(r) || r.src === 'capture');
+    const gone = before - doc.rows.length;
+    if (gone){ BANK_PRUNE_N += gone; changed += gone; }
+  }
   if (remoteAt > localAt) doc.updatedAt = p.updatedAt;
   if (migrateBankNames(doc)) changed++;      /* 원격에 남은 옛 이름을 이월금으로 */
   if (changed){ bankSave(); }
