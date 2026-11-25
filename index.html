@@ -1062,6 +1062,52 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .bsum .bs .x{font-size:10px;white-space:normal;line-height:1.3;overflow:visible}
 }
 
+/* --- 전체 요약: 예산·실행 두 개의 둥근 카드 (2026-11-25 요청) ---
+   계좌별 잔액 박스와 같은 둥근 모서리 카드로, 라벨 ↔ 큰 금액 ↔ 예산 대비 차이 사이를 넉넉히 띄웁니다. */
+.ksum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.ksum .kbox{border:1px solid #e2e8f2;border-radius:16px;background:#fff;padding:15px 18px 17px;
+  display:flex;flex-direction:column;gap:15px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+.ksum .kbox.bud{background:linear-gradient(180deg,#f6f9fe 0%,#fff 58%)}
+.ksum .kbox.act{background:linear-gradient(180deg,#f7fbf9 0%,#fff 58%)}
+.ksum .kbox-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:11px;border-bottom:1px dashed #e2e8f2;margin-bottom:1px}
+.ksum .bdg{font-size:12px;font-weight:800;letter-spacing:-.01em;border-radius:8px;padding:4px 10px;line-height:1.15;white-space:nowrap}
+.ksum .bdg.b{background:#e6eefc;color:#1d4ed8}
+.ksum .bdg.a{background:#e4f5ec;color:#0f7a42}
+.ksum .kbox-sub{font-size:11.5px;font-weight:650;color:#5b6473;letter-spacing:-.01em}
+.ksum .krow{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ksum .krow .k{font-size:12px;font-weight:700;color:#5b6473;letter-spacing:-.01em}
+.ksum .krow .v{font-size:24px;font-weight:780;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ksum .krow .v small{font-size:12.5px;font-weight:700;color:#475467;margin-left:1px;letter-spacing:0}
+.ksum .krow.in .v{color:#0f7a42}
+.ksum .krow.out .v{color:#1f2937}
+.ksum .krow.bal .v{color:#1d4ed8}
+.ksum .krow .d{font-size:12px;font-weight:750;color:#38445a;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:1px;word-break:keep-all}
+.ksum .krow .x{font-size:11px;font-weight:600;color:#667085}
+.ksum-note{font-size:11.5px;color:#475467;line-height:1.6;margin-top:11px;font-weight:600;word-break:keep-all}
+@media (max-width:560px){
+  .ksum{grid-template-columns:1fr;gap:13px}
+  .ksum .kbox{padding:14px 15px 15px;gap:13px;border-radius:14px}
+  .ksum .krow .v{font-size:22px}
+  .ksum .krow .v small{font-size:12px}
+  .ksum .krow .d{font-size:11.8px}
+  .ksum-note{font-size:11px;line-height:1.55}
+}
+
+/* --- 현금 상세내역 날짜 정렬 토글 (2026-11-25 요청) --- */
+#bankDetailCard .detail-search{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#bankDetailCard .detail-search .searchwrap{flex:1 1 200px;min-width:0}
+.sortseg{display:inline-flex;flex:none;background:#eef1f6;border-radius:11px;padding:2px;gap:2px}
+.sortseg button{border:0;background:transparent;border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:750;
+  color:#5b6473;cursor:pointer;white-space:nowrap;line-height:1.2;transition:.14s;min-height:30px}
+.sortseg button:hover{color:var(--ink)}
+.sortseg button.on{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px rgba(16,24,40,.16)}
+th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
+@media (max-width:560px){
+  #bankDetailCard .detail-search .searchwrap{flex:1 1 100%}
+  .sortseg{flex:1 1 100%}
+  .sortseg button{flex:1 1 0;min-height:34px;font-size:12.5px}
+}
+
 /* --- 계좌별 정산 요약 표 --- */
 .bacc{padding:2px 16px 14px}
 .bacc + .bacc{border-top:1px solid var(--line2);padding-top:12px}
@@ -1763,6 +1809,10 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
         <span class="ico">🔍</span>
         <input id="bankSearch" type="search" placeholder="항목 · 내용 · 메모 검색" autocomplete="off" aria-label="항목 · 내용 · 메모 검색">
       </div>
+      <div class="sortseg" id="bankSortSeg" role="group" aria-label="날짜 정렬">
+        <button type="button" data-bsortbtn="desc" title="최신 날짜가 위로">날짜 ↓ 최신</button>
+        <button type="button" data-bsortbtn="asc" title="오래된 날짜가 위로">날짜 ↑ 오래된</button>
+      </div>
     </div>
     <div class="detail-filters" id="bankFilters">
       <div class="chips" id="bankAccChips2"></div>
@@ -1783,7 +1833,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
         <thead>
           <tr>
             <th class="sel" aria-label="선택"></th>
-            <th class="bdate">날짜</th>
+            <th class="bdate sortable" data-bsort="date" title="눌러셔 날짜 정렬 바꾸기 (최신순 ↓ ↔ 오래된순 ↑)">날짜 <span class="sarr" id="bankSortArr">↓</span></th>
             <th class="bacc">분류</th>
             <th>내용 · 메모</th>
             <th class="num">금액</th>
@@ -7871,7 +7921,7 @@ const SETTLE_CARD_ROWS = [
   {key: '기타', label: '기타', cats: ['기타']}
 ];
 const BANK_KEY = LS_KEY + '.bank';
-const BANK_EMPTY = () => ({v: 1, months: {}, moveNames: {}, moveNamesAt: '', ui: {account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}});
+const BANK_EMPTY = () => ({v: 1, months: {}, moveNames: {}, moveNamesAt: '', ui: {account: '', dir: '', q: '', sumMode: '', series: null, syear: '', sort: 'desc'}});
 let BANK = BANK_EMPTY();
 let VIEW = 'card';                                  /* card | bank | settle */
 let scEdit = null;                                  /* 정산 요약 편집 {acc,item,field:'name'|'bud'|'act'|'new',dir} */
@@ -7891,7 +7941,7 @@ function bankLoad(){
     const raw = localStorage.getItem(BANK_KEY);
     if (raw){
       const p = JSON.parse(raw);
-      if (p && p.ui && typeof p.ui === 'object') BANK.ui = Object.assign({account: '', dir: '', q: '', sumMode: '', series: null, syear: ''}, p.ui);
+      if (p && p.ui && typeof p.ui === 'object') BANK.ui = Object.assign({account: '', dir: '', q: '', sumMode: '', series: null, syear: '', sort: 'desc'}, p.ui);
       /* 모으기 이체 2행의 바꾼 이름 — 계좌별 fill(채우기)·take(꺼내기). 옛 공통 형식은 두 계좌로 펼칩니다 */
       if (p && p.moveNames && typeof p.moveNames === 'object' && !Array.isArray(p.moveNames)){
         const mp = bankMoveNamesParse(p.moveNames, p.moveNamesAt);
@@ -8558,22 +8608,40 @@ function renderBankSummary(){
   const w = Math.max(0, Math.min(100, rate));
   const inX = fmt(inN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
   const outX = fmt(outN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
-  const line = (cls, lb, v)=> '<div class="ln ' + cls + '"><span class="lb">' + lb + '</span><span class="v">' + v + '<small>원</small></span></div>';
+  const cntX = '수입 ' + fmt(inN) + '건 · 지출 ' + fmt(outN) + '건' + (exLabel ? ' (' + exLabel + ' 제외)' : '');
+  /* 예산·실행 두 박스의 총 잔액 (2026-11-25 요청)
+     · 실행 잔액 = 계좌별 잔액 그대로(우리은행 + 토스 입출금 + 토스 모으기 3계좌 합) — 기존 '현재 총 잔액'
+     · 예산 잔액 = 실행 잔액에 예산과 실행의 수입·지출 차이를 되돌린 값 (예산대로였다면 남았을 돈)
+     → 세 가지 '예산 대비 차이'(수입·지출·잔액)가 서로 맞아떨어집니다. */
+  const execBal = bal;
+  const budBal = execBal + (budInc - act.inc) - (budExp - act.exp);
+  const dInc = act.inc - budInc, dExp = act.exp - budExp, dBal = execBal - budBal;
+  const won = (v, plus)=> (v < 0 ? '−' : (plus && v > 0 ? '+' : '')) + fmt(Math.abs(v)) + '<small>원</small>';
+  const diffTxt = (v)=> '예산 대비 ' + (v === 0 ? '0원' : (v > 0 ? '+' : '−') + fmt(Math.abs(v)) + '원');
+  const krow = (cls, label, val, diff, note, tip)=> '<div class="krow ' + cls + '">' +
+      '<span class="k">' + label + '</span>' +
+      '<span class="v">' + val + '</span>' +
+      (diff != null ? '<span class="d" title="' + esc(tip || '실행 − 예산') + '">' + diff + '</span>' : '') +
+      (note ? '<span class="x">' + note + '</span>' : '') +
+    '</div>';
   el.innerHTML =
-    '<div class="bsum">' +
-      '<div class="bs in"><span class="k">총 수입</span>' +
-        line('bud', '예산', (budInc ? '+' : '') + fmt(budInc)) +
-        line('act', '실행', (act.inc ? '+' : '') + fmt(act.inc)) +
-        '<span class="x">' + inX + '</span></div>' +
-      '<div class="bs out"><span class="k">총 지출</span>' +
-        line('bud', '예산', (budExp ? '−' : '') + fmt(budExp)) +
-        line('act', '실행', (act.exp ? '−' : '') + fmt(act.exp)) +
-        '<span class="x">' + outX + '</span></div>' +
-      '<div class="bs bal"><span class="k">' + (yMode ? (isYearSel(F.month) ? '연말 잔액' : '최근 잔액') : '현재 총 잔액') + '</span><span class="v">' + fmt(bal) + '<small>원</small></span>' +
-        '<span class="x">우리 + 토스 입출금 + 모으기</span></div>' +
+    '<div class="ksum">' +
+      '<section class="kbox bud" aria-label="예산 기준 총 수입·총 지출·총 잔액">' +
+        '<div class="kbox-h"><span class="bdg b">예산</span><span class="kbox-sub">계획</span></div>' +
+        krow('in', '총 수입', won(budInc, true)) +
+        krow('out', '총 지출', won(-budExp)) +
+        krow('bal', '총 잔액', won(budBal), null, '3계좌 합산') +
+      '</section>' +
+      '<section class="kbox act" aria-label="실행 기준 총 수입·총 지출·총 잔액">' +
+        '<div class="kbox-h"><span class="bdg a">실행</span><span class="kbox-sub">실제 · 차이 = 실행 − 예산</span></div>' +
+        krow('in', '총 수입', won(act.inc, true), diffTxt(dInc), null, '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −') +
+        krow('out', '총 지출', won(-act.exp), diffTxt(dExp), null, '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −') +
+        krow('bal', '총 잔액', won(execBal), diffTxt(dBal), '3계좌 합산', '잔액: 예산보다 많이 남은 만큼 +, 적게 남은 만큼 −') +
+      '</section>' +
     '</div>' +
-    '<div class="bsum-note"><span>예산 = 우리은행 항목 예산 + 토스 입출금 실행값</span><br>' +
-      '<span>실행 = 계좌내역 우리은행·토스 입출금 하단 수입·지출과 1원까지 같음 (이월금·모으기·계좌이동 제외)</span></div>' +
+    '<div class="ksum-note"><span>예산 = 우리은행 항목 예산 + 토스 입출금 실행값</span><br>' +
+      '<span>실행 = 계좌내역 항목 실행 합과 1원까지 같음 (이월금·모으기·계좌이동 제외) · ' + cntX + '</span><br>' +
+      '<span>총 잔액 = 우리은행 + 토스 입출금 + 토스 모으기 3계좌 합 · 예산 잔액은 실행 잔액에 예산 차이를 반영한 값</span></div>' +
     '<div class="bbar">' +
       '<div class="bar"><i class="b2" style="width:' + w.toFixed(1) + '%"></i>' +
         '<i class="b1" style="width:' + (100 - w).toFixed(1) + '%"></i></div>' +
@@ -9255,13 +9323,53 @@ function bankFilteredRows(month){
   });
 }
 function bankSortRows(rows){
+  /* 날짜 정렬 — 최신순(desc, 기본) / 오래된순(asc) / 끌어 정한 순서(manual).
+     보기 순서만 바꾸고 저장된 순서(order)는 건드리지 않습니다.
+     같은 날짜 안에서는 캡처·끌어 정한 순서(order)를 먼저 따릅니다 (카드 탭 정렬과 같은 규칙). */
+  if (BANK.ui.sort === 'manual'){
+    return rows.slice().sort((a,b)=>{
+      const oa = hasBOrder(a) ? a.order : 1e15, ob = hasBOrder(b) ? b.order : 1e15;
+      if (oa !== ob) return oa - ob;
+      const da = String(a.date || ''), db = String(b.date || '');
+      if (da !== db) return da < db ? 1 : -1;
+      return b.amount - a.amount;
+    });
+  }
+  const dir = BANK.ui.sort === 'asc' ? 1 : -1;
   return rows.slice().sort((a,b)=>{
-    const oa = hasBOrder(a) ? a.order : 1e15, ob = hasBOrder(b) ? b.order : 1e15;
-    if (oa !== ob) return oa - ob;
+    /* 이월금 자동 줄은 방향과 상관없이 맨 위 고정 */
+    if (!!a.carry !== !!b.carry) return a.carry ? -1 : 1;
     const da = String(a.date || ''), db = String(b.date || '');
-    if (da !== db) return da < db ? 1 : -1;
-    return b.amount - a.amount;
+    /* 날짜 없는 요약 줄(월급·N빵 정산 등)은 맨 아래로 — 이전 화면과 같은 자리 */
+    if (!da && db) return 1;
+    if (da && !db) return -1;
+    if (da !== db) return (da < db ? -1 : 1) * dir;
+    const oa = hasBOrder(a) ? a.order : null, ob = hasBOrder(b) ? b.order : null;
+    if (oa !== null || ob !== null){
+      if (oa === null) return 1;
+      if (ob === null) return -1;
+      if (oa !== ob) return oa - ob;
+      return 0;
+    }
+    return (b.amount - a.amount) * dir;
   });
+}
+/* 날짜 정렬 상태를 화면(표 머리 화살표 · 토글)에 반영 */
+function renderBankSortUi(){
+  const asc = BANK.ui.sort === 'asc';
+  const manual = BANK.ui.sort === 'manual';
+  const arr = $('#bankSortArr'); if (arr) arr.textContent = manual ? '↕' : (asc ? '↑' : '↓');
+  $$('#bankSortSeg button').forEach(b=>{
+    const on = !manual && (b.dataset.bsortbtn === 'asc') === asc;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function setBankSort(dir){
+  BANK.ui.sort = dir === 'asc' ? 'asc' : 'desc';
+  bankSave();
+  renderBankSortUi();
+  renderBankDetail();
 }
 function bankAccChipsHtml(){
   return '<span class="lbl">계좌</span>' +
@@ -9419,6 +9527,7 @@ function renderBankDetail(){
   if (c3) c3.innerHTML = bankDirChipsHtml();
   const c4 = $('#bankHlChips');
   if (c4) c4.innerHTML = hlChipsHtml('bank');
+  renderBankSortUi();
   const tbody = $('#btbody'); if (!tbody) return;
   const rows = bankSortRows(yMode
     ? bankSelMonths().reduce((a, m)=> a.concat(bankFilteredRows(m).filter(r=> !r.carry)), [])
@@ -9481,6 +9590,7 @@ function renderBankDetail(){
     if (BANK.ui.account) bits.push(BANK.ui.account);
     if (BANK.ui.dir) bits.push(BANK.ui.dir === 'in' ? '수입' : '지출');
     if (BANK.ui.q) bits.push('검색 ' + BANK.ui.q);
+    bits.push(BANK.ui.sort === 'asc' ? '날짜 ↑ 오래된순' : (BANK.ui.sort === 'manual' ? '끌어 정한 순서' : '날짜 ↓ 최신순'));
     hint.textContent = bits.join(' · ');
   }
   const foot = $('#bankTableFoot');
@@ -10531,6 +10641,16 @@ $('#bankDirChips').addEventListener('click', ev=>{
   BANK.ui.dir = b.dataset.bdir || '';
   renderBankDetail();
 });
+/* 날짜 정렬 — 필터 줄 토글 · 표 머리 '날짜' 칸 (2026-11-25) */
+$('#bankSortSeg').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-bsortbtn]'); if (!b) return;
+  if (b.dataset.bsortbtn === (BANK.ui.sort === 'asc' ? 'asc' : 'desc')) return;   /* 같은 방향을 다시 누르면 그대로 */
+  setBankSort(b.dataset.bsortbtn);
+});
+$('#bankTable').addEventListener('click', ev=>{
+  const th = ev.target.closest('th[data-bsort]'); if (!th) return;
+  setBankSort(BANK.ui.sort === 'asc' ? 'desc' : 'asc');
+});
 $('#bankSearch').addEventListener('input', ev=>{
   BANK.ui.q = ev.target.value;
   renderBankDetail();
@@ -10847,6 +10967,7 @@ function endBankGrip(){
     if (r){ r.order = (k + 1) * 10; r.orderAt = t; }
   });
   d.updatedAt = nowIso();
+  BANK.ui.sort = 'manual';       /* 끌어 정한 순서로 보기 — 위의 날짜 토글로 다시 날짜순 */
   bankSave(); renderAll(); markBankDirty(g.month);
   toast('순서를 바꿨습니다 · 다른 기기에도 같은 순서로 남습니다');
 }
