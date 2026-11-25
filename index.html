@@ -1064,7 +1064,7 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 
 /* --- 전체 요약: 예산·실행 두 개의 둥근 카드 (2026-11-25 요청) ---
    계좌별 잔액 박스와 같은 둥근 모서리 카드로, 라벨 ↔ 큰 금액 ↔ 예산 대비 차이 사이를 넉넉히 띄웁니다. */
-.ksum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.ksum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 .ksum .kbox{border:1px solid #e2e8f2;border-radius:16px;background:#fff;padding:15px 18px 17px;
   display:flex;flex-direction:column;gap:15px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.05)}
 .ksum .kbox.bud{background:linear-gradient(180deg,#f6f9fe 0%,#fff 58%)}
@@ -8608,7 +8608,7 @@ function renderBankSummary(){
   const w = Math.max(0, Math.min(100, rate));
   const inX = fmt(inN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
   const outX = fmt(outN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
-  const cntX = '수입 ' + fmt(inN) + '건 · 지출 ' + fmt(outN) + '건' + (exLabel ? ' (' + exLabel + ' 제외)' : '');
+  const cntX = '수입 ' + fmt(inN) + '건 · 지출 ' + fmt(outN) + '건' + (exLabel ? ' (이월금·' + exLabel + ' 제외)' : '');
   /* 예산·실행 두 박스의 총 잔액 (2026-11-25 요청)
      · 실행 잔액 = 계좌별 잔액 그대로(우리은행 + 토스 입출금 + 토스 모으기 3계좌 합) — 기존 '현재 총 잔액'
      · 예산 잔액 = 실행 잔액에 예산과 실행의 수입·지출 차이를 되돌린 값 (예산대로였다면 남았을 돈)
@@ -8640,7 +8640,7 @@ function renderBankSummary(){
       '</section>' +
     '</div>' +
     '<div class="ksum-note"><span>예산 = 우리은행 항목 예산 + 토스 입출금 실행값</span><br>' +
-      '<span>실행 = 계좌내역 항목 실행 합과 1원까지 같음 (이월금·모으기·계좌이동 제외) · ' + cntX + '</span><br>' +
+      '<span>실행 = 계좌내역 항목 실행 합과 1원까지 같음 · ' + cntX + '</span><br>' +
       '<span>총 잔액 = 우리은행 + 토스 입출금 + 토스 모으기 3계좌 합 · 예산 잔액은 실행 잔액에 예산 차이를 반영한 값</span></div>' +
     '<div class="bbar">' +
       '<div class="bar"><i class="b2" style="width:' + w.toFixed(1) + '%"></i>' +
