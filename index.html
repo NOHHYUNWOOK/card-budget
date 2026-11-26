@@ -1177,6 +1177,11 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .ksum .krow .v{font-size:24px;font-weight:780;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 .ksum .krow .v small{font-size:12.5px;font-weight:700;color:#475467;margin-left:1px;letter-spacing:0}
 .ksum .krow .d{font-size:12px;font-weight:750;color:#38445a;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:1px;word-break:keep-all}
+/* 금액 색 — 총 수입 초록 · 총 지출 빨강 · 수입−지출 양수 파랑/음수 빨강 (2026-11-26 저녁 요청) */
+.ksum .krow .v.vin{color:#0f7a42}
+.ksum .krow .v.vout{color:#d92d20}
+.ksum .krow .v.vpos{color:#1d4ed8}
+.ksum .krow .v.vneg{color:#d92d20}
 /* 비교 문구 색 — +(파랑) −(빨강) 0·자료없음 기본색 (2026-11-26) */
 .ksum .krow .d.up{color:#1d4ed8}
 .ksum .krow .d.down{color:#d92d20}
@@ -10255,20 +10260,22 @@ function renderBankSummary(){
   const diffTxt = (v)=> '예산 대비 ' + (v === 0 ? '0원' : (v > 0 ? '+' : '−') + fmt(Math.abs(v)) + '원');
   /* 비교 문구 색 — +(많이) 파랑 · −(적게) 빨강 · 0·자료없음 기본색 (2026-11-26) */
   const dCls = v => v == null ? ' none' : (v > 0 ? ' up' : (v < 0 ? ' down' : ''));
-  const krow = (cls, label, val, diff, tip)=> '<div class="krow ' + cls + '">' +
+  const krow = (cls, label, val, diff, tip, vcls)=> '<div class="krow ' + cls + '">' +
       '<span class="k">' + label + '</span>' +
-      '<span class="v">' + val + '</span>' +
+      '<span class="v' + (vcls ? ' ' + vcls : '') + '">' + val + '</span>' +
       (diff != null ? '<span class="d' + (diff.cls || '') + '" title="' + esc(tip || '실행 − 예산') + '">' + diff.txt + '</span>' : '') +
     '</div>';
   /* 실행 박스 하나 — 총 수입 · 총 지출 · 수입−지출 · 총 계좌잔액 네 칸 (2026-11-26)
-     금액은 모두 검정, 아래 비교 문구만 +(파랑) −(빨강)으로 색을 줍니다. */
+     금액 색(2026-11-26 저녁): 총 수입 초록, 총 지출 빨강, 수입−지출은 양수 파랑·음수 빨강·0 검정.
+     총 계좌잔액 금액은 검정 그대로 두고, 아래 비교 문구만 +(파랑) −(빨강)으로 색을 줍니다. */
+  const netCls = netAct > 0 ? 'vpos' : (netAct < 0 ? 'vneg' : '');
   el.innerHTML =
     '<div class="ksum">' +
       '<section class="kbox act" aria-label="실행 기준 총 수입·총 지출·수입−지출·총 계좌잔액">' +
         '<div class="krows">' +
-          krow('in', '총 수입', won(act.inc, true), {txt: diffTxt(dInc), cls: dCls(dInc)}, '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −') +
-          krow('out', '총 지출', won(-act.exp), {txt: diffTxt(dExp), cls: dCls(dExp)}, '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −') +
-          krow('net', '수입 - 지출', won(netAct, true), {txt: diffTxt(dNet), cls: dCls(dNet)}, '(수입−지출) 실행 − (수입−지출) 예산') +
+          krow('in', '총 수입', won(act.inc, true), {txt: diffTxt(dInc), cls: dCls(dInc)}, '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −', 'vin') +
+          krow('out', '총 지출', won(-act.exp), {txt: diffTxt(dExp), cls: dCls(dExp)}, '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −', 'vout') +
+          krow('net', '수입 - 지출', won(netAct, true), {txt: diffTxt(dNet), cls: dCls(dNet)}, '(수입−지출) 실행 − (수입−지출) 예산', netCls) +
           krow('bal', '총 계좌잔액', won(execBal),
             {txt: dPrev == null ? '전월 데이터 없음' : ('전월 대비 ' + (dPrev === 0 ? '0원' : (dPrev > 0 ? '+' : '−') + fmt(Math.abs(dPrev)) + '원')),
              cls: dCls(dPrev)}, '전월 총 계좌잔액 대비 증감') +
