@@ -5203,6 +5203,12 @@ function lockLoad(){
     }
   } catch(e){}
   if (LOCK.on && !LOCK.hash) LOCK.on = false;   /* PIN 해시가 없으면 잠글 수 없습니다 */
+  /* 구버전에서 켠 잠금은 시각(updatedAt)이 비어 있을 수 있습니다 — 그대로 두면 settings.json 으로
+     한 번도 올라가지 않아 다른 기기가 잠기지 않습니다. PIN 을 정한 시각(없으면 지금)으로 채워 둡니다 (2026-11-26) */
+  if (LOCK.on && LOCK.hash && !LOCK.updatedAt){
+    LOCK.updatedAt = LOCK.pinAt || nowIso();
+    lockSave(false);
+  }
 }
 function lockSave(touch){
   if (touch !== false) LOCK.updatedAt = nowIso();   /* 동기화로 받은 설정은 시각을 그대로 둡니다 */
@@ -7120,8 +7126,9 @@ function settingsSnapshot(remoteJson){
                 hlPresets:HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
                 hlRetired:Object.assign({}, HL.retired),
                 updatedAt: OUTBOX.settingsAt || nowIso()};
-  /* 화면 잠금 — 이 기기에 설정 기록이 있을 때만 싣고, 없으면 원격 값을 그대로 보존합니다 (2026-11-26) */
-  if (LOCK.updatedAt){
+  /* 화면 잠금 — 이 기기에 설정 기록이 있거나 켜 둔 잠금(PIN 해시)이 있으면 싣고, 없으면 원격 값을 그대로 보존합니다 (2026-11-26) */
+  if (LOCK.updatedAt || (LOCK.on && LOCK.hash)){
+    if (LOCK.on && LOCK.hash && !LOCK.updatedAt) LOCK.updatedAt = LOCK.pinAt || nowIso();  /* 구버전 잠금 시각 보정 */
     snap.lockEnabled = !!LOCK.on; snap.lockPinHash = LOCK.hash || '';
     snap.lockSalt = LOCK.salt || ''; snap.lockUpdatedAt = LOCK.updatedAt || '';
   } else if (remoteJson && remoteJson.lockUpdatedAt){
@@ -7153,10 +7160,21 @@ async function pushSettings(){
 /* 원격 settings.json 이 더 최신이면 이 기기에 반영합니다 */
 function applyRemoteSettings(p){
   if (!p || typeof p !== 'object' || Array.isArray(p)) return '';
+  /* 아직 서버에 한 번도 올라가지 않은 기존 잠금 — 원격 settings.json 에 잠금 기록이 없는데 이 기기에
+     켜 둔 잠금(PIN 해시)이 있으면 시각을 채우고 올릴 대상으로 표시합니다 (2026-11-26) */
+  let lockBackfill = false;
+  if (!p.lockUpdatedAt && LOCK.on && LOCK.hash){
+    if (!LOCK.updatedAt) LOCK.updatedAt = LOCK.pinAt || nowIso();
+    lockSaveRemote();
+    lockBackfill = true;
+  }
   const remoteAt = p.updatedAt ? Date.parse(p.updatedAt) : 0;
   const localAt = OUTBOX.settingsAt ? Date.parse(OUTBOX.settingsAt) : 0;
-  if (!remoteAt) return '';
-  if (localAt && remoteAt <= localAt) return '';          /* 이 기기가 더 최신 — 올릴 차례 */
+  if (!remoteAt){ if (lockBackfill) markSettingsDirty(); return ''; }
+  if (localAt && remoteAt <= localAt){                      /* 이 기기가 더 최신 — 올릴 차례 */
+    if (lockBackfill) markSettingsDirty();
+    return '';
+  }
   let changed = 0;
   if (p.limits && typeof p.limits === 'object' && !Array.isArray(p.limits)){
     const next = Object.assign({}, LIMITS);   /* 이 기기에만 있던 값은 남기고 원격 값으로 덮어씀 */
@@ -7239,6 +7257,7 @@ function applyRemoteSettings(p){
   }
   OUTBOX.settingsAt = p.updatedAt;
   saveOutbox(); saveState();
+  if (lockBackfill) markSettingsDirty();   /* 원격에 없던 잠금을 이 기기에서 올리도록 (2026-11-26) */
   if (changed){ migrateCategoryNames(); renderAll(); }
   return changed ? 'settings' : '';
 }
