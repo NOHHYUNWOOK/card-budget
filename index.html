@@ -7852,9 +7852,15 @@ async function runSync(quiet){
     syncing = false;
     if (uploadErr){
       /* 받기는 끝났어도 올리기가 실패하면 '동기화 완료'로 숨기지 않습니다 */
-      setSyncState('err', uploadErr + ' · 받기는 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
-      updateSyncLabel('err', uploadErr);
-      if (!quiet) toast('⚠ ' + uploadErr + ' · 받기는 완료', 6500);
+      if (SYNC.readonly){
+        setSyncState('err', READONLY_MSG);
+        updateSyncLabel();      /* 상태줄은 짧게: '읽기 전용 토큰 · 이 기기에만 저장' */
+        if (!quiet) toast('⚠ ' + READONLY_MSG, 6500);
+      } else {
+        setSyncState('err', uploadErr + ' · 받기는 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
+        updateSyncLabel('err', uploadErr);
+        if (!quiet) toast('⚠ ' + uploadErr + ' · 받기는 완료', 6500);
+      }
     } else {
       setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
       if (!quiet) toast('동기화 완료 · ' + SYNC.lastMsg);
