@@ -726,6 +726,13 @@ tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:
 .syncpop-foot button{border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:800;font-size:12px;padding:7px 11px;cursor:pointer}
 .syncpop-foot button:disabled{background:#c9d3e6;cursor:default}
 .syncpop-when{margin-left:auto;color:var(--muted);font-size:11px;text-align:right}
+/* 카드 내역 직접 추가 입력 (2026-11-26) */
+.rowadd{display:flex;flex-direction:column;gap:2px}
+.rowadd .ra-row{display:flex;gap:10px}
+.rowadd .ra-row .field{flex:1 1 0;min-width:0}
+.rowadd .ra-calc{font-size:12px;color:var(--accent);font-weight:700;margin:3px 0 0}
+.rowadd .ra-calc.bad{color:var(--danger)}
+@media (max-width:480px){.rowadd .ra-row{flex-direction:column;gap:0}.rowadd .ra-row .field{flex:1 1 auto}}
 @media (max-width:480px){.syncpop{width:calc(100vw - 16px)}}
 
 /* ---------- forms ---------- */
@@ -995,7 +1002,8 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .table-card .card-head{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px}
   .table-card .card-head h2{grid-column:1;grid-row:1}
   .table-card .card-head .dtl-tools{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
-  .table-card .card-head .head-actions{grid-column:3;grid-row:1;justify-self:end}
+  .table-card .card-head .head-actions{grid-column:3;grid-row:1;justify-self:end;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+  .table-card .card-head .head-actions .btn{padding:5px 8px;font-size:12px;white-space:nowrap}
   .table-card .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0;text-align:left;line-height:1.4}
   /* 편집 모드: 행 왼쪽에 드래그 핸들 + 선택 칸, 오른쪽 위에 바로 삭제 */
   body.editmode tbody tr{grid-template-columns:auto auto auto 1fr auto;
@@ -1913,6 +1921,7 @@ html.lock-pending #lockScreen{display:flex}
       <span class="hint" id="tableHint"></span>
       <div class="head-actions">
         <button class="btn" id="btnCapture2" style="padding:5px 10px;font-size:12.5px" title="카드 사용내역 캡처 이미지로 내역 추가">📸 캡처로 추가</button>
+        <button class="btn" id="btnRowAdd" style="padding:5px 10px;font-size:12.5px" title="카드 내역을 직접 입력 (금액은 5000+1800 수식도 됩니다)">＋ 직접 추가</button>
       </div>
     </div>
     <div class="dtl-fold" id="cardFilterBox">
@@ -2168,6 +2177,21 @@ html.lock-pending #lockScreen{display:flex}
     </div>
     <div class="modal-body" id="capBody"></div>
     <div class="modal-foot" id="capFoot"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="rowAddBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rowAddTitle" style="max-width:470px">
+    <div class="modal-head">
+      <h2 id="rowAddTitle">카드 내역 직접 추가</h2>
+      <button class="iconbtn" id="rowAddClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="rowAddBody"></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="rowAddCancel">취소</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="rowAddSave">저장</button>
+    </div>
   </div>
 </div>
 
@@ -7395,7 +7419,8 @@ async function ghGetFileObj(path){
 /* 원격 파일 쓰기 — sha 를 함께 보내 덮어쓰기 사고를 막습니다. 409/422 는 conflict 로 돌려줍니다 */
 async function ghPutFileObj(path, obj, sha, message){
   const g = ghParse(); if (!g) return {ok:false, status:0, message:'저장소 주소가 없습니다'};
-  const body = {message: message || ('update ' + path), content: b64encodeUtf8(JSON.stringify(obj, null, 1))};
+  /* 들여쓰기·줄바꿈 없이 인코딩 — 전송량을 약 35% 줄여 회사 보안망의 PUT 크기 제한을 덜 타게 (2026-11-26) */
+  const body = {message: message || ('update ' + path), content: b64encodeUtf8(JSON.stringify(obj))};
   if (sha) body.sha = sha;
   const res = await fetch(ghFileUrl(g, path), {
     method:'PUT', cache:'no-store',
@@ -8848,6 +8873,134 @@ function capAddSelected(){
   const tc = document.querySelector('.table-card');
   if (tc) setTimeout(()=> tc.scrollIntoView({behavior:'smooth', block:'start'}), 120);
 }
+
+/* ------------------------------------------------------------
+   카드 내역 직접 추가 (2026-11-26)
+   · 캡처 없이 한 건을 손으로 넣습니다. 잠금과 상관없이 쓸 수 있고(캡처로 추가와 같은 자리),
+     저장하면 그 달을 동기화 대상으로 표시해 0.4초 뒤 저장소로 올라갑니다.
+   ------------------------------------------------------------ */
+let rowAddTouched = '';
+function rowAddDefaultMonth(){
+  return isMonthSel(F.month) ? F.month : String(AUTO_MONTH || todayStr().slice(0, 7));
+}
+function rowAddMonthList(defMonth){
+  const set = new Set(monthsIn(S.rows));
+  [defMonth, String(AUTO_MONTH || ''), todayStr().slice(0,7)].forEach(m=>{ if (isMonthSel(m)) set.add(m); });
+  if (isMonthSel(defMonth)){ for (let n = -2; n <= 2; n++) set.add(ymShift(defMonth, n)); }
+  return Array.from(set).sort().reverse();
+}
+function openRowAdd(){
+  const defMonth = rowAddDefaultMonth();
+  const months = rowAddMonthList(defMonth);
+  const cats = S.categories.map(c=> c.name);
+  const defCat = cats.indexOf('생활비') >= 0 ? '생활비' : (cats[0] || '기타');
+  const cards = (typeof CARD_ORDER !== 'undefined' && CARD_ORDER.length) ? CARD_ORDER.slice() : ['삼성카드','우리카드','KB국민카드','현대카드'];
+  const cardNow = (F.cards.length === 1 && cards.indexOf(F.cards[0]) >= 0) ? F.cards[0] : cards[0];
+  rowAddTouched = '';
+  $('#rowAddBody').innerHTML =
+    '<div class="rowadd">' +
+      '<div class="ra-row">' +
+        '<div class="field"><label for="raMonth">결제월</label><select class="txt" id="raMonth">' +
+          months.map(m=>'<option value="'+esc(m)+'"'+(m===defMonth?' selected':'')+'>'+esc(monthLabel(m))+'</option>').join('') +
+        '</select></div>' +
+        '<div class="field"><label for="raDate">이용일자</label><input class="txt" type="date" id="raDate" value="'+esc(todayStr())+'"></div>' +
+      '</div>' +
+      '<div class="ra-row">' +
+        '<div class="field"><label for="raCard">카드사</label><select class="txt" id="raCard">' +
+          cards.map(c=>'<option value="'+esc(c)+'"'+(c===cardNow?' selected':'')+'>'+esc(c)+'</option>').join('') +
+        '</select></div>' +
+        '<div class="field"><label for="raCat">분류</label><select class="txt" id="raCat">' +
+          cats.map(c=>'<option value="'+esc(c)+'"'+(c===defCat?' selected':'')+'>'+esc(c)+'</option>').join('') +
+        '</select></div>' +
+      '</div>' +
+      '<div class="field"><label for="raMerchant">가맹점</label>' +
+        '<input class="txt" id="raMerchant" maxlength="60" placeholder="예: GS25 동탄서후점" autocomplete="off"></div>' +
+      '<div class="field"><label for="raAmount">금액</label>' +
+        '<input class="txt" id="raAmount" inputmode="decimal" placeholder="4,800 또는 =3000+1800" autocomplete="off">' +
+        '<p class="ra-calc" id="raCalc" hidden></p></div>' +
+      '<div class="field"><label for="raMemo">비고 (선택)</label>' +
+        '<input class="txt" id="raMemo" maxlength="80" placeholder="예: 쿠팡 · 생필품" autocomplete="off">' +
+        '<p class="tiny">품목을 적어 두면 검색과 중복 확인에 쓰입니다.</p></div>' +
+    '</div>';
+  $('#rowAddBackdrop').classList.add('show');
+  rowAddCalcHint();
+  const mEl = $('#raMerchant');
+  if (mEl) setTimeout(()=>{ try { mEl.focus(); } catch(e){} }, 60);
+}
+function closeRowAdd(){
+  const bd = $('#rowAddBackdrop'); if (bd) bd.classList.remove('show');
+  const body = $('#rowAddBody'); if (body) body.innerHTML = '';
+  rowAddTouched = '';
+}
+function rowAddCalcHint(){
+  const el = $('#raAmount'), out = $('#raCalc');
+  if (!el || !out) return;
+  const raw = String(el.value || '').trim();
+  if (!raw){ out.hidden = true; out.textContent = ''; return; }
+  const c = calcAmount(raw);
+  out.hidden = false;
+  if (!c.ok){ out.textContent = c.error; out.classList.add('bad'); return; }
+  out.classList.remove('bad');
+  out.textContent = '계산 ' + fmt(Math.round(c.value)) + '원' + (isFormulaText(raw) ? ' · ' + formulaText(raw) : '');
+}
+function rowAddSuggestCat(){
+  const mEl = $('#raMerchant'), aEl = $('#raAmount'), cEl = $('#raCat');
+  if (!mEl || !cEl) return;
+  const name = String(mEl.value || '').trim();
+  if (!name) return;
+  const c = calcAmount(aEl ? aEl.value : '');
+  const hint = autoCategory(name, c.ok ? c.value : 0, S.rules);
+  if (hint && !rowAddTouched && S.categories.some(x=> x.name === hint)) cEl.value = hint;
+}
+function saveRowAdd(){
+  const g = id=>{ const el = document.getElementById(id); return el ? el.value : ''; };
+  const month = String(g('raMonth') || '');
+  const date = toDateStr(g('raDate'));
+  const card = String(g('raCard') || '').trim() || '삼성카드';
+  const merchant = String(g('raMerchant') || '').replace(/\s+/g,' ').trim();
+  const rawAmt = String(g('raAmount') || '');
+  const memo = String(g('raMemo') || '').replace(/\s+/g,' ').trim().slice(0, 80);
+  const cat = String(g('raCat') || '') || '생활비';
+  const go = id=>{ const el = document.getElementById(id); if (el){ try { el.focus(); } catch(e){} } };
+  if (!isMonthSel(month)){ toast('결제월을 골라 주세요'); go('raMonth'); return; }
+  if (!date){ toast('이용일자를 넣어주세요'); go('raDate'); return; }
+  if (!merchant){ toast('가맹점 이름을 넣어주세요'); go('raMerchant'); return; }
+  const c = calcAmount(rawAmt);
+  if (!c.ok){ toast('금액: ' + c.error); go('raAmount'); return; }
+  if (!(c.value > 0)){ toast('금액은 0원보다 커야 합니다'); go('raAmount'); return; }
+  const row = {id: uid(), month: month, card: card, date: date, merchant: merchant,
+               amount: Math.round(c.value), category: cat, memo: memo, cardName: '', payType: '일시불',
+               createdAt: nowIso(), editedAt: nowIso(), excluded: false, highlight: ''};
+  const fm = isFormulaText(rawAmt) ? formulaText(rawAmt) : '';
+  if (fm) row.formula = fm;
+  if (!S.categories.some(x=> x.name === row.category)) S.categories.push({name: row.category, color:'#64748b'});
+  S.rows.push(row);
+  clearTomb(rowKey(row));            /* 예전에 같은 건을 지웠어도 일부러 다시 넣었으면 살립니다 */
+  S.mode = 'mine';
+  F.month = month; F.monthUser = true; F.date = null; $('#search').value = ''; F.q = '';
+  S.ui.limit = Math.max(S.ui.limit || 20, 20);
+  saveState();
+  closeRowAdd();
+  renderAll();
+  markDirtyMonth(month, {label: detailLine(row), action: '직접 추가'});
+  toast(monthLabel(month) + '에 ' + merchant + ' · ' + fmt(row.amount) + '원을 추가했습니다 · 다른 기기와도 맞춥니다');
+}
+$('#btnRowAdd').addEventListener('click', openRowAdd);
+$('#rowAddClose').addEventListener('click', closeRowAdd);
+$('#rowAddCancel').addEventListener('click', closeRowAdd);
+$('#rowAddSave').addEventListener('click', saveRowAdd);
+$('#rowAddBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'rowAddBackdrop') closeRowAdd(); });
+$('#rowAddBackdrop').addEventListener('keydown', ev=>{ if (ev.key === 'Escape'){ closeRowAdd(); } });
+$('#rowAddBody').addEventListener('input', ev=>{
+  if (ev.target && ev.target.id === 'raAmount') rowAddCalcHint();
+});
+$('#rowAddBody').addEventListener('change', ev=>{
+  if (ev.target && ev.target.id === 'raCat') rowAddTouched = '1';
+  if (ev.target && ev.target.id === 'raMerchant') rowAddSuggestCat();
+});
+$('#rowAddBody').addEventListener('keydown', ev=>{
+  if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT'){ ev.preventDefault(); saveRowAdd(); }
+});
 
 /* ---------- 캡처 모달 이벤트 ---------- */
 $('#btnCapture').addEventListener('click', ()=> openCapture(VIEW === 'card' ? 'card' : 'bank'));
