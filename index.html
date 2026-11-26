@@ -5363,6 +5363,8 @@ function lockMsgShow(t, ok){
   const m = $('#lockMsg'); if (!m) return;
   m.textContent = t || ''; m.classList.toggle('ok', !!ok);
 }
+let lockBioAutoTried = false;   /* 잠금 화면이 뜰 때 자동 시도는 한 번만 */
+let lockBioBusy = false;        /* 인증 창이 떠 있는 동안 중복 호출 방지 */
 function lockShowOverlay(){
   lockMsgShow('');
   const mob = lockIsMobileDevice();
@@ -5373,12 +5375,37 @@ function lockShowOverlay(){
   }
   const pin = $('#lockPin'); if (pin) pin.value = '';
   const sub = $('#lockSub');
-  if (sub) sub.textContent = LOCK.credId ? '가계부를 열려면 생체인증이나 PIN이 필요합니다'
+  if (sub) sub.textContent = LOCK.credId ? '지문으로 열거나 화면을 탭하세요 (PIN 입력 가능)'
                                          : '이 기기에는 생체인증이 등록되지 않았습니다 — PIN을 넣어 주세요';
   document.documentElement.classList.add('lock-pending');
+  /* 생체인증이 등록된 기기는 잠금 화면이 뜨자마자 한 번 자동으로 지문·Windows Hello 를 시도합니다 (2026-11-26).
+     브라우저가 사용자 조작 없는 인증을 막으면(NotAllowedError) 빨간 문구 없이 조용히 넘어가고, 화면을 탭하면 다시 시도합니다. */
+  if (LOCK.credId && !lockBioAutoTried){
+    lockBioAutoTried = true;
+    setTimeout(()=>{ try { lockBioQuiet(); } catch(e){} }, 120);
+  }
+}
+/* 지문 자동 시도·화면 탭용 — 실패해도 빨간 에러 문구 없이 일반 잠금 화면을 그대로 유지합니다 (2026-11-26) */
+async function lockBioQuiet(){
+  if (!LOCK.credId || !navigator.credentials || lockBioBusy) return false;
+  if (!document.documentElement.classList.contains('lock-pending')) return false;
+  lockBioBusy = true;
+  lockMsgShow('지문을 확인하는 중…');
+  let ok = false;
+  try { ok = await lockAuthFingerprint(); } catch(e){ ok = false; }
+  lockBioBusy = false;
+  if (ok){
+    lockMsgShow('열었습니다', true);
+    lockHideOverlay();
+    toast('잠금을 풀었습니다');
+    return true;
+  }
+  lockMsgShow('');   /* 막혔거나 취소됨 — 조용히 원래 잠금 화면으로 */
+  return false;
 }
 function lockHideOverlay(){
   document.documentElement.classList.remove('lock-pending');
+  lockBioAutoTried = false;   /* 다음에 다시 잠길 때는 자동 시도를 새로 한 번 */
   try { sessionStorage.setItem(LOCK_SESSION, '1'); } catch(e){}
 }
 function lockApply(){
@@ -5393,6 +5420,7 @@ function lockApply(){
 function lockNow(){
   if (!LOCK.on){ toast('먼저 설정 → 화면 잠금에서 잠금을 켜 주세요'); return; }
   try { sessionStorage.removeItem(LOCK_SESSION); } catch(e){}
+  lockBioAutoTried = false;   /* 직접 잠글 때도 자동 지문 시도를 한 번 (사용자 조작 직후라 브라우저가 허용) */
   lockShowOverlay();
   const i = $('#lockPin'); if (i && !LOCK.credId) i.focus();
 }
@@ -5413,8 +5441,12 @@ async function lockTryFingerprint(){
     const i = $('#lockPin'); if (i) i.focus();
     return;
   }
+  if (lockBioBusy) return;   /* 자동 시도·화면 탭으로 이미 인증 창이 떠 있으면 겹치지 않게 */
+  lockBioBusy = true;
   lockMsgShow('지문을 확인하는 중…');
-  const ok = await lockAuthFingerprint();
+  let ok = false;
+  try { ok = await lockAuthFingerprint(); } catch(e){ ok = false; }
+  lockBioBusy = false;
   if (ok){ lockMsgShow('열었습니다', true); lockHideOverlay(); toast('잠금을 풀었습니다'); }
   else lockMsgShow('지문 인증을 마치지 못했습니다 — 다시 하거나 백업 PIN을 넣어 주세요');
 }
@@ -5521,6 +5553,18 @@ function bindLockTab(){
   });
 }
 
+/* 잠금 화면 — 빈 곳(카드 바깥·카드 안 여백)을 한 번 탭하면 바로 지문·생체인증 창 (2026-11-26)
+   PIN 입력칸·열기 버튼·지문 버튼을 누를 때는 지문 호출이 겹치지 않도록 건너뜁니다. */
+(function(){
+  const sc = $('#lockScreen'); if (!sc) return;
+  sc.addEventListener('click', ev=>{
+    if (!document.documentElement.classList.contains('lock-pending')) return;
+    if (!LOCK.credId) return;
+    if (ev.target.closest('input, textarea, button, a, select, label')) return;
+    lockBioAutoTried = true;   /* 자동 시도와 겹쳐도 인증 창은 한 번만 */
+    lockBioQuiet();
+  });
+})();
 /* 잠금 화면 버튼 */
 $('#lockFpBtn').addEventListener('click', lockTryFingerprint);
 $('#lockPinBtn').addEventListener('click', lockTryPin);
