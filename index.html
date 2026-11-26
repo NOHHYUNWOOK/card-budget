@@ -695,6 +695,7 @@ tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:
 .syncbar .dot.on{background:var(--ok)}
 .syncbar .dot.err{background:var(--danger)}
 .syncbar .dot.busy{background:var(--accent);animation:pulse 1s infinite}
+.syncbar .dot.warn{background:#d98207}
 @keyframes pulse{50%{opacity:.25}}
 .syncbar b{color:var(--ink2);font-weight:700}
 .syncbar .sp{margin-left:auto}
@@ -711,6 +712,7 @@ textarea:focus,input.txt:focus{outline:none;border-color:#b9cdf7;background:#fff
 .syncstate{margin-top:10px;font-size:12.5px;padding:10px 12px;border-radius:11px;background:#f7f9fc;color:var(--ink2);line-height:1.5}
 .syncstate.ok{background:#edfaf2;color:#0f7a42}
 .syncstate.err{background:#fff5f5;color:#c0272d}
+.syncstate.warn{background:#fff8ec;color:#9a5b06}
 details.sync-help{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:14px;background:#fcfcfe}
 details.sync-help summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink2)}
 details.sync-help ol{margin:8px 0 0;padding-left:18px;font-size:12.3px;color:#4b5563;line-height:1.75}
@@ -6956,6 +6958,7 @@ function saveSyncConfig(){
   try {
     const c = Object.assign({}, SYNC);
     delete c.readonly;        /* 읽기 전용 여부는 이 화면 세션 안에서만 기억 */
+    delete c.upErr;           /* 올리기 실패 안내도 이 화면 세션 안에서만 기억 */
     localStorage.setItem(SYNC_KEY, JSON.stringify(c));
   } catch(e){}
 }
@@ -6969,13 +6972,17 @@ function updateSyncLabel(state, msg){
   const dot = $('#syncDot'), info = $('#syncInfo');
   if (!dot || !info) return;
   if (syncing && !state) return;            /* 동기화 중 문구를 덮어쓰지 않습니다 */
-  dot.className = 'dot' + (state ? ' ' + state : (SYNC.urls.length ? ' on' : ''));
+  /* 올리기 실패·읽기 전용으로 남은 변경이 있으면 점을 빨강으로 — 상태줄과 색이 따로 놀지 않게 (2026-11-26) */
+  const shown = state || (SYNC.upErr || SYNC.readonly ? 'err' : '');
+  dot.className = 'dot' + (shown ? ' ' + shown : (SYNC.urls.length ? ' on' : ''));
   let text;
   const pend = pendingCount();
   const pendTxt = pend ? ' · 올릴 변경 <b>' + pend + '건</b>' : '';
   if (state === 'busy') text = '동기화 중…';
-  else if (state === 'err') text = '동기화 실패 · ' + (msg || '주소·토큰 확인');
+  else if (state === 'err') text = /^올리기 실패/.test(String(msg || '')) ? '⚠ ' + msg : ('동기화 실패 · ' + (msg || '주소·토큰 확인'));
+  else if (state === 'warn') text = '⚠ ' + (msg || '저장소에 올리지 못했습니다');
   else if (SYNC.readonly) text = '읽기 전용 토큰 · 이 기기에만 저장';
+  else if (SYNC.upErr) text = '⚠ ' + SYNC.upErr + (SYNC.lastSync ? ' · 받기 ' + fmtDateTime(SYNC.lastSync) : '');
   else if (SYNC.lastSync) text = '마지막 동기화 <b>' + fmtDateTime(SYNC.lastSync) + '</b>' + (SYNC.lastMsg ? ' · ' + SYNC.lastMsg : '') + pendTxt;
   else if (SYNC.urls.length) text = '아직 동기화 안 됨 · 주소는 저장돼 있습니다' + pendTxt;
   else text = '자동 동기화 꺼짐';
@@ -6988,12 +6995,18 @@ function updateSyncLabel(state, msg){
   });
 }
 function setSyncState(kind, msg){
-  updateSyncLabel(kind === 'err' ? 'err' : (kind === 'busy' ? 'busy' : undefined), msg);
+  updateSyncLabel(kind === 'err' ? 'err' : (kind === 'warn' ? 'warn' : (kind === 'busy' ? 'busy' : undefined)), msg);
   const box = $('#syncState');
   if (box){
-    box.className = 'syncstate' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : '');
+    box.className = 'syncstate' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : (kind === 'warn' ? ' warn' : ''));
     box.textContent = msg || (kind === 'busy' ? '불러오는 중…' : '');
   }
+}
+function syncStateText(){
+  /* 설정 화면의 상태줄 — 올리기 실패·읽기 전용이면 그것부터 보여 줍니다 (2026-11-26) */
+  if (SYNC.readonly) return READONLY_MSG;
+  if (SYNC.upErr) return SYNC.upErr + (SYNC.lastSync ? ' · 받기는 완료(' + fmtDateTime(SYNC.lastSync) + ')' : '');
+  return SYNC.lastSync ? ('마지막 동기화 ' + fmtDateTime(SYNC.lastSync) + ' · ' + (SYNC.lastMsg || '')) : '아직 동기화한 적이 없습니다.';
 }
 function b64utf8(b64){
   const bin = atob(String(b64).replace(/\s/g,''));
@@ -7028,6 +7041,7 @@ let OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}
 let PUSHED = {};                    /* {'YYYY-MM': [rowKey…]} 마지막으로 저장소와 맞춘 시점의 키 */
 let RULES_AT = null;                /* data/rules.json 이 마지막으로 들어온 시각 — settings.json 과 비교용 */
 let outboxTimer = null, pushQueue = Promise.resolve();
+let upRetryTimer = null, upRetryN = 0;   /* 올리기 실패 뒤 스스로 다시 시도 (2026-11-26) */
 let READONLY_NOTICED = false;
 
 function nowIso(){ return new Date().toISOString(); }
@@ -7437,7 +7451,14 @@ function scheduleFlush(delay){
   clearTimeout(outboxTimer);
   outboxTimer = setTimeout(()=>{
     pushQueue = pushQueue.then(()=> flushOutbox(true), ()=> flushOutbox(true));
-  }, delay || 1300);
+  }, delay || 400);          /* 1.3초 → 0.4초: 고치면 바로 올라가게 (2026-11-26) */
+}
+/* 탭을 닫거나 앱을 전환하는 순간 — 대기 중인 변경이 있으면 기다리지 않고 바로 올립니다 (2026-11-26) */
+function flushNowIfPending(){
+  if (!SYNC.urls.length || !SYNC.token || SYNC.readonly) return;
+  if (!pendingCount()) return;
+  clearTimeout(outboxTimer); outboxTimer = null;
+  pushQueue = pushQueue.then(()=> flushOutbox(true), ()=> flushOutbox(true));
 }
 function noticeReadonly(){
   SYNC.readonly = true; saveSyncConfig();
@@ -7449,7 +7470,10 @@ function noticeReadonly(){
 async function flushOutbox(quiet){
   const g = ghParse();
   if (!g || !SYNC.token || SYNC.readonly) return {pushed:0, skipped:true};
-  if (!pendingCount()) return {pushed:0};
+  if (!pendingCount()){
+    if (SYNC.upErr){ SYNC.upErr = ''; updateSyncLabel(); }   /* 밀린 변경이 없으면 지난 실패 안내도 지웁니다 */
+    return {pushed:0};
+  }
   const stats = {pushed:0, failed:0, error:''};
   for (const month of Object.keys(OUTBOX.months || {})){
     try {
@@ -7459,7 +7483,7 @@ async function flushOutbox(quiet){
       stats.failed++;
       if (e && e.readonly){ SYNC.readonly = true; saveOutbox(); noticeReadonly(); break; }
       stats.error = e && e.message ? e.message : String(e);
-      if (!quiet) setSyncState('err', '업로드 실패: ' + stats.error);
+      if (!quiet) setSyncState('err', '올리기 실패: ' + stats.error);
       break;
     }
   }
@@ -7485,7 +7509,27 @@ async function flushOutbox(quiet){
   }
   saveOutbox();
   if (stats.pushed) SYNC.lastPush = nowIso(), saveSyncConfig();
-  if (pendingCount() && !quiet) setSyncState('err', '아직 못 올린 변경 ' + pendingCount() + '건' + (stats.error ? ' — ' + stats.error : ''));
+  /* 올리기 실패는 조용한(주기·앱 열기) 동기화에서도 상태줄에 남깁니다 (2026-11-26) */
+  if (stats.failed){
+    SYNC.upErr = '올리기 실패: ' + (stats.error || (SYNC.readonly ? '읽기 전용 토큰' : '저장소에 올리지 못했습니다')) + (pendingCount() ? ' — 못 올린 변경 ' + pendingCount() + '건' : '');
+    if (!SYNC.readonly){
+      setSyncState('err', SYNC.upErr);
+      if (!quiet) toast('⚠ ' + SYNC.upErr, 6500);
+      /* 잠시 뒤 스스로 한 번 더 올려 봅니다 — 네트워크가 잠깐 끊긴 경우 (화면당 최대 2번) (2026-11-26) */
+      if (upRetryN < 2){
+        upRetryN++;
+        clearTimeout(upRetryTimer);
+        upRetryTimer = setTimeout(()=>{
+          upRetryTimer = null;
+          if (pendingCount() && !SYNC.readonly) scheduleFlush(200);
+        }, 20000);
+      }
+    }
+  } else {
+    SYNC.upErr = ''; upRetryN = 0;
+    clearTimeout(upRetryTimer); upRetryTimer = null;
+    if (pendingCount() && !quiet) setSyncState('err', '아직 못 올린 변경 ' + pendingCount() + '건' + (stats.error ? ' — ' + stats.error : ''));
+  }
   updateSyncLabel();
   return stats;
 }
@@ -7498,6 +7542,61 @@ async function fetchSyncSource(url){
     throw e;
   }
 }
+/* ------------------------------------------------------------
+   동기화 파일 캐시 (2026-11-26)
+   · GitHub 폴더 목록에는 파일마다 sha 가 들어 있습니다. 지난번 동기화와 sha 가 같은 파일은
+     다시 내려받지 않고, 이 기기에 저장해 둔 JSON 을 그대로 씁니다.
+   · sha 가 다르거나 처음 보는 파일만 네트워크로 받습니다 — 최대 6개를 동시에 받습니다.
+   · 저장 공간이 모자라면(localStorage quota) 저장은 포기하고 이 화면을 열어 둔 동안만
+     기억합니다. 동기화 자체는 그대로 진행됩니다.
+   · 캐시가 깨졌거나 저장소 주소가 바뀌었거나 '서버 데이터로 다시 받기'를 누르면 버리고
+     전체를 새로 받습니다.
+   ------------------------------------------------------------ */
+const FSYNC_KEY = LS_KEY + '.filesync';
+const FSYNC_POOL = 6;                        /* 동시에 내려받는 파일 수 */
+let FSYNC = null;                            /* {root, files:{'2026-11.json':{sha, json}}} */
+let FSYNC_STAT = {downloaded:0, cached:0};    /* 이번 동기화에서 새로 받은/캐시로 건넌 파일 수 */
+
+function fsyncLoad(root){
+  if (FSYNC && FSYNC.root === root) return FSYNC;
+  FSYNC = {root: root, files: {}};
+  try {
+    const raw = localStorage.getItem(FSYNC_KEY);
+    if (raw){
+      const p = JSON.parse(raw);
+      if (p && p.root === root && p.files && typeof p.files === 'object') FSYNC.files = p.files;
+    }
+  } catch(e){ FSYNC.files = {}; }      /* 깨진 캐시·다른 주소의 캐시는 버리고 전체를 새로 받습니다 */
+  return FSYNC;
+}
+function fsyncSave(){
+  if (!FSYNC) return false;
+  try { localStorage.setItem(FSYNC_KEY, JSON.stringify(FSYNC)); return true; }
+  catch(e){
+    /* 용량 초과 등 — 캐시 저장은 포기하고 이 화면 안에서만 기억합니다 (동기화는 계속) */
+    try { localStorage.removeItem(FSYNC_KEY); } catch(_){}
+    return false;
+  }
+}
+function fsyncClear(){
+  FSYNC = null;
+  try { localStorage.removeItem(FSYNC_KEY); } catch(e){}
+}
+/* 작은 워커 풀 — 여러 파일을 limit 개씩 동시에 받고, 결과·오류를 받은 순서대로 돌려줍니다 */
+async function fsyncPool(items, limit, task){
+  const res = new Array(items.length), errs = new Array(items.length);
+  let next = 0;
+  const run = async ()=>{
+    for (;;){
+      const i = next++;
+      if (i >= items.length) return;
+      try { res[i] = await task(items[i], i); } catch(e){ errs[i] = e; }
+    }
+  };
+  const n = Math.max(1, Math.min(limit || 1, items.length));
+  await Promise.all(Array.from({length:n}, run));
+  return {res: res, errs: errs};
+}
 async function fetchSyncSourceRaw(url){
   const isGh = /^https:\/\/api\.github\.com\//.test(url);
   if (isGh){
@@ -7505,16 +7604,35 @@ async function fetchSyncSourceRaw(url){
     if (Array.isArray(j) && j.length && j[0] && j[0].type && j[0].path){
       const files = j.filter(x=> x.type === 'file' && /\.json$/i.test(x.name) && !/^settings\.json$/i.test(x.name));
       if (!files.length) throw new Error('폴더 안에 .json 파일이 없습니다');
-      const out = [];
-      for (const f of files){
-        try {
-          const txt = await ghFetch(f.url, SYNC.token, true);
-          out.push(JSON.parse(txt));
-        } catch(e){
-          if (!/^mileage\.json$/i.test(f.name || '')) throw e;   /* 마일리지 파일은 없거나 깨져도 넘어갑니다 */
+      const g = ghParse();
+      const root = g ? (g.owner + '/' + g.repo + '/' + (g.dir || '')) : String(url);
+      const cache = fsyncLoad(root);
+      const got = {};                 /* 파일명 → JSON */
+      const todo = [];                /* 새로 받을 파일 */
+      files.forEach(f=>{
+        const ent = f.sha ? cache.files[f.name] : null;
+        if (ent && ent.sha === f.sha && ent.json !== undefined){ got[f.name] = ent.json; FSYNC_STAT.cached++; }
+        else todo.push(f);
+      });
+      if (todo.length){
+        const {res, errs} = await fsyncPool(todo, FSYNC_POOL, async (f)=> JSON.parse(await ghFetch(f.url, SYNC.token, true)));
+        for (let i = 0; i < todo.length; i++){
+          const f = todo[i];
+          if (errs[i]){
+            /* 마일리지 파일은 없거나 깨졌도 넘어갑니다 */
+            if (!/^mileage\.json$/i.test(f.name || '')) throw errs[i];
+            continue;
+          }
+          got[f.name] = res[i];
+          cache.files[f.name] = {sha: f.sha || '', json: res[i]};
+          FSYNC_STAT.downloaded++;
         }
+        fsyncSave();
       }
-      return out;
+      /* 저장소에서 사라진 파일은 캐시에서도 지웁니다 */
+      const names = new Set(files.map(f=> f.name));
+      Object.keys(cache.files).forEach(n=>{ if (!names.has(n)) delete cache.files[n]; });
+      return files.map(f=> got[f.name]).filter(v=> v !== undefined);
     }
     if (j && j.content && j.encoding === 'base64') return [JSON.parse(b64utf8(j.content))];
     return [Array.isArray(j) ? {rows:j} : j];
@@ -7671,12 +7789,15 @@ async function runSync(quiet){
   }
   if (syncing) return;
   syncing = true;
-  setSyncState('busy', '동기화 중… (캐시 무시하고 새로 받는 중)');
+  setSyncState('busy', '동기화 중…');
   let pushed = 0;
   try {
     /* 1) 먼저 원격을 받아 병합합니다 — 이 기기의 옛 상태를 먼저 올려 다른 기기의 삭제·편집을
        덮어쓰는 일을 막습니다. 올리기는 병합 뒤에 합니다 (2026-11-25) */
     const g = ghParse();
+    FSYNC_STAT = {downloaded:0, cached:0};
+    /* settings.json 은 폴더 목록·파일과 동시에 요청을 보내 기다리는 시간을 겹칩니다 (2026-11-26) */
+    const setP = (g && SYNC.token) ? ghGetFileObj(settingsPath(g)).catch(()=> null) : null;
     let payloads = [];
     for (const u of SYNC.urls) payloads = payloads.concat(await fetchSyncSource(u));
     const stats = {added:0, updated:0, pruned:0};
@@ -7688,15 +7809,18 @@ async function runSync(quiet){
     });
     payloads.forEach(p=> mileageApply(p));
     seedCarryBudgetDefault();   /* 다른 기기 자료에 빠져 있으면 첫 달 이월금 예산을 채웁니다 */
-    /* 2) settings.json — 더 최신 쪽 채택 (한도·목표·분류·규칙) */
+    /* 2) settings.json — 위에서 함께 요청해 둔 결과를 이 자리에서 반영합니다 (더 최신 쪽 채택) */
     let setApplied = '';
-    if (g && SYNC.token){
-      try { const st = await ghGetFileObj(settingsPath(g)); if (st && st.json) setApplied = applyRemoteSettings(st.json); }
+    if (setP){
+      try { const st = await setP; if (st && st.json) setApplied = applyRemoteSettings(st.json); }
       catch(e){ /* settings.json 이 없거나 못 읽어도 동기화는 계속합니다 */ }
     }
     /* 3) 병합이 끝난 이 기기 상태를 올립니다 — 아직 못 올린 편집과 새로 받은 내용이 함께 저장되게 */
+    let uploadErr = '';
     if (g && SYNC.token){
-      try { const r = await flushOutbox(true); pushed = (r && r.pushed) || 0; } catch(e){}
+      try { const r = await flushOutbox(true); pushed = (r && r.pushed) || 0; }
+      catch(e){ SYNC.upErr = '올리기 실패: ' + ((e && e.message) || String(e)); }
+      uploadErr = SYNC.upErr || '';      /* 올리지 못한 변경이 있으면 '동기화 완료'로 숨기지 않습니다 (2026-11-26) */
     }
     /* 4) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
     monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));
@@ -7721,11 +7845,19 @@ async function runSync(quiet){
     if (catchup){ saveOutbox(); scheduleFlush(1500); }
     SYNC.lastSync = nowIso();
     const pruned = (stats.pruned || 0) + BANK_PRUNE_N;
-    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + payloads.length + '개 파일 · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (stats.removed ? ' · 삭제 ' + stats.removed + '건' : '') + (pruned ? ' · 정리 ' + pruned + '건' : '') + (setApplied ? ' · 설정 반영' : '');
+    const fileTxt = payloads.length + '개 파일' + (FSYNC_STAT.downloaded ? ' (새로 ' + FSYNC_STAT.downloaded + ' · 캐시 ' + FSYNC_STAT.cached + ')' : ' · 모두 최신');
+    SYNC.lastMsg = (pushed ? '올림 ' + pushed + '건 · ' : '') + fileTxt + ' · 새로 ' + stats.added + '건 · 갱신 ' + stats.updated + '건' + (stats.removed ? ' · 삭제 ' + stats.removed + '건' : '') + (pruned ? ' · 정리 ' + pruned + '건' : '') + (setApplied ? ' · 설정 반영' : '');
     saveSyncConfig(); saveState(); renderAll(); scheduleSyncTimer();
     syncing = false;
-    setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
-    if (!quiet) toast('동기화 완료 · ' + SYNC.lastMsg);
+    if (uploadErr){
+      /* 받기는 끝났어도 올리기가 실패하면 '동기화 완료'로 숨기지 않습니다 */
+      setSyncState('err', uploadErr + ' · 받기는 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
+      updateSyncLabel('err', uploadErr);
+      if (!quiet) toast('⚠ ' + uploadErr + ' · 받기는 완료', 6500);
+    } else {
+      setSyncState('ok', '동기화 완료 — ' + SYNC.lastMsg + ' (' + fmtDateTime(SYNC.lastSync) + ')');
+      if (!quiet) toast('동기화 완료 · ' + SYNC.lastMsg);
+    }
   } catch(e){
     syncing = false;
     setSyncState('err', '동기화 실패: ' + e.message);
@@ -7743,6 +7875,7 @@ async function runSync(quiet){
 async function hardReloadFromServer(){
   if (!SYNC.urls.length){ toast('설정 → 동기화에서 데이터 주소를 먼저 넣어 주세요'); return; }
   if (syncing){ toast('지금 동기화 중입니다 — 잠시 뒤 다시 눌러 주세요'); return; }
+  fsyncClear();      /* 강제 전체 동기화 — 파일 캐시를 버리고 모두 새로 받습니다 (2026-11-26) */
   const warn = '이 기기에 저장된 가계부 자료를 모두 지우고, 저장소(서버)의 자료로 다시 채웁니다.\n\n' +
     '· 이 기기에만 남은 옛 내역·중복 줄·삭제 기록이 사라집니다.\n' +
     '· 아직 서버로 올리지 못한 편집도 사라집니다.\n' +
@@ -7809,7 +7942,7 @@ function refreshNow(){
 
 /* -------- sync settings tab -------- */
 function syncTabHtml(){
-  return '<p class="sec-desc">카드 내역 JSON을 비공개 저장소에 두고, 그 주소만 저장해 두면 앱을 열 때마다 <b>캐시를 무시하고(cache: no-store)</b> 최신 자료를 받아옵니다. 여기서 추가·수정한 내역(카드 한도·목표 마일리지·분류·규칙)은 <b>자동으로 저장소에 올라가 다른 기기와 양방향으로 맞춰집니다.</b><br>'+
+  return '<p class="sec-desc">카드 내역 JSON을 비공개 저장소에 두고, 그 주소만 저장해 두면 앱을 열 때마다 최신 자료를 받아옵니다. 폴더의 <b>파일 목록(sha)을 먼저 확인</b>해 <b>바뀐 파일만</b> 다시 받고, 그대로인 파일은 이 기기에 저장해 둔 것을 써서 빨리 끝납니다(최대 6개 병렬). 여기서 추가·수정한 내역(카드 한도·목표 마일리지·분류·규칙)은 <b>고치면 바로(0.4초 뒤) 저장소에 올라가</b> 다른 기기와 양방향으로 맞춰지고, 창을 닫거나 앱을 전환할 때도 남은 변경을 올립니다.<br>'+
     '이 기기에만 남은 옛 줄·중복 줄(이미 저장소에서 지운 것)은 <b>동기화할 때 서버 자료 기준으로 자동 정리</b>됩니다 — 방금 고쳐 아직 올리지 못한 줄은 그대로 둔 뒤 올립니다.</p>'+
   '<div class="field">'+
     '<label>데이터 주소 (한 줄에 하나)</label>'+
@@ -7831,7 +7964,7 @@ function syncTabHtml(){
       '<option value="60">60분마다</option>'+
     '</select>'+
   '</div>'+
-  '<div class="syncstate" id="syncState">'+(SYNC.lastSync ? '마지막 동기화 ' + fmtDateTime(SYNC.lastSync) + ' · ' + (SYNC.lastMsg||'') : '아직 동기화한 적이 없습니다.')+'</div>'+
+  '<div class="syncstate'+(SYNC.readonly || SYNC.upErr ? ' err' : '')+'" id="syncState">'+syncStateText()+'</div>'+
   '<div class="field synchard">'+
     '<label>서버 데이터로 다시 받기</label>'+
     '<p class="tiny">이 기기에만 남은 옛 내역·중복 줄을 모두 지우고, 저장소(서버)의 자료를 병합 없이 그대로 다시 받습니다. 동기화 주소·토큰·자동 갱신 설정은 그대로 남습니다.</p>'+
@@ -12617,8 +12750,10 @@ window.addEventListener('keydown', ev=>{
   scheduleSyncTimer();
   if (SYNC.urls.length && SYNC.autoOn) runSync(true);
   document.addEventListener('visibilitychange', ()=>{
-    if (!document.hidden && SYNC.urls.length && SYNC.autoOn) runSync(true);
+    if (document.hidden){ flushNowIfPending(); return; }   /* 수정 뒤 탭을 닫거나 앱을 옮겨도 놓치지 않게 (2026-11-26) */
+    if (SYNC.urls.length && SYNC.autoOn) runSync(true);
   });
+  window.addEventListener('pagehide', flushNowIfPending);   /* 창을 닫는 순간에도 바로 올립니다 */
   if (!LS_OK) { /* storage blocked: still works in-memory */ }
   lockApply();   /* 잠금이 켜져 있으면 폰·PC 모두 잠금 화면을 유지 (2026-11-26) */
   window.__dashboardReady = true;
