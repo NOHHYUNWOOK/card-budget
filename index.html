@@ -700,6 +700,33 @@ tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:
 .syncbar b{color:var(--ink2);font-weight:700}
 .syncbar .sp{margin-left:auto}
 .syncbar button{border:0;background:transparent;color:var(--accent);font-weight:700;font-size:12px;padding:2px 4px;text-decoration:underline}
+/* 못 올린 변경 — 마우스를 올리면 상세 대화상자 (2026-11-26) */
+.sync-trigger{cursor:help;border-bottom:1px dashed rgba(229,72,77,.5);padding-bottom:1px;outline:none}
+.sync-trigger:hover,.sync-trigger:focus-visible{border-bottom-color:var(--danger);color:#b3252b}
+.syncpop{position:fixed;z-index:200;width:min(360px,calc(100vw - 20px));background:#fff;border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 16px 40px rgba(16,24,40,.22);padding:12px 13px 11px;font-size:12.4px;color:var(--ink2);
+  line-height:1.5;max-height:min(70vh,460px);overflow:auto;-webkit-overflow-scrolling:touch;text-align:left}
+.syncpop[hidden]{display:none}
+.syncpop-head{display:flex;align-items:center;gap:6px;font-size:12.8px;color:var(--ink);font-weight:800}
+.syncpop-head b{color:var(--danger)}
+.syncpop-head .x{margin-left:auto;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;padding:2px 4px;line-height:1}
+.syncpop-cause{margin-top:8px;background:#fff5f5;border:1px solid #fbdada;border-radius:10px;padding:8px 10px;color:#b3252b}
+.syncpop-cause b{display:block;font-size:12.2px;color:#c0272d;word-break:break-word}
+.syncpop-cause span{display:block;margin-top:3px;color:#7b3a3d;font-size:11.8px;line-height:1.5}
+.syncpop-note{margin-top:8px;font-size:11.8px;color:var(--muted)}
+.syncpop-list{margin:9px 0 0;display:flex;flex-direction:column;gap:6px}
+.syncpop-item{display:flex;gap:6px;align-items:flex-start;background:#f8f9fc;border-radius:9px;padding:6px 8px}
+.syncpop-k{flex:none;font-size:10.5px;font-weight:800;color:#4b5563;background:#e9edf6;border-radius:6px;padding:1px 5px;margin-top:1px;white-space:nowrap}
+.syncpop-k.cash{background:#e3f6f4;color:#0b6e63}
+.syncpop-k.set{background:#efe9fb;color:#5b3fb0}
+.syncpop-l{flex:1 1 auto;min-width:0;color:var(--ink);word-break:break-word}
+.syncpop-a{flex:none;color:var(--muted);font-size:11.3px;white-space:nowrap;max-width:44%;overflow:hidden;text-overflow:ellipsis}
+.syncpop-file{display:flex;gap:6px;color:var(--muted);font-size:11.8px;padding:1px 3px}
+.syncpop-foot{margin-top:10px;display:flex;align-items:center;gap:8px}
+.syncpop-foot button{border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:800;font-size:12px;padding:7px 11px;cursor:pointer}
+.syncpop-foot button:disabled{background:#c9d3e6;cursor:default}
+.syncpop-when{margin-left:auto;color:var(--muted);font-size:11px;text-align:right}
+@media (max-width:480px){.syncpop{width:calc(100vw - 16px)}}
 
 /* ---------- forms ---------- */
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
@@ -2074,6 +2101,7 @@ html.lock-pending #lockScreen{display:flex}
 <div id="tooltip" class="tooltip"></div>
 <div id="hlPop" class="hlpop hidden" role="dialog" aria-label="하이라이트 색 고르기"></div>
 <div id="toast" class="toast"></div>
+<div id="syncPop" class="syncpop" role="dialog" aria-label="못 올린 변경" hidden></div>
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
@@ -2756,7 +2784,7 @@ function toggleRowExcluded(id, force){
   r.excludedAt = nowIso();     /* 반영으로 되돌릴 때도 시각을 남겨 다른 기기에서 최신 값으로 적용되게 */
   saveState();
   renderAll();
-  markDirtyMonth(r.month);
+  markDirtyMonth(r.month, {label: detailLine(r), action: next ? '미반영 전환' : '결제예정 반영'});
   toast(next ? '결제예정 미반영 — 총액·한도·정산에서 뺐습니다' : '다시 결제예정에 반영했습니다');
 }
 function summarize(rows){
@@ -2882,7 +2910,7 @@ function bankCatQuickSubmit(){
   if (!d.itemDir[acc] || typeof d.itemDir[acc] !== 'object') d.itemDir[acc] = {};
   d.itemDir[acc][nm] = dir;               /* 수입·지출 방향을 함께 저장해 계좌내역·정산에서 바로 맞게 */
   d.updatedAt = nowIso();
-  bankSave(); markBankDirty(month);
+  bankSave(); markBankDirty(month, {label: acc + ' · ' + nm + ' 항목', action: '추가'});
   closeCatQuick('bank');
   renderAll();
   toast(acc + ' · "' + nm + '" 분류를 더했습니다 (' + (dir === 'in' ? '수입' : '지출') + ')');
@@ -4673,7 +4701,7 @@ function saveRowEdit(){
   rowEdit = null;
   saveState();
   renderAll();
-  markDirtyMonth(row.month);
+  markDirtyMonth(row.month, {label: detailLine(row), action: '수정'});
   toast('수정했습니다 · 합계·한도·그래프에 바로 반영되고 다른 기기와도 맞춥니다');
 }
 
@@ -4737,11 +4765,13 @@ function deleteRowsByIds(ids){
   const set = new Set(ids || []);
   if (!set.size) return 0;
   const months = new Set();
+  const gone = [];
   const before = S.rows.length;
   S.rows = S.rows.filter(r=>{
     if (!set.has(r.id)) return true;
     addTomb(rowKey(r), r.month);        /* 동기화할 때 되살아나지 않도록 삭제로 기록 */
     if (r.month) months.add(r.month);
+    gone.push(r);
     return false;
   });
   const n = before - S.rows.length;
@@ -4754,6 +4784,8 @@ function deleteRowsByIds(ids){
   saveState();
   renderAll();
   months.forEach(m=> markDirtyMonth(m));
+  gone.slice(0, OUTBOX_DETAIL_MAX).forEach(r=> noteChange('카드', r.month, detailLine(r), '삭제'));
+  if (gone.length > OUTBOX_DETAIL_MAX) noteChange('카드', gone[0].month, '내역 ' + fmt(gone.length) + '건', '삭제');
   return n;
 }
 function askDeleteSelected(){
@@ -4931,7 +4963,7 @@ function endGripDrag(ev){
   S.ui.sortKey = 'manual';
   saveState();
   renderAll();
-  markDirtyMonth(row.month);
+  markDirtyMonth(row.month, {label: detailLine(d), action: '순서 변경'});
   toast('순서를 바꿨습니다 · 다른 기기에도 같은 순서로 남습니다', 2600);
 }
 
@@ -5502,7 +5534,7 @@ function bindLockTab(){
       LOCK.hash = await lockHashPin(pin, LOCK.salt);
       LOCK.on = true; LOCK.pinAt = nowIso(); LOCK.credId = ''; LOCK.credAt = '';
       lockSave();
-      try { markSettingsDirty(); } catch(e){}     /* PIN 해시를 settings.json 으로 동기화 (2026-11-26) */
+      try { markSettingsDirty('화면 잠금'); } catch(e){}     /* PIN 해시를 settings.json 으로 동기화 (2026-11-26) */
       renderModal();
       toast('화면 잠금을 켰습니다 · 이 기기에서는 지문/Windows Hello 등록을 시도합니다');
       const ok = await lockRegisterFingerprint(true);
@@ -5528,7 +5560,7 @@ function bindLockTab(){
       LOCK.salt = lockRand(16);
       LOCK.hash = await lockHashPin(pin, LOCK.salt);
       LOCK.pinAt = nowIso(); lockSave();
-      try { markSettingsDirty(); } catch(e){}
+      try { markSettingsDirty('화면 잠금'); } catch(e){}
       renderModal();
       toast('PIN을 바꿨습니다 · 다른 기기도 같은 PIN으로 열립니다');
       return;
@@ -5540,7 +5572,7 @@ function bindLockTab(){
       if (h !== LOCK.hash){ toast('PIN이 맞지 않습니다'); return; }
       LOCK.on = false; LOCK.hash = ''; LOCK.salt = ''; LOCK.credId = ''; LOCK.credAt = ''; LOCK.pinAt = '';
       lockSave();
-      try { markSettingsDirty(); } catch(e){}
+      try { markSettingsDirty('화면 잠금'); } catch(e){}
       try { sessionStorage.setItem(LOCK_SESSION, '1'); } catch(e){}
       document.documentElement.classList.remove('lock-pending');
       renderModal();
@@ -5582,7 +5614,7 @@ $('#limitGrid').addEventListener('click', ev=>{
     if (a === 'cancel'){ limitEdit = null; renderLimits(); return; }
     if (a === 'clear'){
       LIMITS[card] = null; setLimitFormula(card, ''); saveLimits(); limitEdit = null; renderAll();   /* null = 미설정 */
-      markSettingsDirty();
+      markSettingsDirty(shortCard(card) + ' 한도');
       toast(shortCard(card) + ' 월 한도를 지웠습니다');
       return;
     }
@@ -5599,7 +5631,7 @@ $('#limitGrid').addEventListener('click', ev=>{
         v = parseLimit(raw);   /* null = 빈 입력 */
       }
       LIMITS[card] = v; setLimitFormula(card, v === null ? '' : fm); saveLimits(); limitEdit = null; renderAll();
-      markSettingsDirty();
+      markSettingsDirty(shortCard(card) + ' 한도');
       toast(v === null ? shortCard(card) + ' 월 한도를 지웠습니다'
         : (v ? shortCard(card) + ' 월 한도 ' + won(v) + (fm ? ' · ' + fm : '')
              : shortCard(card) + ' 월 한도를 0원으로 설정 — 쓰는 만큼 초과로 표시됩니다'));
@@ -5646,7 +5678,7 @@ $('#mileCard').addEventListener('click', ev=>{
       const gv = d ? Math.min(9999999, Math.round(Number(d))) : 0;
       MILE.goal = gv;
       mileageSave(); mileGoalEdit = false; renderMileage();
-      markSettingsDirty();
+      markSettingsDirty('목표 마일리지');
       toast(gv ? '목표 마일리지를 ' + fmt(gv) + '마일로 저장했습니다' : '목표 마일리지를 꽂습니다');
       return;
     }
@@ -5802,8 +5834,8 @@ function deleteCategory(name, target){
   F.categories = F.categories.filter(n=> n !== name);
   saveState();
   renderAll();
-  touched.forEach(m=> markDirtyMonth(m));
-  markSettingsDirty();
+  touched.forEach(m=> markDirtyMonth(m, {label: monthLabel(m) + ' 내역', action: '분류 삭제 반영'}));
+  markSettingsDirty('분류 목록');
   toast('「' + name + '」 분류를 지웠습니다' + (moved ? ' · 내역 ' + fmt(moved) + '건은 「' + target + '」로' : ''));
 }
 $('#activeBar').addEventListener('click', ev=>{
@@ -5993,7 +6025,7 @@ function setRowCard(card){
   saveState();
   renderAll();
   closeCatSheet();
-  markDirtyMonth(row.month);
+  markDirtyMonth(row.month, {label: detailLine(row), action: '카드사 변경'});
   toast(shortCard(prev || '내 카드') + ' → ' + shortCard(card) + ' 로 바꿨습니다');
 }
 function askDeleteRow(){
@@ -6013,7 +6045,7 @@ function deleteRowById(id){
   saveState();
   renderAll();
   closeCatSheet();
-  markDirtyMonth(r.month);
+  markDirtyMonth(r.month, {label: detailLine(r), action: '삭제'});
   toast('내역을 지웠습니다 · ' + (monthLabel(r.month) || '') + '에서도 사라집니다');
 }
 function assignCatToSheetRow(name){
@@ -6023,7 +6055,7 @@ function assignCatToSheetRow(name){
   row.category = name;
   rowEdited(row);
   saveState();
-  markDirtyMonth(row.month);
+  markDirtyMonth(row.month, {label: detailLine(row), action: '분류 변경 · ' + (name || '미분류')});
   renderAll();
   closeCatSheet();
   if (name === '미분류'){
@@ -6145,7 +6177,7 @@ function addCategory(rawName){
   const color = CAT_PALETTE.find(c=> !used.has(c)) || CAT_PALETTE[S.categories.length % CAT_PALETTE.length];
   S.categories.push({name, color});
   saveState();
-  markSettingsDirty();
+  markSettingsDirty('분류 목록');
   return name;
 }
 
@@ -6328,8 +6360,8 @@ function saveCategories(){
   F.categories = F.categories.map(n=> rename.get(n) || n).filter(n=> valid.has(n));
   saveState(); renderAll();
   toast('분류를 저장했습니다' + (moved ? ' (' + moved + '건 이동)' : ''));
-  touched.forEach(m=> markDirtyMonth(m));
-  markSettingsDirty();
+  touched.forEach(m=> markDirtyMonth(m, {label: monthLabel(m) + ' 내역', action: '분류 이름 변경'}));
+  markSettingsDirty('분류 목록');
   draft = {cats: clone(S.categories).map(c=>({...c, _orig:c.name})), rules: clone(S.rules), deleted: []};
   renderModal();
 }
@@ -6400,7 +6432,7 @@ function bindRuleTab(){
   $('#btnSaveRules').addEventListener('click', ()=>{
     S.rules = clone(draft.rules);
     saveState();
-    markSettingsDirty();
+    markSettingsDirty('분류 규칙');
     toast('자동 분류 규칙 ' + S.rules.length + '개를 저장했습니다');
   });
   $('#btnApplyRules2').addEventListener('click', ()=>{
@@ -6413,8 +6445,8 @@ function bindRuleTab(){
       if (c && c !== r.category && (ow || !r.category || r.category === '미분류')){ r.category = c; rowEdited(r); n++; touched.add(r.month); }
     });
     saveState(); renderAll();
-    touched.forEach(m=> markDirtyMonth(m));
-    markSettingsDirty();
+    touched.forEach(m=> markDirtyMonth(m, {label: monthLabel(m) + ' 내역', action: '규칙 재분류 ' + n + '건'}));
+    markSettingsDirty('분류 규칙');
     toast(n ? n + '건을 규칙으로 다시 분류했습니다' : '바뀐 내역이 없습니다 (덮어쓰기를 켜보세요)');
   });
 }
@@ -6597,7 +6629,7 @@ function bindDataTab(){
     migrateCategoryNames();
     const impMonths = monthsIn(S.rows);
     saveState(); renderAll(); pendingImport = null; closeModal();
-    impMonths.forEach(m=> markDirtyMonth(m));   /* 새로 들인 자료를 동기화 대상으로 — 다음 동기화의 서버 기준 정리에서 빠지지 않게 (2026-11-25) */
+    impMonths.forEach(m=> markDirtyMonth(m, {label: monthLabel(m) + ' 내역', action: '가져오기(전체 교체)'}));   /* 새로 들인 자료를 동기화 대상으로 — 다음 동기화의 서버 기준 정리에서 빠지지 않게 (2026-11-25) */
     toast(fmt(p.rows.length) + '건으로 시작합니다');
   });
   b('btnImportAppend', ()=>{
@@ -6617,7 +6649,7 @@ function bindDataTab(){
     S.mode = 'mine';
     migrateCategoryNames();
     saveState(); renderAll(); pendingImport = null; closeModal();
-    touched.forEach(m=> markDirtyMonth(m));
+    touched.forEach(m=> markDirtyMonth(m, {label: monthLabel(m) + ' 내역', action: '가져오기 ' + fmt(added) + '건'}));
     toast(added + '건을 추가했습니다' + (p.rows.length - added ? ' (' + (p.rows.length-added) + '건은 중복)' : ''));
   });
   b('btnImportCancel', ()=>{ pendingImport = null; renderModal(); });
@@ -6976,7 +7008,7 @@ function updateSyncLabel(state, msg){
   const shown = state || (SYNC.upErr || SYNC.readonly ? 'err' : '');
   dot.className = 'dot' + (shown ? ' ' + shown : (SYNC.urls.length ? ' on' : ''));
   let text;
-  const pend = pendingCount();
+  const pend = pendingDisplayCount();
   const pendTxt = pend ? ' · 올릴 변경 <b>' + pend + '건</b>' : '';
   if (state === 'busy') text = '동기화 중…';
   else if (state === 'err') text = /^올리기 실패/.test(String(msg || '')) ? '⚠ ' + msg : ('동기화 실패 · ' + (msg || '주소·토큰 확인'));
@@ -6993,6 +7025,7 @@ function updateSyncLabel(state, msg){
     const i = m.querySelector('[data-sync-info]');
     if (i) i.innerHTML = text;
   });
+  applySyncTrigger();   /* 못 올린 변경이 있으면 상태줄을 호버·탭으로 열 수 있게 (2026-11-26) */
 }
 function setSyncState(kind, msg){
   updateSyncLabel(kind === 'err' ? 'err' : (kind === 'warn' ? 'warn' : (kind === 'busy' ? 'busy' : undefined)), msg);
@@ -7008,6 +7041,176 @@ function syncStateText(){
   if (SYNC.upErr) return SYNC.upErr + (SYNC.lastSync ? ' · 받기는 완료(' + fmtDateTime(SYNC.lastSync) + ')' : '');
   return SYNC.lastSync ? ('마지막 동기화 ' + fmtDateTime(SYNC.lastSync) + ' · ' + (SYNC.lastMsg || '')) : '아직 동기화한 적이 없습니다.';
 }
+/* ------------------------------------------------------------
+   못 올린 변경 대화상자 (2026-11-26)
+   · 상태줄이 '못 올린 변경 N건'·'올리기 실패'·'읽기 전용'일 때
+     마우스를 올리면(모바일은 탭) 어떤 항목이 안 올라갔는지 카드로 보여 줍니다.
+   · 바깥으로 나가면 닫히고, 화면 밖으로 잘리지 않게 위치를 잡습니다.
+   ------------------------------------------------------------ */
+let SYNC_POP_OPEN = false, SYNC_POP_ANCHOR = null, SYNC_POP_CLOSE_T = null, SYNC_POP_AT = 0;
+function syncHasNotice(){ return !!(pendingCount() || SYNC.upErr || SYNC.readonly); }
+/* 지금 대기 중인 파일에 속한 상세 기록만 — 예전 기록이 남아 있어도 잘못 보여 주지 않습니다 */
+function syncPopDetails(){
+  return (OUTBOX.details || []).filter(d=>{
+    if (d.kind === '설정') return !!OUTBOX.settings;
+    if (d.kind === '현금') return !!(OUTBOX.bmonths || {})[d.month];
+    return !!(OUTBOX.months || {})[d.month];
+  });
+}
+/* 상세 기록이 없는 대기건은 파일(달) 단위로 */
+function syncPendingFiles(){
+  const list = syncPopDetails();
+  const out = [];
+  Object.keys(OUTBOX.months || {}).forEach(m=>{ if (!list.some(d=> d.kind === '카드' && d.month === m)) out.push({kind:'카드', label:(monthLabel(m) || m) + ' 카드 내역'}); });
+  Object.keys(OUTBOX.bmonths || {}).forEach(m=>{ if (!list.some(d=> d.kind === '현금' && d.month === m)) out.push({kind:'현금', label:(monthLabel(m) || m) + ' 현금 내역'}); });
+  if (OUTBOX.settings && !list.some(d=> d.kind === '설정')) out.push({kind:'설정', label:'설정(한도·분류·규칙)'});
+  return out;
+}
+/* 실패 원인을 사람이 읽을 수 있게 */
+function syncCauseInfo(){
+  const err = String(SYNC.upErr || '').replace(/^⚠\s*/, '');
+  const raw = err ? err.replace(/^올리기 실패:\s*/, '').replace(/\s*—\s*못 올린 변경[^\n]*$/, '').trim() : '';
+  let why = '';
+  if (/failed to fetch|networkerror|network request failed|load failed/i.test(raw))
+    why = '네트워크 연결이 끊겼거나, 회사 보안(DLP)·방화벽이 GitHub 쓰기(PUT) 요청을 막았을 수 있습니다. 연결을 확인한 뒤 다시 올려 보세요.';
+  else if (/HTTP\s*401/.test(raw)) why = '토큰 인증이 만료됐거나 잘못됐습니다. 동기화 설정에서 새 토큰을 넣어 주세요.';
+  else if (/HTTP\s*403/.test(raw)) why = '토큰이 읽기 전용일 수 있습니다. 권한을 Contents: Read and write 로 바꿔 주세요.';
+  else if (/HTTP\s*404/.test(raw)) why = '저장소·폴더 주소가 바뀌었는지 확인해 주세요.';
+  else if (/HTTP\s*409|HTTP\s*422/.test(raw)) why = '다른 기기가 먼저 올려 충돌했습니다. 다시 올리면 최신 상태로 합칩니다.';
+  else if (/저장소 주소가 없습니다/.test(raw)) why = '동기화 주소가 비어 있습니다. 동기화 설정에서 주소를 넣어 주세요.';
+  else if (raw) why = '잠시 뒤 다시 올려 보세요. 계속 실패하면 동기화 설정의 주소·토큰을 확인해 주세요.';
+  else if (SYNC.readonly) why = '토큰이 읽기 전용이라 저장소에 쓰지 못했습니다. 권한을 Contents: Read and write 로 바꾸면 다른 기기와도 맞춰집니다.';
+  return {raw: raw, why: why};
+}
+function syncPopHtml(){
+  const n = pendingDisplayCount();
+  const cause = syncCauseInfo();
+  const details = syncPopDetails().slice().reverse();
+  const files = syncPendingFiles();
+  const items = details.map(d=>{
+    const cls = d.kind === '현금' ? ' cash' : (d.kind === '설정' ? ' set' : '');
+    return '<div class="syncpop-item"><span class="syncpop-k' + cls + '">' + esc(d.kind) + '</span>' +
+      '<span class="syncpop-l">' + esc(d.label || '') + '</span>' +
+      '<span class="syncpop-a">' + esc(d.action || '') + '</span></div>';
+  }).concat(files.map(f=>
+    '<div class="syncpop-file"><span>· ' + esc(f.label) + '</span><span class="syncpop-a">파일 단위</span></div>'
+  ));
+  const head = '못 올린 변경 ' + (n ? '<b>' + fmt(n) + '건</b>' : '<b>없음</b>');
+  return '<div class="syncpop-head">' + head +
+      '<button type="button" class="x" data-syncpopclose aria-label="닫기">✕</button></div>' +
+    (cause.raw || cause.why ? '<div class="syncpop-cause"><b>⚠ ' + esc(cause.raw || '읽기 전용 토큰') + '</b>' +
+      '<span>' + esc(cause.why) + '</span></div>' : '') +
+    (items.length ? '<div class="syncpop-list">' + items.join('') + '</div>'
+      : '<div class="syncpop-note">' + (n ? '항목 기록이 없는 예전 대기건입니다.' : '지금 대기 중인 변경은 없습니다 — 다시 올려서 성공했을 수 있습니다.') + '</div>') +
+    '<div class="syncpop-foot"><button type="button" data-syncpopretry' + (n ? '' : ' disabled') + '>지금 다시 올리기</button>' +
+      '<span class="syncpop-when">' + (SYNC.lastSync ? '마지막 받기<br>' + fmtDateTime(SYNC.lastSync) : '') + '</span></div>';
+}
+function syncPopPlace(){
+  const pop = $('#syncPop'), a = SYNC_POP_ANCHOR;
+  if (!pop || !a || pop.hidden) return;
+  const r = a.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  let x = Math.min(Math.max(8, r.left), Math.max(8, window.innerWidth - w - 8));
+  let y = r.bottom + 8;
+  if (y + h > window.innerHeight - 8) y = Math.max(8, r.top - h - 8);
+  pop.style.left = Math.round(x) + 'px';
+  pop.style.top = Math.round(y) + 'px';
+}
+function openSyncPop(anchor){
+  const pop = $('#syncPop');
+  if (!pop || !syncHasNotice()) return;
+  if (anchor) SYNC_POP_ANCHOR = anchor;
+  pop.innerHTML = syncPopHtml();
+  pop.hidden = false;
+  SYNC_POP_OPEN = true; SYNC_POP_AT = Date.now();
+  $$('.sync-trigger').forEach(t=> t.setAttribute('aria-expanded', t === SYNC_POP_ANCHOR ? 'true' : 'false'));
+  syncPopPlace();
+}
+function updateSyncPopover(){
+  if (!SYNC_POP_OPEN) return;
+  if (!syncHasNotice()){ closeSyncPop(); return; }
+  const pop = $('#syncPop');
+  if (!pop){ SYNC_POP_OPEN = false; return; }
+  pop.innerHTML = syncPopHtml();
+  syncPopPlace();
+}
+function closeSyncPop(){
+  const pop = $('#syncPop');
+  SYNC_POP_OPEN = false; SYNC_POP_ANCHOR = null;
+  if (pop){ pop.hidden = true; pop.innerHTML = ''; }
+  $$('.sync-trigger').forEach(t=> t.setAttribute('aria-expanded', 'false'));
+}
+function scheduleCloseSyncPop(ms){ clearTimeout(SYNC_POP_CLOSE_T); SYNC_POP_CLOSE_T = setTimeout(closeSyncPop, ms || 220); }
+function cancelCloseSyncPop(){ clearTimeout(SYNC_POP_CLOSE_T); }
+/* 상태줄을 '열 수 있는' 줄로 표시 */
+function applySyncTrigger(){
+  const on = syncHasNotice();
+  [$('#syncInfo')].concat($$('[data-sync-info]')).forEach(el=>{
+    if (!el) return;
+    el.classList.toggle('sync-trigger', on);
+    if (on){
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-haspopup', 'dialog');
+      el.setAttribute('aria-expanded', SYNC_POP_OPEN && SYNC_POP_ANCHOR === el ? 'true' : 'false');
+      el.removeAttribute('title');
+    } else {
+      ['role','tabindex','aria-haspopup','aria-expanded','title'].forEach(a=> el.removeAttribute(a));
+    }
+  });
+  const st = $('#syncState');
+  if (st) st.classList.toggle('sync-trigger', !!(pendingCount() && (SYNC.upErr || SYNC.readonly)));
+  if (!on && SYNC_POP_OPEN) closeSyncPop();
+}
+(function bindSyncPopover(){
+  document.addEventListener('pointerover', ev=>{
+    if (ev.pointerType && ev.pointerType !== 'mouse') return;
+    const t = ev.target.closest && ev.target.closest('.sync-trigger');
+    if (!t) return;
+    cancelCloseSyncPop();
+    if (SYNC_POP_OPEN && SYNC_POP_ANCHOR === t) return;
+    openSyncPop(t);
+  });
+  document.addEventListener('pointerout', ev=>{
+    if (ev.pointerType && ev.pointerType !== 'mouse') return;
+    const t = ev.target.closest && ev.target.closest('.sync-trigger');
+    if (!t) return;
+    const to = ev.relatedTarget;
+    if (to && to.closest && (to.closest('#syncPop') || to.closest('.sync-trigger'))) return;
+    scheduleCloseSyncPop(260);
+  });
+  document.addEventListener('focusin', ev=>{
+    const t = ev.target.closest && ev.target.closest('.sync-trigger');
+    if (t) openSyncPop(t);
+  });
+  const pop = document.getElementById('syncPop');
+  if (pop){
+    pop.addEventListener('pointerenter', cancelCloseSyncPop);
+    pop.addEventListener('pointerleave', ev=>{ if (ev.pointerType && ev.pointerType !== 'mouse') return; scheduleCloseSyncPop(200); });
+    pop.addEventListener('click', ev=>{
+      if (ev.target.closest('[data-syncpopclose]')){ closeSyncPop(); return; }
+      const rt = ev.target.closest('[data-syncpopretry]');
+      if (!rt) return;
+      rt.disabled = true; rt.textContent = '올리는 중…'; cancelCloseSyncPop();
+      Promise.resolve().then(()=> flushOutbox(false)).then(()=>{ if (SYNC_POP_OPEN) openSyncPop(SYNC_POP_ANCHOR); }, ()=>{ if (SYNC_POP_OPEN) openSyncPop(SYNC_POP_ANCHOR); });
+    });
+  }
+  document.addEventListener('click', ev=>{
+    const t = ev.target.closest && ev.target.closest('.sync-trigger');
+    const inPop = ev.target.closest && ev.target.closest('#syncPop');
+    if (t){
+      if (inPop) return;
+      /* 마우스를 올려 막 열린 경우 탭(클릭)이 바로 닫지 않게 */
+      if (SYNC_POP_OPEN && SYNC_POP_ANCHOR === t && Date.now() - SYNC_POP_AT < 500) return;
+      if (SYNC_POP_OPEN && SYNC_POP_ANCHOR === t) closeSyncPop(); else openSyncPop(t);
+      return;
+    }
+    if (SYNC_POP_OPEN && !inPop) closeSyncPop();
+  }, true);
+  document.addEventListener('keydown', ev=>{ if (ev.key === 'Escape' && SYNC_POP_OPEN) closeSyncPop(); });
+  window.addEventListener('resize', ()=>{ if (SYNC_POP_OPEN) syncPopPlace(); });
+  window.addEventListener('scroll', ()=>{ if (SYNC_POP_OPEN) syncPopPlace(); }, true);
+})();
 function b64utf8(b64){
   const bin = atob(String(b64).replace(/\s/g,''));
   const bytes = Uint8Array.from(bin, c=>c.charCodeAt(0));
@@ -7037,7 +7240,8 @@ const OUTBOX_KEY = LS_KEY + '.outbox';
 const PUSHED_KEY = LS_KEY + '.pushed';
 const GH_API = 'https://api.github.com/repos/';
 const READONLY_MSG = '읽기 전용 토큰이라 이 기기에만 저장됐습니다 (다른 기기와 공유하려면 토큰 Contents 권한을 Read and write로 변경)';
-let OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[]};
+/* details — 아직 저장소에 올라가지 않은 변경을 사람이 읽을 수 있게 적어 둔 목록 (최근 30건) (2026-11-26) */
+let OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[], details:[]};
 let PUSHED = {};                    /* {'YYYY-MM': [rowKey…]} 마지막으로 저장소와 맞춘 시점의 키 */
 let RULES_AT = null;                /* data/rules.json 이 마지막으로 들어온 시각 — settings.json 과 비교용 */
 let outboxTimer = null, pushQueue = Promise.resolve();
@@ -7072,7 +7276,7 @@ function b64encodeUtf8(str){
   return btoa(bin);
 }
 function loadOutbox(){
-  OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[]};
+  OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[], details:[]};
   try {
     const p = JSON.parse(localStorage.getItem(OUTBOX_KEY) || 'null');
     if (p && typeof p === 'object'){
@@ -7082,6 +7286,7 @@ function loadOutbox(){
       OUTBOX.settingsAt = p.settingsAt || null;
       if (Array.isArray(p.deleted)) OUTBOX.deleted = p.deleted.filter(d=> d && d.k).slice(-200);
       if (Array.isArray(p.bdeleted)) OUTBOX.bdeleted = p.bdeleted.filter(d=> d && d.k).slice(-200);
+      if (Array.isArray(p.details)) OUTBOX.details = p.details.filter(d=> d && d.kind && d.at).slice(-OUTBOX_DETAIL_MAX);
     }
   } catch(e){}
   PUSHED = {};
@@ -7103,8 +7308,46 @@ function pruneOutbox(){
   const cut = Date.now() - 60 * 86400000;
   OUTBOX.deleted = (OUTBOX.deleted || []).filter(d=>{ const t = Date.parse(d.at || ''); return !(t && t < cut); }).slice(-200);
   OUTBOX.bdeleted = (OUTBOX.bdeleted || []).filter(d=>{ const t = Date.parse(d.at || ''); return !(t && t < cut); }).slice(-200);
+  OUTBOX.details = (OUTBOX.details || []).filter(d=>{ const t = Date.parse(d.at || ''); return !(t && t < cut); }).slice(-OUTBOX_DETAIL_MAX);
 }
 function pendingCount(){ return Object.keys(OUTBOX.months || {}).length + Object.keys(OUTBOX.bmonths || {}).length + (OUTBOX.settings ? 1 : 0); }
+/* 사람에게 보여 줄 건수 — 상세 기록이 있으면 항목 수, 없으면 파일(달) 수 (2026-11-26) */
+function pendingDisplayCount(){ const n = syncPopDetails().length; return n || pendingCount(); }
+/* ------------------------------------------------------------
+   못 올린 변경 상세 (2026-11-26)
+   · 달·현금·설정 파일별로 어떤 항목을 바꿨는지 적어 두고, 업로드에 실패하면
+     상태줄 대화상자에 그대로 보여 줍니다. 같은 항목을 다시 고치면 마지막 것만 남습니다.
+   ------------------------------------------------------------ */
+const OUTBOX_DETAIL_MAX = 30;
+function detailLine(r){
+  if (!r) return '';
+  const nm = String(r.merchant || r.name || r.item || '').trim();
+  const amt = Math.abs(+r.amount || 0);
+  return (r.date ? dMD(r.date) + ' ' : '') + nm + (amt ? ' · ' + fmt(amt) + '원' : '');
+}
+function outboxDetailKey(d){ return String(d.kind || '') + '|' + String(d.month || '') + '|' + String(d.label || ''); }
+function noteChange(kind, month, label, action){
+  try {
+    if (!Array.isArray(OUTBOX.details)) OUTBOX.details = [];
+    const d = {kind: kind || '설정', month: month || '', action: action || '수정', at: nowIso(),
+               label: String(label || '').slice(0, 70)};
+    if (!d.label) d.label = (month ? (monthLabel(month) || month) : '설정');
+    const k = outboxDetailKey(d);
+    OUTBOX.details = OUTBOX.details.filter(x=> outboxDetailKey(x) !== k);
+    OUTBOX.details.push(d);
+    if (OUTBOX.details.length > OUTBOX_DETAIL_MAX) OUTBOX.details = OUTBOX.details.slice(-OUTBOX_DETAIL_MAX);
+    saveOutbox();
+    updateSyncPopover();
+  } catch(e){}
+}
+/* 그 달·파일이 정상 올라갔을 때 남아 있던 상세 기록을 함께 비웁니다 */
+function clearDetails(kind, month){
+  try {
+    const n = (OUTBOX.details || []).length;
+    OUTBOX.details = (OUTBOX.details || []).filter(d=> !(d.kind === kind && (month == null || d.month === month)));
+    if ((OUTBOX.details || []).length !== n) saveOutbox();
+  } catch(e){}
+}
 /* 이 달에 이 기기에서 아직 올리지 못한 편집이 있는가 — 있으면 서버로 덮어쓰지 않습니다 (2026-11-25) */
 function monthHasPendingLocal(m){
   if (!m) return false;
@@ -7430,7 +7673,7 @@ function rememberMonthKeys(month){
   savePushed();
 }
 /* 이 달을 올릴 대상으로 표시 — 저장소와 맞춰 둔 키에서 사라진 행은 삭제 기록으로 남깁니다 */
-function markDirtyMonth(month){
+function markDirtyMonth(month, note){
   if (!month) return;
   const known = PUSHED[month];
   if (Array.isArray(known) && known.length){
@@ -7440,11 +7683,13 @@ function markDirtyMonth(month){
     if (gone.length && gone.length < Math.max(3, Math.ceil(known.length * 0.2))) gone.forEach(k=> addTomb(k, month));
   }
   OUTBOX.months[month] = nowIso();
+  if (note) noteChange('카드', month, note.label, note.action);
   saveOutbox(); scheduleFlush(); updateSyncLabel();
 }
-function markSettingsDirty(){
+function markSettingsDirty(label){
   OUTBOX.settingsAt = nowIso();
   OUTBOX.settings = true;
+  noteChange('설정', '', label || '설정(한도·분류·규칙)', '설정 변경');
   saveOutbox(); scheduleFlush(); updateSyncLabel();
 }
 function scheduleFlush(delay){
@@ -7479,7 +7724,7 @@ async function flushOutbox(quiet){
   for (const month of Object.keys(OUTBOX.months || {})){
     try {
       await pushMonth(month);
-      delete OUTBOX.months[month]; saveOutbox(); stats.pushed++;
+      delete OUTBOX.months[month]; clearDetails('카드', month); saveOutbox(); stats.pushed++;
     } catch(e){
       stats.failed++;
       if (e && e.readonly){ SYNC.readonly = true; saveOutbox(); noticeReadonly(); break; }
@@ -7489,7 +7734,7 @@ async function flushOutbox(quiet){
     }
   }
   if (!SYNC.readonly && OUTBOX.settings){
-    try { await pushSettings(); OUTBOX.settings = false; saveOutbox(); stats.pushed++; }
+    try { await pushSettings(); OUTBOX.settings = false; clearDetails('설정', null); saveOutbox(); stats.pushed++; }
     catch(e){
       stats.failed++;
       if (e && e.readonly){ noticeReadonly(); }
@@ -7499,7 +7744,7 @@ async function flushOutbox(quiet){
   /* 현금 달별 파일 (bank-YYYY-MM.json) */
   if (!SYNC.readonly){
     for (const bm of Object.keys(OUTBOX.bmonths || {})){
-      try { await pushBankMonth(bm); delete OUTBOX.bmonths[bm]; saveOutbox(); stats.pushed++; }
+      try { await pushBankMonth(bm); delete OUTBOX.bmonths[bm]; clearDetails('현금', bm); saveOutbox(); stats.pushed++; }
       catch(e){
         stats.failed++;
         if (e && e.readonly){ SYNC.readonly = true; saveOutbox(); noticeReadonly(); break; }
@@ -7512,7 +7757,7 @@ async function flushOutbox(quiet){
   if (stats.pushed) SYNC.lastPush = nowIso(), saveSyncConfig();
   /* 올리기 실패는 조용한(주기·앱 열기) 동기화에서도 상태줄에 남깁니다 (2026-11-26) */
   if (stats.failed){
-    SYNC.upErr = '올리기 실패: ' + (stats.error || (SYNC.readonly ? '읽기 전용 토큰' : '저장소에 올리지 못했습니다')) + (pendingCount() ? ' — 못 올린 변경 ' + pendingCount() + '건' : '');
+    SYNC.upErr = '올리기 실패: ' + (stats.error || (SYNC.readonly ? '읽기 전용 토큰' : '저장소에 올리지 못했습니다')) + (pendingCount() ? ' — 못 올린 변경 ' + pendingDisplayCount() + '건' : '');
     if (!SYNC.readonly){
       setSyncState('err', SYNC.upErr);
       /* 자동 푸시라도 이번 실패가 처음이면 토스트로도 알립니다 — 조용히 지나가지 않게 (2026-11-26) */
@@ -7530,7 +7775,7 @@ async function flushOutbox(quiet){
   } else {
     SYNC.upErr = ''; upRetryN = 0;
     clearTimeout(upRetryTimer); upRetryTimer = null;
-    if (pendingCount() && !quiet) setSyncState('err', '아직 못 올린 변경 ' + pendingCount() + '건' + (stats.error ? ' — ' + stats.error : ''));
+    if (pendingCount() && !quiet) setSyncState('err', '아직 못 올린 변경 ' + pendingDisplayCount() + '건' + (stats.error ? ' — ' + stats.error : ''));
   }
   updateSyncLabel();
   return stats;
@@ -7898,7 +8143,7 @@ async function hardReloadFromServer(){
     if (!payloads.length) throw new Error('저장소에서 읽을 자료가 없습니다');
     /* 여기서부터 이 기기 자료를 버립니다 — 통신이 끝난 뒤라 실패해도 잃지 않습니다 */
     clearTimeout(outboxTimer); outboxTimer = null; pushQueue = Promise.resolve();
-    OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[]};
+    OUTBOX = {months:{}, settings:false, settingsAt:null, deleted:[], bmonths:{}, bdeleted:[], details:[]};
     PUSHED = {}; RULES_AT = null;
     try { localStorage.removeItem(OUTBOX_KEY); localStorage.removeItem(PUSHED_KEY); } catch(e){}
     S = blankState(); S.mode = 'mine';
@@ -7972,7 +8217,7 @@ function syncTabHtml(){
       '<option value="60">60분마다</option>'+
     '</select>'+
   '</div>'+
-  '<div class="syncstate'+(SYNC.readonly || SYNC.upErr ? ' err' : '')+'" id="syncState">'+syncStateText()+'</div>'+
+  '<div class="syncstate'+(SYNC.readonly || SYNC.upErr ? ' err' : '')+(pendingCount() && (SYNC.readonly || SYNC.upErr) ? ' sync-trigger' : '')+'" id="syncState">'+syncStateText()+'</div>'+
   '<div class="field synchard">'+
     '<label>서버 데이터로 다시 받기</label>'+
     '<p class="tiny">이 기기에만 남은 옛 내역·중복 줄을 모두 지우고, 저장소(서버)의 자료를 병합 없이 그대로 다시 받습니다. 동기화 주소·토큰·자동 갱신 설정은 그대로 남습니다.</p>'+
@@ -8598,7 +8843,7 @@ function capAddSelected(){
   F.month = month; F.date = null; F.monthUser = true; F.cards = []; F.categories = []; $('#search').value = '';
   S.ui.limit = 20;
   saveState(); renderAll(); closeCapture();
-  markDirtyMonth(month);
+  markDirtyMonth(month, {label: newRows.length === 1 ? detailLine(newRows[0]) : (newRows.length + '건 (' + String(newRows[0].merchant || '').trim() + ' 외)'), action: '캡처 추가'});
   toast(added + '건을 ' + monthLabel(month) + '에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : '') + (nearN ? ' · 중복 의심 ' + nearN + '건 제외' : ''));
   const tc = document.querySelector('.table-card');
   if (tc) setTimeout(()=> tc.scrollIntoView({behavior:'smooth', block:'start'}), 120);
@@ -9492,7 +9737,7 @@ function bankBudget(month, account, item){
   if (!bankMonths().length) return 0;      /* 자료가 하나도 없으면 빈 화면 — 기본값을 지어내지 않습니다 */
   return Math.round(+((BANK_TEMPLATE_BUDGET[account] || {})[item] || 0));
 }
-function bankSetBudget(month, account, item, v, formula){
+function bankSetBudget(month, account, item, v, formula, note){
   item = normItemName(item);
   const d = ensureBankDoc(month);
   if (!d.budgets[account]) d.budgets[account] = {};
@@ -9508,7 +9753,7 @@ function bankSetBudget(month, account, item, v, formula){
   d.budgetAt[account][item] = nowIso();
   d.updatedAt = nowIso();
   bankSave();
-  markBankDirty(month);
+  markBankDirty(month, note);
 }
 /* 예산 수식 원문 — 이 달에 값이 없을 때만 직전 달 것을 봅니다(bankBudget 과 같은 규칙) */
 function bankBudgetFormula(month, account, item){
@@ -10426,7 +10671,7 @@ function scDeleteItem(){
     '삭제', ()=>{
       const k = bankDeleteItem(month, acc, item);
       scEdit = null;
-      bankSave(); renderAll(); markBankDirty(month);
+      bankSave(); renderAll(); markBankDirty(month, {label: acc + ' · ' + item + ' 항목', action: '삭제'});
       toast(item + ' 항목을 지웠습니다' + (k ? ' · 거래 ' + k + '건' : ''));
     });
 }
@@ -10448,7 +10693,7 @@ function scDeleteMove(){
       bankSetMoveHidden(month, acc, mv.key, true);
       const k = bankDeleteItem(month, acc, mv.item);
       scEdit = null;
-      bankSave(); renderAll(); markBankDirty(month);
+      bankSave(); renderAll(); markBankDirty(month, {label: acc + ' · ' + label, action: '삭제'});
       toast(label + ' 행을 지웠습니다' + (k ? ' · 거래 ' + k + '건' : ''));
     });
 }
@@ -10505,7 +10750,7 @@ function scSave(){
         }
         bankSetMoveHidden(month, mAcc, mvBack.key, false);
         d2.updatedAt = nowIso();
-        scEdit = null; bankSave(); renderAll(); markBankDirty(month);
+        scEdit = null; bankSave(); renderAll(); markBankDirty(month, {label: acc + ' · ' + bankMoveLabel(mvBack.item, mAcc), action: '항목 추가'});
         toast(bankMoveLabel(mvBack.item, mAcc) + ' 행을 다시 보이게 했습니다' + (budGiven ? ' · 예산 ' + fmt(bud) + '원' : '') +
           (amtGiven ? ' · 실행 ' + fmt(amt) + '원' : ''));
         return;
@@ -10530,7 +10775,7 @@ function scSave(){
     /* 금액이 아직 없어도(예산만) 구분·방향을 그 달 문서에 남깁니다 */
     if (isTr) bankSetTransfer(month, acc, name, dir);
     d.updatedAt = nowIso();
-    scEdit = null; bankSave(); renderAll(); markBankDirty(month);
+    scEdit = null; bankSave(); renderAll(); markBankDirty(month, {label: acc + ' · ' + name, action: '항목 추가'});
     const tag = (isTr ? '계좌이동(' + (dir === 'in' ? '+ 입금' : '− 출금') + ') ' : '') + '항목 "' + name + '"';
     toast((budGiven ? '예산 ' + fmt(bud) + '원으로 ' : '') + tag + '을(를) 더했습니다' +
       (isTr ? ' · 총 수입/지출 제외' : ''));
@@ -10580,7 +10825,7 @@ function scSave(){
     if (acc === '우리은행' && e.item === '카드요금' && bankCardLinked(month)){
       const d = ensureBankDoc(month); d.cardLink = false; d.updatedAt = nowIso();
     }
-    bankSetBudget(month, acc, e.item, c.value, fm);
+    bankSetBudget(month, acc, e.item, c.value, fm, {label: acc + ' · ' + e.item + ' 예산', action: '수정'});
     scEdit = null; renderAll();
     toast(e.item + ' 예산을 ' + fmt(c.value) + '원으로 저장했습니다' + (fm ? ' · ' + fm : ''));
     return;
@@ -10588,7 +10833,7 @@ function scSave(){
   const target = Math.abs(c.value);
   const dir = e.dir === 'in' ? 'in' : 'out';
   const delta = bankSetItemActual(month, acc, e.item, target, dir, fm);
-  scEdit = null; bankSave(); renderAll(); markBankDirty(month);
+  scEdit = null; bankSave(); renderAll(); markBankDirty(month, {label: acc + ' · ' + e.item + ' 실행', action: '수정'});
   toast(e.item + ' 실행을 ' + fmt(target) + '원으로 맞췄습니다' + (fm ? ' · ' + fm : '') + (delta ? ' · 차액 ' + (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + '원을 조정 줄로 넣었습니다' : ''));
 }
 
@@ -10826,7 +11071,7 @@ function bankAssignCat(item){
   bankStamp(row);
   if (bankRowKey(row) !== oldKey){ addBankTomb(oldKey, month, row.id); clearBankTomb(bankRowKey(row)); }
   d.updatedAt = nowIso();
-  bankSave(); renderAll(); markBankDirty(month);
+  bankSave(); renderAll(); markBankDirty(month, {label: detailLine(row), action: '분류 변경 · ' + to});
   closeCatSheet();
   toast('분류를 바꿨습니다 · ' + oldAcc + ' ' + oldItem + ' → ' + acc + ' ' + to);
 }
@@ -11055,7 +11300,7 @@ function settleSet(kind, key, v, formula){
   d.updatedAt = nowIso();
   settleEdit = null;
   bankSave();
-  markBankDirty(month);
+  markBankDirty(month, {label: monthLabel(month) + ' 정산 예산' + (kind === 'salary' ? ' · 월급' : ' · ' + key), action: '수정'});
   renderAll();
   toast(monthLabel(month) + ' 예산을 저장했습니다');
 }
@@ -11330,10 +11575,11 @@ function bankEditedAfter(r, at){
   if (!t) return false;
   return rowForStoreTs(r) > t;
 }
-function markBankDirty(month){
+function markBankDirty(month, note){
   if (!month) return;
   if (!OUTBOX.bmonths || typeof OUTBOX.bmonths !== 'object') OUTBOX.bmonths = {};
   OUTBOX.bmonths[month] = nowIso();
+  if (note) noteChange('현금', month, note.label, note.action);
   saveOutbox(); scheduleFlush(); updateSyncLabel();
 }
 function bankMonthPayload(month, remoteJson){
@@ -11797,7 +12043,7 @@ function capAddBank(){
   });
   bRowEdit = null;
   F.month = month; F.monthUser = true;
-  bankSave(); renderAll(); markBankDirty(month); closeCapture();
+  bankSave(); renderAll(); markBankDirty(month, {label: added === 1 ? '현금 내역 1건' : added + '건', action: '캡처 추가'}); closeCapture();
   const dupN = CAP.results.filter(r=> r.dup && !r.on).length;
   toast(added + '건을 ' + monthLabel(month) + ' 현금 내역에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : ''));
 }
@@ -12197,7 +12443,8 @@ function saveBankRow(){
   else if (regTr) bankSetTransfer(month, account, item, regTr.dir);
   doc.updatedAt = nowIso();
   bRowEdit = null;
-  bankSave(); renderAll(); markBankDirty(month);
+  bankSave(); renderAll();
+  markBankDirty(month, {label: (date ? dMD(date) + ' ' : '') + name + ' · ' + fmt(Math.abs(amount)) + '원', action: d.isNew ? '추가' : '수정'});
   const shownDir = moveHit ? (moveSignedAmount(moveHit.item, calc.value) < 0 ? 'out' : 'in') : mdir;
   toast('저장했습니다' + (calc.error ? '' : ' · ' + (shownDir === 'in' ? '+' : '−') + fmt(Math.abs(calc.value)) + '원') +
     (isTr ? ' · 계좌이동(총 수입/지출 제외)' : ''));
@@ -12221,12 +12468,17 @@ function deleteBankRows(ids){
   Object.keys(BANK.months).forEach(m=>{
     const d = BANK.months[m];
     const before = d.rows.length;
+    const gone = [];
     d.rows = d.rows.filter(r=>{
       if (!set.has(r.id)) return true;
-      addBankTomb(bankRowKey(r), m, r.id); n++;
+      addBankTomb(bankRowKey(r), m, r.id); n++; gone.push(r);
       return false;
     });
-    if (d.rows.length !== before){ d.updatedAt = nowIso(); markBankDirty(m); }
+    if (d.rows.length !== before){
+      d.updatedAt = nowIso();
+      markBankDirty(m, gone.length === 1 ? {label: detailLine(gone[0]), action: '삭제'}
+        : {label: gone.length + '건 (' + String(gone[0].name || gone[0].item || '').trim() + ' 외)', action: '삭제'});
+    }
   });
   ids.forEach(id=> BSEL.delete(id));
   if (bRowEdit && set.has(bRowEdit.id)) bRowEdit = null;
@@ -12477,13 +12729,13 @@ function hlSetRow(t, key){
     if (!r) return false;
     r.highlight = key; r.highlightAt = nowIso();
     d.updatedAt = nowIso();
-    bankSave(); markBankDirty(month); renderBankDetail();
+    bankSave(); markBankDirty(month, {label: detailLine(r), action: key ? '하이라이트' : '하이라이트 해제'}); renderBankDetail();
     return true;
   }
   const r = S.rows.find(x=> x.id === t.id);
   if (!r) return false;
   r.highlight = key; r.highlightAt = nowIso();
-  saveState(); markDirtyMonth(r.month); renderAll();
+  saveState(); markDirtyMonth(r.month, {label: detailLine(r), action: key ? '하이라이트' : '하이라이트 해제'}); renderAll();
   return true;
 }
 /* 같은 하이라이트를 한 번 더 누르면 바로 해제 — 별도 '해제' 버튼 없이도 동작합니다 */
@@ -12642,11 +12894,11 @@ function hlSaveDraft(){
     const used = new Set(HL.presets.map(x=> x.color));
     const free = HL_PALETTE.find(c=> !used.has(c.key)) || HL_PALETTE[0];
     hlDraft = {color:free.key, label:'', editId:''};
-    hlSave(); markSettingsDirty(); renderHlSheet(); renderAll();
+    hlSave(); markSettingsDirty('하이라이트 색'); renderHlSheet(); renderAll();
     if (from){ closeHlSheet(); return; }
     return;
   }
-  hlSave(); markSettingsDirty(); renderHlSheet(); renderAll();
+  hlSave(); markSettingsDirty('하이라이트 색'); renderHlSheet(); renderAll();
 }
 function hlDeletePreset(id){
   const p = HL.presets.find(x=> x.id === id); if (!p) return;
@@ -12655,7 +12907,7 @@ function hlDeletePreset(id){
     HL.retired[id] = {id:id, color:p.color, label:p.label};
     if (F.hl === id) F.hl = '';
     if (BANK.ui.hl === id) BANK.ui.hl = '';
-    hlSave(); markSettingsDirty();
+    hlSave(); markSettingsDirty('하이라이트 색');
     if (hlDraft.editId === id) hlDraft = {color:HL_PALETTE[0].key, label:'', editId:''};
     renderHlSheet(); renderAll();
     toast('「' + p.label + '」 하이라이트를 지웠습니다');
