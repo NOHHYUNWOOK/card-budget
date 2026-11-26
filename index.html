@@ -4274,10 +4274,57 @@ function renderTrend(rows, sum){
 /* ============================================================
    TABLE
    ============================================================ */
+/* 수동 순서(manual) 보기에서 쓸 표시 키 (2026-11-26 보강)
+   · order 가 있는 행은 그 값을 그대로 씁니다 → 사용자가 끌어 정한 행끼리의 상대 순서는 늘 그대로입니다.
+   · 아직 order 가 없는 행(동기화·카드사 메일·직접 추가로 새로 들어온 건)은 같은 달의 날짜 위치에
+     끼워 넣은 가상값을 씁니다. 그래서 최신 결제가 목록 맨 아래로 밀리지 않고 날짜 자리(맨 위)에 보입니다.
+   · order 를 새로 써 넣지는 않습니다(보기만) — 저장된 순서·다른 기기 자료는 건드리지 않습니다. */
+function manualOrderKeys(rows){
+  const out = new Map(), byMonth = new Map();
+  rows.forEach(r=>{
+    const m = String(r.month || '');
+    if (!byMonth.has(m)) byMonth.set(m, []);
+    byMonth.get(m).push(r);
+  });
+  byMonth.forEach(list=>{
+    const ordered = list.filter(hasOrder).sort((a,b)=> a.order - b.order);
+    const missing = list.filter(r=> !hasOrder(r));
+    if (!ordered.length){
+      /* 그 달에 아직 정한 순서가 없으면 날짜 내림차순(최신이 위)이 화면 순서입니다 */
+      list.slice().sort((a,b)=> a.date !== b.date ? (a.date < b.date ? 1 : -1) : (b.amount - a.amount))
+        .forEach((r,i)=> out.set(r, i));
+      return;
+    }
+    if (!missing.length){ ordered.forEach(r=> out.set(r, r.order)); return; }
+    /* order 가 있는 행들 사이에 새 행을 날짜 위치로 끼워 넣습니다 — 날짜가 더 최신이면 그 위 자리로 */
+    const seq = ordered.slice();
+    missing.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date))).forEach(m=>{
+      let at = seq.length;
+      for (let i = 0; i < seq.length; i++){ if (String(seq[i].date) < String(m.date)){ at = i; break; } }
+      seq.splice(at, 0, m);
+    });
+    let prev = null;
+    seq.forEach((r, i)=>{
+      if (hasOrder(r)){ prev = r.order; out.set(r, r.order); return; }
+      let next = null;
+      for (let j = i + 1; j < seq.length; j++){ if (hasOrder(seq[j])){ next = seq[j].order; break; } }
+      let v;
+      if (prev === null && next === null) v = 0;
+      else if (prev === null) v = next - 1;
+      else if (next === null) v = prev + 1;
+      else v = (prev + next) / 2;
+      out.set(r, v);
+      prev = v;
+    });
+  });
+  return out;
+}
 function sortRows(rows){
-  /* 편집 모드에서 끌어 정한 순서(manual) — 그 달 안에서 order 값 순서대로, 결제월은 최근 달부터 */
+  /* 편집 모드에서 끌어 정한 순서(manual) — 그 달 안에서 order 값 순서대로, 결제월은 최근 달부터.
+     order 가 없는 새 행은 날짜 위치에 끼워 넣어 최신 결제가 맨 위에 오게 합니다(manualOrderKeys). */
   if (S.ui.sortKey === 'manual'){
-    const ord = r => hasOrder(r) ? r.order : Number.MAX_SAFE_INTEGER;
+    const keys = manualOrderKeys(rows);
+    const ord = r => keys.has(r) ? keys.get(r) : (hasOrder(r) ? r.order : Number.MAX_SAFE_INTEGER);
     return rows.slice().sort((a,b)=>{
       const ma = String(a.month || ''), mb = String(b.month || '');
       if (ma !== mb) return ma < mb ? 1 : -1;
@@ -4293,11 +4340,12 @@ function sortRows(rows){
     const da = a.date, db = b.date;
     if (da !== db) return (da < db ? -1 : 1) * dir;
     /* 같은 날짜 — order(캡처 이미지 위→아래 순서 · 편집 모드에서 끌어 정한 순서)를 먼저 따릅니다.
-       order 가 없는 건(카드사 동기화로 들어온 내역)은 같은 날짜 안에서 뒤로 둡니다. */
+       order 가 없는 건(카드사 동기화·메일로 방금 들어온 내역)은 같은 날짜 안에서 맨 위로 둡니다 —
+       새로 들어온 결제가 기존 내역에 묻혀 아래로 밀리지 않게요(2026-11-26). */
     const oa = hasOrder(a) ? a.order : null, ob = hasOrder(b) ? b.order : null;
     if (oa !== null || ob !== null){
-      if (oa === null) return 1;
-      if (ob === null) return -1;
+      if (oa === null) return -1;
+      if (ob === null) return 1;
       if (oa !== ob) return oa - ob;
       return 0;
     }
