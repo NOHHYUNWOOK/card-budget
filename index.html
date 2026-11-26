@@ -258,7 +258,9 @@ button.lim-item:active{transform:scale(.99)}
 .lim-item .rem small{font-size:11.5px;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
 .lim-item .bar{height:4px;border-radius:3px;background:#e8ebf1;overflow:hidden}
 .lim-item .bar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
-.lim-item .meta{font-size:11px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.lim-item .meta{font-size:11px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 수입·지출·비율을 한 줄에 — 비율만 조금 진하게 (2026-11-26) */
+.lim-item .meta b{font-weight:800;color:var(--ink2);letter-spacing:-.01em}
 .lim-item.unset .rem{font-size:12.5px;font-weight:650;color:var(--accent)}
 .lim-item.unset .meta{color:#a3aab8}
 .lim-item.near .bar i{background:#f59e0b}
@@ -378,7 +380,17 @@ button.lim-item:active{transform:scale(.99)}
 .empty b{color:var(--ink2)}
 
 /* ---------- table ---------- */
-.table-card{overflow:hidden;scroll-margin-top:calc(var(--hdr,72px) + 12px);transition:box-shadow .25s}
+/* overflow:hidden 은 스크롤 컨테이너가 되어 안쪽 sticky 를 페이지 스크롤에 붙지 않게 합니다.
+   clip 은 스크롤 상자를 만들지 않으면서 같은 모서리 자르기를 하므로 틀고정에 씁니다 (2026-11-26). */
+.table-card{overflow:hidden;overflow:clip;scroll-margin-top:calc(var(--hdr,72px) + 12px);transition:box-shadow .25s}
+/* ---------- 상세내역 틀고정 (2026-11-26) ----------
+   제목행(자물쇠·버튼) + 검색/정렬 + 필터 + 합계(+편집 막대)를 .dtl-fix 한 묶음으로 두고
+   상단 바(--hdr) 바로 아래에 붙입니다. 표 헤더행은 그 묶음 높이(--dtlH, JS가 잰 값)만큼
+   더 내려 붙여 머리와 겹치지 않게 합니다. */
+.dtl-fix{position:sticky;top:var(--hdr,72px);z-index:16;display:flow-root;background:var(--card)}
+/* 붙었을 때만 아래 경계를 드리웁니다 — 높이가 변하지 않도록 그림자로만 */
+.dtl-fix.stuck{box-shadow:0 1px 0 var(--line),0 10px 18px -12px rgba(16,24,40,.30)}
+.table-card thead th{top:calc(var(--hdr,72px) + var(--dtlH,0px));z-index:15;background:#fafbfd}
 /* ---------- detail panel filters (카드사 버튼 · 분류 칩: 이름만) ---------- */
 .detail-search{padding:10px 16px 9px}
 .detail-search .searchwrap{flex:none;min-width:0}
@@ -386,6 +398,28 @@ button.lim-item:active{transform:scale(.99)}
 .detail-filters .chips{gap:5px}
 .detail-filters .chip{padding:4px 10px;font-size:12px}
 .detail-filters .chips .lbl{font-size:11.5px;min-width:33px}
+/* 분류 ＋ 추가 — 칩 옆에서 바로 새 분류를 만드는 자리 (2026-11-26) */
+.chip.catadd{border-style:dashed;background:#fff;color:var(--ink2);font-weight:700}
+.chip.catadd:hover{border-color:#94a3b8;background:#fbfcfe;color:var(--ink)}
+.detail-filters .catquick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 9px;
+  border:1px dashed #cbd5e1;border-radius:11px;background:#fafbfd}
+.detail-filters .catquick.hidden{display:none}
+.catquick .lbl{font-size:11.5px;font-weight:750;color:var(--ink2);flex:none}
+.catquick input[type=text]{flex:1 1 150px;min-width:120px;border:1px solid var(--line);border-radius:9px;
+  padding:6px 9px;font:inherit;font-size:13px;background:#fff}
+.catquick input[type=text]:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.catquick select{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font:inherit;font-size:12.5px;background:#fff;flex:none}
+.catquick .btn{padding:6px 11px;font-size:12.5px;flex:none}
+@media (max-width:639px){
+  /* 현금 분류는 항목이 많아 그냥 두면 여러 줄로 늘어납니다 — 한 줄로 두고 옆으로 넘겨 봅니다 */
+  #bankCatChips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  #bankCatChips::-webkit-scrollbar{display:none}
+  #bankCatChips .chip,#bankCatChips .lbl{flex:none}
+}
+@media (max-width:560px){
+  .catquick input[type=text]{flex:1 1 100%}
+  .catquick .btn{flex:1 1 0;min-height:34px}
+}
 /* --- 상세내역 하이라이트 색 (2026-11-24) --- */
 .hlbtn{width:16px;height:16px;border-radius:50%;border:2px solid #cfd6e4;background:#fff;padding:0;cursor:pointer;
   flex:none;transition:.12s;display:inline-block;vertical-align:middle}
@@ -467,6 +501,8 @@ body.hlsheet-open .toast.show{transform:translate(-50%,0)}
   .detail-sum .n{padding-left:0;font-size:11.5px}
 }
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* 표가 카드 폭 안에 들어오면 가로 스크롤 상자를 풀어(.xfit) 헤더행 sticky 가 페이지 스크롤에 붙게 합니다 */
+.table-scroll.xfit{overflow-x:visible}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 thead th{
   position:sticky;top:0;background:#fafbfd;border-bottom:1px solid var(--line);text-align:left;
@@ -810,6 +846,9 @@ body.catsheet-open .toast.show{transform:translate(-50%,0)}
 .capsum b{font-size:14px;color:var(--ink)}
 .capbadge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;background:#fff4e6;color:#a15c00;border:1px solid #ffe0b8;white-space:nowrap}
 .capbadge.new{background:#eaf7ef;color:#0f7a42;border-color:#c9ecd7}
+/* 중복 의심 — 같은 카드·날짜·금액인데 가맹점 표기만 다른 건 (2026-11-26) */
+.capbadge.near{background:#fff7e6;color:#8a4b00;border-color:#f3cf94;font-weight:800}
+.capnearhint{margin:6px 0 0;color:#8a4b00;font-weight:600}
 .caprows{border:1px solid var(--line);border-radius:12px;margin-top:8px;max-height:min(46vh,420px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .caprow{display:flex;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line2);align-items:flex-start;background:#fff}
 .caprow:last-child{border-bottom:0}
@@ -1740,6 +1779,8 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   </section>
 
   <section class="card table-card cv-card" id="detailCard">
+    <!-- 제목·검색·필터·합계는 한 묶음으로 스크롤해도 위에 붙습니다 (2026-11-26) -->
+    <div class="dtl-fix">
     <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
       <span class="lockslot" data-lock="cardDetail"></span>
@@ -1757,6 +1798,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
     <div class="detail-filters" id="detailFilters">
       <div class="chips" id="cardChipsDetail"></div>
       <div class="chips" id="catChipsDetail"></div>
+      <div class="catquick hidden" id="catQuick"></div>
       <div class="chips" id="cardHlChips"></div>
     </div>
     <div class="detail-sum hidden" id="detailSum" aria-live="polite"></div>
@@ -1766,6 +1808,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
       <button type="button" class="btn ghost" id="btnSelAll">전체 선택</button>
       <span class="spacer"></span>
       <button type="button" class="btn ghost" id="btnSelCancel">취소</button>
+    </div>
     </div>
     <div class="table-scroll">
       <table id="table">
@@ -1829,6 +1872,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   </section>
 
   <section class="card table-card cv-bank" id="bankDetailCard">
+    <div class="dtl-fix">
     <div class="card-head" style="padding-bottom:10px">
       <h2>현금 상세 내역</h2>
       <span class="lockslot" data-lock="bankDetail"></span>
@@ -1850,6 +1894,8 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
     </div>
     <div class="detail-filters" id="bankFilters">
       <div class="chips" id="bankAccChips2"></div>
+      <div class="chips" id="bankCatChips"></div>
+      <div class="catquick hidden" id="bankCatQuick"></div>
       <div class="chips" id="bankDirChips"></div>
       <div class="chips" id="bankHlChips"></div>
     </div>
@@ -1860,6 +1906,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
       <button type="button" class="btn ghost" id="btnBankSelAll">전체 선택</button>
       <span class="spacer"></span>
       <button type="button" class="btn ghost" id="btnBankSelCancel">취소</button>
+    </div>
     </div>
     <div class="bedit-panel hidden" id="bankEditPanel"></div>
     <div class="table-scroll">
@@ -2646,15 +2693,91 @@ function cardChipsHtml(withCount, ordered){
     }).join('');
 }
 /* 상세 내역 패널의 분류 칩 — 누르면 필터, 이름만 (건수·✕ 없음) */
+/* 상세 내역 패널의 분류 칩 — 누르면 필터, 이름만 (건수·✕ 없음) + "＋ 추가" 로 새 분류 (2026-11-26) */
 function catChipsDetailHtml(){
-  if (!S.rows.length) return '';
   const catNames = S.categories.map(c=>c.name);
   S.rows.forEach(r=>{ if(catNames.indexOf(r.category)<0) catNames.push(r.category); });
   return '<span class="lbl">분류</span>' + catNames.map(n=>{
     const on = F.categories.indexOf(n)>=0;
     return '<button class="chip'+(on?' on':'')+'" data-cat="'+esc(n)+'" title="'+esc(n)+' 내역만 보기">'+
       '<span class="dot" style="background:'+catMeta(n).color+'"></span>'+esc(n)+'</button>';
-  }).join('');
+  }).join('') +
+  '<button type="button" class="chip catadd" data-catquick="1" title="새 분류 만들기">＋ 추가</button>';
+}
+/* ---------- 분류 ＋ 추가 (카드·현금 같은 자리, 2026-11-26) ----------
+   칩 옆의 ＋ 추가 를 누르면 그 자리에서 이름을 받아 바로 저장·동기화합니다.
+   카드는 S.categories(addCategory → localStorage + 설정 동기화),
+   현금은 그 계좌의 항목(예산 0 으로 만들어 계좌내역에서 금액을 채움)을 더합니다. */
+function catQuickHtml(){
+  return '<span class="lbl">새 분류</span>' +
+    '<input type="text" id="catQuickName" maxlength="18" placeholder="새 분류 이름 (예: 교육비)" autocomplete="off" enterkeyhint="done">' +
+    '<button type="button" class="btn primary" id="catQuickAdd">추가</button>' +
+    '<button type="button" class="btn ghost" id="catQuickCancel">취소</button>';
+}
+function bankCatQuickHtml(){
+  const acc = (BANK.ui.account && BANK_ACCOUNTS.indexOf(BANK.ui.account) >= 0) ? BANK.ui.account : '우리은행';
+  return '<span class="lbl">새 분류</span>' +
+    '<select id="bcatQuickAcc" aria-label="계좌">' + BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select>' +
+    '<input type="text" id="bcatQuickName" maxlength="24" placeholder="새 분류 이름 (예: 경조사비)" autocomplete="off" enterkeyhint="done">' +
+    '<select id="bcatQuickDir" aria-label="수입·지출"><option value="out">지출</option><option value="in">수입</option></select>' +
+    '<button type="button" class="btn primary" id="bcatQuickAdd">추가</button>' +
+    '<button type="button" class="btn ghost" id="bcatQuickCancel">취소</button>';
+}
+function openCatQuick(which){
+  const box = document.getElementById(which === 'bank' ? 'bankCatQuick' : 'catQuick');
+  if (!box) return;
+  if (!box.classList.contains('hidden')){ closeCatQuick(which); return; }
+  box.innerHTML = which === 'bank' ? bankCatQuickHtml() : catQuickHtml();
+  box.classList.remove('hidden');
+  const inp = box.querySelector('input[type=text]');
+  if (inp) setTimeout(()=>{ try { inp.focus(); } catch(e){} }, 30);
+}
+function closeCatQuick(which){
+  const box = document.getElementById(which === 'bank' ? 'bankCatQuick' : 'catQuick');
+  if (!box) return;
+  box.classList.add('hidden');
+  box.innerHTML = '';
+}
+/* 카드 — 새 분류를 만들어 바로 칩·분류 목록·동기화에 반영 */
+function catQuickSubmit(){
+  const inp = document.getElementById('catQuickName'); if (!inp) return;
+  const name = cleanCatName(inp.value);
+  if (!name){ toast('분류 이름을 입력하세요'); try { inp.focus(); } catch(e){} return; }
+  const existed = S.categories.some(c=> c.name === name);
+  addCategory(name);
+  closeCatQuick('card');
+  renderAll();
+  toast(existed ? '"' + name + '" 분류는 이미 있습니다' : '"' + name + '" 분류를 더했습니다 · 분류 칩에서 눌러 걸러 볼 수 있습니다');
+}
+/* 현금 — 그 계좌의 새 항목(분류)을 만들어 계좌내역·분류 칩에 바로 반영 */
+function bankCatQuickSubmit(){
+  const accEl = document.getElementById('bcatQuickAcc');
+  const nmEl = document.getElementById('bcatQuickName');
+  const dirEl = document.getElementById('bcatQuickDir');
+  if (!nmEl) return;
+  const acc = accEl ? accEl.value : '우리은행';
+  const nm = String(nmEl.value || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+  const dir = (dirEl && dirEl.value === 'in') ? 'in' : 'out';
+  if (!nm){ toast('분류 이름을 입력하세요'); try { nmEl.focus(); } catch(e){} return; }
+  if (bankYearMode()){ toast('연도 전체·전체 보기에서는 분류를 더할 수 없습니다 — 달을 골라 주세요'); return; }
+  const month = bankCurrentMonth();
+  const list = bankItemList(month, acc);
+  if (list.in.concat(list.out).indexOf(nm) >= 0 || isCarryName(nm)){
+    toast('이 계좌에 이미 있는 분류입니다 — 다른 이름으로 넣어주세요');
+    try { nmEl.focus(); } catch(e){}
+    return;
+  }
+  const d = ensureBankDoc(month);
+  if (!d.budgets[acc]) d.budgets[acc] = {};
+  d.budgets[acc][nm] = 0;                 /* 예산 0 — 계좌내역에서 이 항목의 예산을 채워 넣습니다 */
+  if (!d.itemDir || typeof d.itemDir !== 'object') d.itemDir = {};
+  if (!d.itemDir[acc] || typeof d.itemDir[acc] !== 'object') d.itemDir[acc] = {};
+  d.itemDir[acc][nm] = dir;               /* 수입·지출 방향을 함께 저장해 계좌내역·정산에서 바로 맞게 */
+  d.updatedAt = nowIso();
+  bankSave(); markBankDirty(month);
+  closeCatQuick('bank');
+  renderAll();
+  toast(acc + ' · "' + nm + '" 분류를 더했습니다 (' + (dir === 'in' ? '수입' : '지출') + ')');
 }
 /* 하이라이트 필터 칩 — 사용자가 만든 것만 보이고, 하나 더 누르면 전체 보기로 돌아갑니다 */
 function hlChipsHtml(which){
@@ -2847,7 +2970,7 @@ function applyMonthSel(sel){
 function resetPanelFilters(){
   SCSEL.clear();
   F.cards = []; F.categories = []; F.q = ''; F.hl = ''; F.date = null;
-  BANK.ui.account = ''; BANK.ui.dir = ''; BANK.ui.q = ''; BANK.ui.hl = '';
+  BANK.ui.account = ''; BANK.ui.dir = ''; BANK.ui.q = ''; BANK.ui.hl = ''; BANK.ui.item = '';
   S.ui.limit = 20;
   limitEdit = null; scEdit = null; bRowEdit = null;
   const s1 = $('#search'); if (s1) s1.value = '';
@@ -4774,7 +4897,47 @@ $('#jumpNav').addEventListener('click', ev=>{
   jumpTo(b.dataset.jump);
 });
 window.addEventListener('scroll', onJumpScroll, {passive:true});
-window.addEventListener('resize', ()=>{ syncHdrVar(); jumpSpy(); });
+window.addEventListener('resize', ()=>{ syncHdrVar(); jumpSpy(); syncDetailLayout(); });
+
+/* ============================================================
+   상세내역 틀고정 (2026-11-26)
+   · .dtl-fix(제목·검색·필터·합계)는 CSS sticky 로 상단 바 아래에 붙고,
+     그 실제 높이를 --dtlH 에 넣어 표 헤더행(thead)이 바로 그 아래에 붙습니다.
+   · 표가 카드 폭에 다 들어오면 .xfit 을 붙여 가로 스크롤 상자를 풀어 줍니다 —
+     스크롤 상자 안에서는 헤더행 sticky 가 페이지 스크롤에 붙지 않습니다.
+   ============================================================ */
+function activeTableCard(){
+  return document.getElementById(VIEW === 'bank' ? 'bankDetailCard' : 'detailCard');
+}
+function syncDetailStuck(){
+  const card = activeTableCard(); if (!card) return;
+  const fix = card.querySelector('.dtl-fix'); if (!fix) return;
+  fix.classList.toggle('stuck', fix.getBoundingClientRect().top <= hdrH() + 0.5);
+}
+function syncDetailLayout(){
+  const card = activeTableCard();
+  const root = document.documentElement;
+  if (!card){ root.style.setProperty('--dtlH', '0px'); return; }
+  const fix = card.querySelector('.dtl-fix');
+  root.style.setProperty('--dtlH', (fix ? Math.round(fix.getBoundingClientRect().height) : 0) + 'px');
+  const sc = card.querySelector('.table-scroll'), tb = card.querySelector('table');
+  if (sc && tb){
+    const over = tb.getBoundingClientRect().width > sc.clientWidth + 1;
+    sc.classList.toggle('xfit', !over);
+  }
+  syncDetailStuck();
+}
+function watchDetailStick(){
+  if (typeof ResizeObserver !== 'function') return;
+  const ro = new ResizeObserver(()=> syncDetailLayout());
+  ['detailCard', 'bankDetailCard'].forEach(id=>{
+    const card = document.getElementById(id); if (!card) return;
+    const fix = card.querySelector('.dtl-fix'); if (fix) ro.observe(fix);
+    const tb = card.querySelector('table'); if (tb) ro.observe(tb);
+  });
+}
+window.addEventListener('scroll', ()=>{ syncDetailStuck(); }, {passive:true});
+watchDetailStick();
 /* 카드별 한도 — 칸을 누르면 금액 입력, 저장하면 바로 남은 한도 계산 */
 $('#limitGrid').addEventListener('click', ev=>{
   const act = ev.target.closest('[data-limact]');
@@ -7054,7 +7217,7 @@ function capStatusOnly(){
 function merchKey(s){
   return String(s==null?'':s).toLowerCase()
     .normalize('NFKC')
-    .replace(/\(주\)|\(유\)|주식회사|㈜|\(합자\)|\(유한\)/g,'')   // 법인 표기 차이는 같은 가맹점
+    .replace(/\(주\)|\(유\)|주식회사?|㈜|\(합자\)|\(유한\)/g,'')   // 법인 표기 차이는 같은 가맹점 ('주식회'·'주식회사' 모두)
     .replace(/[\s\u00a0\u3000]+/g,'')
     .replace(/[()[\]{}.,·・\-_\/\\'"`~!@#$%^&*+=|<>?:;]/g,'')
     .trim();
@@ -7067,15 +7230,43 @@ function existingCounts(){
   S.rows.forEach(r=>{ const k = dupKey(r); m.set(k, (m.get(k)||0)+1); });
   return m;
 }
-/* 기존 가계부 + 같은 배치 안의 앞선 항목과 비교해 중복을 표시합니다 (건수까지 맞춰 봄) */
+/* 카드사 표기 차이('삼성카드'·'삼성')를 같은 카드로 보기 위한 키 */
+function capCardKey(c){
+  return String(c==null?'':c).toLowerCase().normalize('NFKC').replace(/\s+/g,'').replace(/카드$/,'');
+}
+/* 같은 카드 · 같은 날짜 · 같은 금액 — 가맹점 표기가 달라도 같은 결제일 수 있는 묶음 (2026-11-26) */
+function nearKeyOf(card, date, amount){
+  return capCardKey(card) + '|' + String(date||'').slice(0,10) + '|' + Math.round(+amount||0);
+}
+function nearKey(r){ return nearKeyOf(r.card, r.date, r.amount); }
+/* 기존 가계부 + 같은 배치 안의 앞선 항목과 비교합니다 (건수까지 맞춰 봄).
+   · 완전 동일(날짜·가맹점·금액) → dup: 체크를 벗기고 '중복 N건 자동 제외됨'에 모십니다 (예전 그대로)
+   · 같은 카드·같은 날짜·같은 금액인데 가맹점 표기만 다름 → near: '중복 의심'으로 체크만 벗기고
+     목록에는 그대로 남겨, 실제로 두 번 결제한 것이면 사용자가 다시 체크해 넣을 수 있게 합니다 (2026-11-26) */
 function applyDedupe(items){
   const counts = existingCounts();
+  const nearCounts = new Map(), nearNames = new Map();
+  const bump = (k, name)=>{
+    nearCounts.set(k, (nearCounts.get(k)||0) + 1);
+    if (!nearNames.has(k)) nearNames.set(k, String(name || '').trim());
+  };
+  S.rows.forEach(r=> bump(nearKeyOf(r.card, r.date, r.amount), r.merchant));
   return items.map(it=>{
-    const k = dupKey(it);
+    const k = dupKey(it), nk = nearKey(it);
     const left = counts.get(k) || 0;
-    const dup = left > 0;
-    counts.set(k, dup ? left - 1 : 1);
-    return Object.assign({}, it, {dup:dup, on:!dup});
+    if (left > 0){
+      counts.set(k, left - 1);
+      const nl = nearCounts.get(nk) || 0; if (nl > 0) nearCounts.set(nk, nl - 1);
+      return Object.assign({}, it, {dup:true, near:false, nearName:'', on:false});
+    }
+    counts.set(k, 1);
+    const nl = nearCounts.get(nk) || 0;
+    if (nl > 0){
+      nearCounts.set(nk, nl - 1);
+      return Object.assign({}, it, {dup:false, near:true, nearName: nearNames.get(nk) || '', on:false});
+    }
+    bump(nk, it.merchant);
+    return Object.assign({}, it, {dup:false, near:false, nearName:'', on:true});
   });
 }
 
@@ -7293,10 +7484,14 @@ function capBodyHtml(){
   if (CAP.error) h += '<div class="caperr" id="capErr">'+esc(CAP.error)+'</div>';
   if (CAP.results.length){
     const dupN = CAP.results.filter(r=>r.dup).length;
+    const nearN = CAP.results.filter(r=>r.near).length;
     const fresh = CAP.results.filter(r=>!r.dup);
     h += '<div class="capsum">AI가 <b>'+fmt(CAP.results.length)+'건</b>을 읽었습니다 '+
-      (dupN ? '<span class="capbadge">중복 '+fmt(dupN)+'건 자동 제외됨</span>' : '<span class="capbadge new">중복 없음</span>')+
+      (dupN ? '<span class="capbadge">중복 '+fmt(dupN)+'건 자동 제외됨</span>' : '')+
+      (nearN ? '<span class="capbadge near">중복 의심 '+fmt(nearN)+'건 · 체크 해제</span>' : '')+
+      (!dupN && !nearN ? '<span class="capbadge new">중복 없음</span>' : '')+
       (CAP.ms ? '<span class="muted" style="margin-left:auto;font-size:11.5px">'+(CAP.ms < 150 ? '0.2초 이내' : (CAP.ms/1000).toFixed(1)+'초')+'</span>' : '')+'</div>';
+    if (nearN) h += '<p class="tiny capnearhint">같은 카드·같은 날짜·같은 금액이 이미 있어 <b>체크를 벗겨 둔</b> 내역이 '+fmt(nearN)+'건 있습니다. 실제로 두 번 결제한 것이면 체크해서 함께 추가하세요.</p>';
     if (fresh.length){
       h += '<div class="caprows">'+fresh.map(r=>capRowHtml(r)).join('')+'</div>';
     } else {
@@ -7326,6 +7521,7 @@ function capRowHtml(r){
         '<div class="l1">'+
           '<input class="mer" data-cap-f="merchant" data-i="'+i+'" value="'+esc(r.merchant)+'" maxlength="60" aria-label="내용">'+
           (r.dup ? '<span class="capbadge">중복</span>' : '')+
+          (r.near ? '<span class="capbadge near" title="같은 계좌·같은 날짜·같은 금액이 이미 있습니다">중복 의심 · 기존: '+esc(r.nearName || '—')+'</span>' : '')+
           (r.amount > 0 ? '<span class="capbadge new">입금</span>' : '<span class="capbadge">출금</span>')+
         '</div>'+
         '<div class="l2">'+
@@ -7346,6 +7542,7 @@ function capRowHtml(r){
       '<div class="l1">'+
         '<input class="mer" data-cap-f="merchant" data-i="'+i+'" value="'+esc(r.merchant)+'" maxlength="60" aria-label="가맹점">'+
         (r.dup ? '<span class="capbadge">중복</span>' : '')+
+        (r.near ? '<span class="capbadge near" title="같은 카드·같은 날짜·같은 금액이 이미 있습니다 — 실제로 두 번 결제했다면 체크하세요">중복 의심 · 기존: '+esc(r.nearName || '—')+'</span>' : '')+
       '</div>'+
       '<div class="l2">'+
         '<input type="date" data-cap-f="date" data-i="'+i+'" value="'+esc(r.date)+'" aria-label="이용일자">'+
@@ -7544,6 +7741,7 @@ function capAddSelected(){
     added++;
   });
   const dupN = CAP.results.filter(r=>r.dup && !r.on).length;
+  const nearN = CAP.results.filter(r=>r.near && !r.on).length;
   S.mode = 'mine';
   /* 이미지 위→아래 순서를 order 로 남깁니다 — 예전에는 push 만 해서 같은 날짜가 금액순으로 뒤집혔습니다 */
   capAssignOrder(month, newRows);
@@ -7551,7 +7749,7 @@ function capAddSelected(){
   S.ui.limit = 20;
   saveState(); renderAll(); closeCapture();
   markDirtyMonth(month);
-  toast(added + '건을 ' + monthLabel(month) + '에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : ''));
+  toast(added + '건을 ' + monthLabel(month) + '에 추가했습니다' + (dupN ? ' · 중복 ' + dupN + '건 제외' : '') + (nearN ? ' · 중복 의심 ' + nearN + '건 제외' : ''));
   const tc = document.querySelector('.table-card');
   if (tc) setTimeout(()=> tc.scrollIntoView({behavior:'smooth', block:'start'}), 120);
 }
@@ -8465,6 +8663,9 @@ function bankItemList(month, account){
     if (tr) return tr.dir === 'in';
     const r = rows.find(x=> x.item === n);
     if (r) return r.amount > 0;
+    /* 분류 ＋ 추가 로 만든 항목 — 함께 저장한 수입/지출을 따릅니다 (2026-11-26) */
+    const cdir = (((d.itemDir || {})[account]) || {})[n];
+    if (cdir === 'in' || cdir === 'out') return cdir === 'in';
     if (base.in.indexOf(n) >= 0) return true;
     if (base.out.indexOf(n) >= 0) return false;
     return /월급|급여|이자|이월금|여유금|채우기|N빵|부수입|의료비|수입/.test(n);
@@ -8528,6 +8729,7 @@ function setView(v, quiet){
   document.body.classList.toggle('editmode', EDITMODE || BEDITMODE);
   renderJumpNav();
   renderAll();
+  syncDetailLayout();          /* 탭마다 다른 상세내역 머리 높이·헤더행 위치를 다시 잡습니다 (2026-11-26) */
   if (changed && !quiet) window.scrollTo(0, 0);
 }
 
@@ -8731,19 +8933,9 @@ function renderBankSummary(){
   const bw = bankBudgetFlow(F.month, '우리은행');
   const budInc = bw.inc + act.t.inc;
   const budExp = bw.exp + act.t.exp;
-  /* 건수 — 총 수입·총 지출에 들어간 줄 수 (이월금·모으기·계좌이동 빼고) */
-  const kRows = rows.filter(r=> !isKpiExcludedRow(r));
-  const inN = kRows.filter(r=> r.amount > 0 && !isCarryName(r.item)).length;
-  const outN = kRows.filter(r=> r.amount < 0).length;
-  const exRows = rows.filter(isKpiExcludedRow);
-  const trExN = exRows.filter(isTransferRow).length;   /* 계좌이동 — 사용자가 더한 항목 (2026-11-25) */
-  const mvN = exRows.length - trExN;                   /* 토스 모으기 계좌 전체 + 모으기채우기·꺼내기 */
-  const exLabel = [mvN ? '모으기' : '', trExN ? '계좌이동' : ''].filter(Boolean).join('·');
+  /* 2026-11-26: 박스 아래 '수입 N건 · 지출 M건' 설명줄을 없애 건수 계산도 함께 걷어냈습니다 */
   const rate = act.inc ? act.exp / act.inc * 100 : 0;
   const w = Math.max(0, Math.min(100, rate));
-  const inX = fmt(inN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
-  const outX = fmt(outN) + '건' + (exLabel ? ' · ' + exLabel + ' 제외' : '');
-  const cntX = '수입 ' + fmt(inN) + '건 · 지출 ' + fmt(outN) + '건' + (exLabel ? ' (이월금·' + exLabel + ' 제외)' : '');
   /* 예산·실행 두 박스의 총 잔액 (2026-11-25 요청)
      · 실행 잔액 = 계좌별 잔액 그대로(우리은행 + 토스 입출금 + 토스 모으기 3계좌 합) — 기존 '현재 총 잔액'
      · 예산 잔액 = 실행 잔액에 예산과 실행의 수입·지출 차이를 되돌린 값 (예산대로였다면 남았을 돈)
@@ -8762,7 +8954,6 @@ function renderBankSummary(){
   el.innerHTML =
     '<div class="ksum">' +
       '<section class="kbox act" aria-label="실행 기준 총 수입·총 지출·총 잔액">' +
-        '<div class="kbox-h"><span class="bdg a">실행</span></div>' +
         '<div class="krows">' +
           krow('in', '총 수입', won(act.inc, true), diffTxt(dInc), '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −') +
           krow('out', '총 지출', won(-act.exp), diffTxt(dExp), '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −') +
@@ -8770,15 +8961,16 @@ function renderBankSummary(){
         '</div>' +
       '</section>' +
     '</div>' +
-    '<div class="ksum-note">총 잔액 = 3계좌 합 · ' + cntX + '</div>' +
     '<div class="bbar">' +
       '<div class="bar"><i class="b2" style="width:' + w.toFixed(1) + '%"></i>' +
         '<i class="b1" style="width:' + (100 - w).toFixed(1) + '%"></i></div>' +
       '<div class="cap"><span>수입 대비 지출 ' + (act.inc ? Math.round(rate * 10) / 10 : 0) + '%</span>' +
         '<span>남은 몫 ' + (act.inc ? Math.round((100 - Math.round(rate * 10) / 10) * 10) / 10 : 0) + '%</span></div>' +
     '</div>';
-  /* 계좌별 타일 */
+  /* 계좌별 타일 — 2026-11-26: 제목줄 오른쪽 지출 금액을 없애고, 진행 바 아래 수입 줄에
+     '수입 X · 지출 Y (Z%)' 로 수입·지출·비율을 한 줄에 모았습니다. */
   const grid = $('#bankAccGrid');
+  let expTotal = 0, expAny = false;
   if (grid){
     grid.innerHTML = BANK_ACCOUNTS.map(a=>{
       const t = yMode ? bankYearTotals(F.month, a) : bankTotals(month, a);
@@ -8791,21 +8983,26 @@ function renderBankSummary(){
       const expected = t.bal + expectIn - expectOut;
       const r = t.inc ? Math.min(100, t.exp / t.inc * 100) : 0;
       const over = expected < 0 || t.bal < 0;
-      return '<button type="button" class="lim-item' + (over ? ' over' : '') + '" data-bankacc="' + esc(a) + '" title="' + esc(a) + ' 내역만 보기">' +
+      if (expectIn || expectOut){ expTotal += expected; expAny = true; }
+      const rateTxt = t.inc ? pctTxt(t.exp, t.inc) : '—';
+      return '<button type="button" class="lim-item' + (over ? ' over' : '') + '" data-bankacc="' + esc(a) + '" title="' +
+          esc(a + ((!yMode && (expectIn || expectOut)) ? ' · 예상 잔고 ' + fmt(expected) + '원' : '') + ' — 눌러서 이 계좌 내역만 보기') + '">' +
         '<span class="top"><span class="dot" style="background:' + bankAccColor(a) + '"></span>' +
-          '<span class="nm" style="color:' + (BANK_ACC_DARK[a] || bankAccColor(a)) + '">' + esc(a) + '</span>' +
-          '<span class="use' + (t.exp ? '' : ' zero') + '">' + (t.exp ? '−' + fmt(t.exp) : '0') + '</span></span>' +
+          '<span class="nm" style="color:' + (BANK_ACC_DARK[a] || bankAccColor(a)) + '">' + esc(a) + '</span></span>' +
         '<span class="rem">' + fmt(t.bal) + '<small>원 ' + (yMode ? (isYearSel(F.month) ? '연말 잔액' : '최근 잔액') : '잔액') + '</small></span>' +
         '<span class="bar"><i style="width:' + r.toFixed(1) + '%"></i></span>' +
-        '<span class="meta">' + (yMode ? '연간 수입 ' : (expectOut || expectIn ? '예상 잔고 ' + fmt(expected) + '원 · 수입 ' : '수입 ')) +
-          fmt(t.inc) + '</span>' +
+        '<span class="meta" title="수입 대비 지출 ' + rateTxt + '">수입 ' + fmt(t.inc) + ' · 지출 ' + fmt(t.exp) +
+          ' <b>(' + rateTxt + ')</b></span>' +
       '</button>';
     }).join('');
   }
   const hint = $('#bankAccHint');
-  if (hint) hint.textContent = yMode
-    ? '여러 달 합계 · 잔액은 마지막 달 기준'
-    : '예상 잔고 = 잔액 + 들어올 수입 − 남은 지출';
+  if (hint){
+    hint.textContent = yMode
+      ? '여러 달 합계 · 잔액은 마지막 달 기준'
+      : (expAny ? '예상 잔고 3계좌 합 ' + fmt(expTotal) + '원' : '수입 대비 지출 비율을 함께 표시합니다');
+    hint.title = yMode ? '' : '예상 잔고 = 잔액 + 들어올 수입 − 남은 지출';
+  }
   /* 이월 안내 — 한 달을 볼 때만 */
   const bar = $('#bankActiveBar');
   if (bar && yMode){
@@ -8839,8 +9036,10 @@ function bankSumItemRows(month, acc){
     if (bankRowsAll(month).some(r=> r.account === acc && r.item === item && r.kind === TRANSFER_KIND)) return;
     const bud = bankBudget(month, acc, item);
     const act = bankItemActual(month, acc, item);
-    /* 빈 항목은 감춰 한눈에 보이게. 이월금은 이 계좌에 자료가 있을 때만 보입니다. */
-    if (!bud && !act && !(isCarryName(item) && hasAny)) return;
+    /* 빈 항목은 감춰 한눈에 보이게. 이월금은 이 계좌에 자료가 있을 때만 보입니다.
+       사용자가 '분류 ＋ 추가'로 직접 만든 항목은 예산·실행이 비어 있어도 보여 줍니다 (2026-11-26). */
+    const custom = ((d0.itemDir || {})[acc] || {})[item];
+    if (!bud && !act && !custom && !(isCarryName(item) && hasAny)) return;
     out.push({item: item, dir: dir, bud: bud, act: act});
   };
   list.in.forEach(it=> push(it, 'in'));
@@ -9449,6 +9648,7 @@ function bankFilteredRows(month){
   const q = String(BANK.ui.q || '').trim().toLowerCase();
   return bankRowsAll(month).filter(r=>{
     if (BANK.ui.account && r.account !== BANK.ui.account) return false;
+    if (BANK.ui.item && (r.item || '') !== BANK.ui.item) return false;
     if (BANK.ui.dir === 'in' && !(r.amount > 0)) return false;
     if (BANK.ui.dir === 'out' && !(r.amount < 0)) return false;
     if (BANK.ui.hl && (r.highlight || '') !== BANK.ui.hl) return false;
@@ -9516,10 +9716,48 @@ function bankAccChipsHtml(){
 }
 function bankDirChipsHtml(){
   const d = BANK.ui.dir || '';
-  return '<span class="lbl">구분</span>' +
+  return '<span class="lbl">수입/지출</span>' +
     '<button type="button" class="chip' + (d ? '' : ' on') + '" data-bdir="">전체</button>' +
     '<button type="button" class="chip' + (d === 'in' ? ' on' : '') + '" data-bdir="in">수입</button>' +
     '<button type="button" class="chip' + (d === 'out' ? ' on' : '') + '" data-bdir="out">지출</button>';
+}
+/* 현금 상세의 분류(항목) 필터 — 카드 상세의 분류 칩과 같은 자리 (2026-11-26)
+   그 기간(고른 계좌)에 실제로 나온 항목만 건수 많은 순으로 보이고, ＋ 추가로 새 분류를 만듭니다. */
+function bankCatChipsHtml(){
+  const months = bankYearMode() ? bankSelMonths() : [bankCurrentMonth()];
+  const counts = new Map(), dirOf = new Map();
+  months.forEach(m=>{
+    bankRowsAll(m).forEach(r=>{
+      if (r.carry) return;
+      if (BANK.ui.account && r.account !== BANK.ui.account) return;
+      const it = r.item || ''; if (!it) return;
+      counts.set(it, (counts.get(it) || 0) + 1);
+      if (!dirOf.has(it)) dirOf.set(it, r.amount > 0 ? 'in' : 'out');
+    });
+    /* 거래 없이 '분류 ＋ 추가'로만 만든 항목(예산 0)도 칩에 보이게 */
+    const d = BANK.months[m] || {};
+    BANK_ACCOUNTS.forEach(a=>{
+      if (BANK.ui.account && a !== BANK.ui.account) return;
+      const b = (d.budgets || {})[a] || {};
+      const dm = (d.itemDir || {})[a] || {};
+      new Set(Object.keys(b).concat(Object.keys(dm))).forEach(it=>{
+        if (!it || isCarryName(it) || counts.has(it)) return;
+        if (Object.keys(b).indexOf(it) < 0 && !dm[it]) return;
+        counts.set(it, 0);
+        if (!dirOf.has(it) && (dm[it] === 'in' || dm[it] === 'out')) dirOf.set(it, dm[it]);
+      });
+    });
+  });
+  const list = Array.from(counts.keys()).sort((a,b)=> (counts.get(b) - counts.get(a)) || a.localeCompare(b, 'ko'));
+  return '<span class="lbl">분류</span>' +
+    '<button type="button" class="chip' + (BANK.ui.item ? '' : ' on') + '" data-bcatf="" title="모든 분류">전체</button>' +
+    list.map(it=>{
+      const on = BANK.ui.item === it;
+      const col = dirOf.get(it) === 'in' ? '#0f7a42' : '#d92d20';
+      return '<button type="button" class="chip' + (on ? ' on' : '') + '" data-bcatf="' + esc(it) + '" title="' + esc(it) + ' 내역만 보기">' +
+        '<span class="dot" style="background:' + col + '"></span>' + esc(it) + '</button>';
+    }).join('') +
+    '<button type="button" class="chip catadd" data-bcatquick="1" title="새 분류 만들기">＋ 추가</button>';
 }
 /* ---------- 현금 상세 한 줄의 분류(계좌·항목) 시트 (2026-11-25) ----------
    카드 상세의 분류 시트처럼 한 줄이 어느 계좌의 어느 항목인지 골라 바꿉니다.
@@ -9659,9 +9897,10 @@ function renderBankDetail(){
   const yMode = bankYearMode();
   /* 연도 전체에서는 여러 달 거래를 모아 보여 주므로 수정 모드를 끝냅니다 — 달을 골라 수정 */
   if (yMode && BEDITMODE){ BEDITMODE = false; BSEL.clear(); bRowEdit = null; document.body.classList.toggle('editmode', EDITMODE || BEDITMODE); }
-  const c2 = $('#bankAccChips2'), c3 = $('#bankDirChips');
+  const c2 = $('#bankAccChips2'), c3 = $('#bankDirChips'), c5 = $('#bankCatChips');
   if (c2) c2.innerHTML = bankAccChipsHtml();
   if (c3) c3.innerHTML = bankDirChipsHtml();
+  if (c5) c5.innerHTML = bankCatChipsHtml();
   const c4 = $('#bankHlChips');
   if (c4) c4.innerHTML = hlChipsHtml('bank');
   renderBankSortUi();
@@ -9755,7 +9994,7 @@ function bankRowEditHtml(d0, r){
       (isNew ? '<div class="btop">＋ 새 내역 — 항목에 새 이름을 써도 계좌내역에 그 이름으로 바로 줄이 생깁니다</div>' : '') +
       '<label class="fld"><span>날짜</span><input type="date" data-bf="date" value="' + esc(d.date || '') + '"></label>' +
       '<label class="fld"><span>계좌</span><select data-bf="account">' + accOpts + '</select></label>' +
-      '<label class="fld"><span>구분</span><select data-bf="dir">' + dirOpt('out', '지출 (출금)') + dirOpt('in', '수입 (입금)') +
+      '<label class="fld"><span>수입/지출</span><select data-bf="dir">' + dirOpt('out', '지출 (출금)') + dirOpt('in', '수입 (입금)') +
         dirOpt('move-out', '계좌이동 · − 출금') + dirOpt('move-in', '계좌이동 · + 입금') + '</select></label>' +
       '<label class="fld"><span>항목</span><input type="text" data-bf="item" list="bankItemNames" maxlength="24" value="' + esc(d.item || '') + '" placeholder="항목 (새 이름도 입력 가능)" autocomplete="off"></label>' +
       '<label class="fld"><span>금액(원)</span><input type="text" data-bf="amount" inputmode="decimal" data-calc="1" value="' + esc(d.amount || '') + '" placeholder="예: 50000+30000"></label>' +
@@ -10228,6 +10467,19 @@ function bankMonthPayload(month, remoteJson){
     });
     if (Object.keys(m).length) outBF[a] = m;
   });
+  const outID = {};
+  const lID = (d.itemDir && typeof d.itemDir === 'object') ? d.itemDir : {};
+  const rID = (remoteJson && remoteJson.itemDir && typeof remoteJson.itemDir === 'object') ? remoteJson.itemDir : {};
+  new Set(Object.keys(lID).concat(Object.keys(rID))).forEach(a=>{
+    const lm = (lID[a] && typeof lID[a] === 'object') ? lID[a] : {};
+    const rm = (rID[a] && typeof rID[a] === 'object') ? rID[a] : {};
+    const m = {};
+    new Set(Object.keys(lm).concat(Object.keys(rm))).forEach(it=>{
+      const v = lm[it] || rm[it];
+      if ((v === 'in' || v === 'out') && String(it).trim()) m[it] = v;
+    });
+    if (Object.keys(m).length) outID[a] = m;
+  });
   return {v: 1, kind: 'bank', month: month, updatedAt: nowIso(), accounts: BANK_ACCOUNTS,
     cardLink: d.cardLink !== false,
     moveNames: bankMoveNamesCopy(),
@@ -10238,6 +10490,7 @@ function bankMonthPayload(month, remoteJson){
     hiddenMoves: bankHiddenMovesCopy(month),
     hiddenMovesAt: bankHiddenMovesAtCopy(month),
     budgetFormula: outBF,
+    itemDir: outID,
     settlementFormula: d.settlementFormula || {},
     rows: rows.concat(extra),
     budgets: outBud,
@@ -10395,6 +10648,19 @@ function applyBankPayload(p){
       Object.keys(clean[a]).forEach(it=>{
         /* 같은 이름은 원격 값을 따르고, 이 기기에만 있는 이름은 지우지 않습니다(기기 간 합치기) */
         if (doc.transfer[a][it] !== clean[a][it]){ doc.transfer[a][it] = clean[a][it]; changed++; }
+      });
+    });
+  }
+  /* 분류 ＋ 추가 로 만든 항목의 수입/지출 방향도 함께 맞춥니다 (2026-11-26) */
+  if (p.itemDir && typeof p.itemDir === 'object' && !Array.isArray(p.itemDir)){
+    if (!doc.itemDir || typeof doc.itemDir !== 'object' || Array.isArray(doc.itemDir)) doc.itemDir = {};
+    Object.keys(p.itemDir).forEach(a=>{
+      const rp = p.itemDir[a];
+      if (!rp || typeof rp !== 'object' || Array.isArray(rp)) return;
+      if (!doc.itemDir[a] || typeof doc.itemDir[a] !== 'object' || Array.isArray(doc.itemDir[a])) doc.itemDir[a] = {};
+      Object.keys(rp).forEach(it=>{
+        const v = rp[it];
+        if ((v === 'in' || v === 'out') && doc.itemDir[a][it] !== v){ doc.itemDir[a][it] = v; changed++; }
       });
     });
   }
@@ -10787,6 +11053,36 @@ $('#bankDirChips').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-bdir]'); if (!b) return;
   BANK.ui.dir = b.dataset.bdir || '';
   renderBankDetail();
+});
+/* 현금 상세 분류 칩 + ＋ 추가 (2026-11-26) */
+$('#bankCatChips').addEventListener('click', ev=>{
+  if (ev.target.closest('[data-bcatquick]')){ openCatQuick('bank'); return; }
+  const b = ev.target.closest('[data-bcatf]'); if (!b) return;
+  BANK.ui.item = b.dataset.bcatf || '';
+  renderBankDetail();
+});
+$('#bankCatQuick').addEventListener('click', ev=>{
+  if (ev.target.closest('#bcatQuickAdd')){ bankCatQuickSubmit(); return; }
+  if (ev.target.closest('#bcatQuickCancel')){ closeCatQuick('bank'); }
+});
+$('#bankCatQuick').addEventListener('keydown', ev=>{
+  if (ev.key !== 'Enter') return;
+  ev.preventDefault(); ev.stopPropagation();
+  bankCatQuickSubmit();
+});
+/* 카드 상세 분류 ＋ 추가 (2026-11-26) */
+document.addEventListener('click', ev=>{
+  if (!ev.target.closest || !ev.target.closest('[data-catquick]')) return;
+  ev.preventDefault(); openCatQuick('card');
+});
+$('#catQuick').addEventListener('click', ev=>{
+  if (ev.target.closest('#catQuickAdd')){ catQuickSubmit(); return; }
+  if (ev.target.closest('#catQuickCancel')){ closeCatQuick('card'); }
+});
+$('#catQuick').addEventListener('keydown', ev=>{
+  if (ev.key !== 'Enter') return;
+  ev.preventDefault(); ev.stopPropagation();
+  catQuickSubmit();
 });
 /* 날짜 정렬 — 필터 줄 토글 · 표 머리 '날짜' 칸 (2026-11-25) */
 $('#bankSortSeg').addEventListener('click', ev=>{
