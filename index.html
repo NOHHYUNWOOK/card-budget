@@ -1678,7 +1678,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   .bchart .lg{padding:3px 2px}
   .bchart .lg .nm{max-width:none;flex:1 1 auto}
 }
-/* ---------- 모바일 지문 잠금 + 백업 PIN (2026-11-26) ---------- */
+/* ---------- 화면 잠금 — PIN + 지문/생체인증 (2026-11-26, PC까지) ---------- */
 html.lock-pending body{overflow:hidden}
 html.lock-pending main,html.lock-pending header.topbar,html.lock-pending footer.pagefoot{visibility:hidden}
 html.lock-pending #lockScreen{display:flex}
@@ -1715,19 +1715,16 @@ html.lock-pending #lockScreen{display:flex}
 .locknote{font-size:11.5px;color:var(--ink2);line-height:1.5;margin:4px 0 0}
 </style>
 <script>
-/* 모바일 지문 잠금 — 본문이 그려지기 전에 잠금 상태를 먼저 가립니다 (2026-11-26).
+/* 화면 잠금 — 본문이 그려지기 전에 잠금 상태를 먼저 가립다 (2026-11-26, PC까지).
    실제 잠금 여부는 본문 스크립트가 한 번 더 확인합니다. */
 (function(){
   try{
-    var keys = ['cardLedger.public.v1.lock', 'cardLedger.dashboard.v1.lock'], on = false;
+    var keys = ['cardLedger.public.v1.lock', 'cardLedger.dashboard.v1.lock'], on = false, hash = '';
     for (var i = 0; i < keys.length; i++){
       var raw = localStorage.getItem(keys[i]); if (!raw) continue;
-      var p = JSON.parse(raw); if (p && p.on){ on = true; break; }
+      var p = JSON.parse(raw); if (p && p.on && p.hash){ on = true; break; }
     }
     if (!on) return;
-    var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    if (!mobile) return;
     if (sessionStorage.getItem('cardLedger.unlocked') === '1') return;
     document.documentElement.classList.add('lock-pending');
   }catch(e){}
@@ -1737,20 +1734,20 @@ html.lock-pending #lockScreen{display:flex}
 <body>
 <noscript><div style="padding:24px;text-align:center">이 대시보드는 브라우저의 자바스크립트가 필요합니다.</div></noscript>
 
-<!-- 모바일 지문 잠금 화면 (2026-11-26) — 잠긴 상태에서만 보입니다 -->
+<!-- 화면 잠금 화면 (2026-11-26) — 잠긴 상태에서만 보입니다 (폰·PC 공통) -->
 <div class="lockscreen" id="lockScreen" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
   <div class="lockscreen-card">
     <div class="lg-badge" aria-hidden="true">🔒</div>
     <h2 id="lockTitle">Finance 잠금</h2>
-    <p class="sub" id="lockSub">가계부를 열려면 지문이나 백업 PIN이 필요해요</p>
-    <button type="button" class="btn primary fpbtn" id="lockFpBtn">👆 지문으로 열기</button>
+    <p class="sub" id="lockSub">가계부를 열려면 생체인증이나 PIN이 필요합니다</p>
+    <button type="button" class="btn primary fpbtn" id="lockFpBtn">👆 생체인증으로 열기</button>
     <div class="or">또는</div>
     <div class="lockscreen-pinrow">
-      <input id="lockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="백업 PIN" aria-label="백업 PIN 4~6자리">
+      <input id="lockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="PIN 4~6자리">
       <button type="button" class="btn" id="lockPinBtn">열기</button>
     </div>
     <div class="lockscreen-msg" id="lockMsg" aria-live="polite"></div>
-    <p class="lockscreen-note">잠금은 이 기기(모바일)에서만 걸립니다 · 가계부 자료는 지금처럼 이 브라우저에만 저장됩니다</p>
+    <p class="lockscreen-note">PIN은 폰·PC 모두 같은 번호로 열립니다 · 생체인증(지문·Windows Hello)은 기기마다 따로 등록합니다</p>
   </div>
 </div>
 
@@ -2087,7 +2084,7 @@ html.lock-pending #lockScreen{display:flex}
       <button data-tab="rule">자동 분류 규칙</button>
       <button data-tab="ai">AI 캡처</button>
       <button data-tab="sync">동기화</button>
-      <button data-tab="lock">모바일 잠금</button>
+      <button data-tab="lock">화면 잠금</button>
       <button data-tab="data">데이터</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
@@ -5133,10 +5130,11 @@ window.addEventListener('resize', ()=>{
 }, {passive:true});
 
 /* ============================================================
-   모바일 지문 잠금 + 백업 PIN (2026-11-26 사용자 요청)
-   · 폰(모바일 브라우저)에서만 잠금 화면을 띄우고, PC 에서는 그대로 열립니다.
-   · 지문은 WebAuthn 플랫폼 인증기(navigator.credentials)를 쓰고, 등록한 credential ID 만 저장합니다.
-   · 백업 PIN 은 SHA-256 해시(설치마다 다른 salt)로만 저장하고, 원래 숫자는 남기지 않습니다.
+   회면 잠금 — PIN + 지문/생체인증 (2026-11-26, PC까지 적용 2026-11-26)
+   · 잠금이 켜져 있으면 폰·PC 어느 브라우저에서든 잠금 화면을 먼저 띄웁니다.
+   · 지문/Windows Hello 는 WebAuthn 플랫폼 인증기(navigator.credentials)를 쓰고, 등록한 credential ID 만 그 기기에 저장합니다.
+   · PIN 은 SHA-256 해시(설치마다 다른 salt)로만 저장하고, 원래 숫자는 남기지 않습니다.
+   · 잠금 설정(켬/끔 · PIN 해시 · salt)은 동기화 저장소 settings.json 으로 기기끼리 맞춥니다(lockEnabled·lockPinHash·lockSalt·lockUpdatedAt).
    · 해제 상태는 sessionStorage 에만 기록됩니다 — 브라우저를 닫으면 다시 잠깁니다.
    ============================================================ */
 const LOCK_KEY = LS_KEY + '.lock';
@@ -5158,8 +5156,15 @@ function lockLoad(){
   } catch(e){}
   if (LOCK.on && !LOCK.hash) LOCK.on = false;   /* PIN 해시가 없으면 잠글 수 없습니다 */
 }
-function lockSave(){
-  LOCK.updatedAt = nowIso();
+function lockSave(touch){
+  if (touch !== false) LOCK.updatedAt = nowIso();   /* 동기화로 받은 설정은 시각을 그대로 둡니다 */
+  try {
+    localStorage.setItem(LOCK_KEY, JSON.stringify({v:1, on:LOCK.on, hash:LOCK.hash, salt:LOCK.salt,
+      credId:LOCK.credId, pinAt:LOCK.pinAt, credAt:LOCK.credAt, updatedAt:LOCK.updatedAt}));
+  } catch(e){}
+}
+/* 다른 기기(settings.json)에서 받은 잠금 설정을 그대로 적어 둡니다 — 시각은 원격 값을 유지 */
+function lockSaveRemote(){
   try {
     localStorage.setItem(LOCK_KEY, JSON.stringify({v:1, on:LOCK.on, hash:LOCK.hash, salt:LOCK.salt,
       credId:LOCK.credId, pinAt:LOCK.pinAt, credAt:LOCK.credAt, updatedAt:LOCK.updatedAt}));
@@ -5238,15 +5243,16 @@ function lockMsgShow(t, ok){
 }
 function lockShowOverlay(){
   lockMsgShow('');
+  const mob = lockIsMobileDevice();
   const fp = $('#lockFpBtn');
   if (fp){
     fp.disabled = false;
-    fp.textContent = LOCK.credId ? '👆 지문으로 열기' : '백업 PIN으로 열기';
+    fp.textContent = LOCK.credId ? (mob ? '👆 지문으로 열기' : '👆 생체인증(Windows Hello)으로 열기') : 'PIN으로 열기';
   }
   const pin = $('#lockPin'); if (pin) pin.value = '';
   const sub = $('#lockSub');
-  if (sub) sub.textContent = LOCK.credId ? '가계부를 열려면 지문이나 백업 PIN이 필요해요'
-                                         : '등록된 지문이 없어요 — 백업 PIN을 넣어 주세요';
+  if (sub) sub.textContent = LOCK.credId ? '가계부를 열려면 생체인증이나 PIN이 필요합니다'
+                                         : '이 기기에는 생체인증이 등록되지 않았습니다 — PIN을 넣어 주세요';
   document.documentElement.classList.add('lock-pending');
 }
 function lockHideOverlay(){
@@ -5254,7 +5260,8 @@ function lockHideOverlay(){
   try { sessionStorage.setItem(LOCK_SESSION, '1'); } catch(e){}
 }
 function lockApply(){
-  if (LOCK.on && lockIsMobileDevice()){
+  /* 폰·PC 공통 — 잠금이 켜져 있으면 어느 기기에서든 잠금 화면을 먼저 띄웁니다 (2026-11-26) */
+  if (LOCK.on && LOCK.hash){
     if (sessionStorage.getItem(LOCK_SESSION) === '1'){ document.documentElement.classList.remove('lock-pending'); return; }
     lockShowOverlay();
   } else {
@@ -5262,7 +5269,7 @@ function lockApply(){
   }
 }
 function lockNow(){
-  if (!LOCK.on){ toast('먼저 모바일 잠금을 켜 주세요'); return; }
+  if (!LOCK.on){ toast('먼저 설정 → 화면 잠금에서 잠금을 켜 주세요'); return; }
   try { sessionStorage.removeItem(LOCK_SESSION); } catch(e){}
   lockShowOverlay();
   const i = $('#lockPin'); if (i && !LOCK.credId) i.focus();
@@ -5290,34 +5297,34 @@ async function lockTryFingerprint(){
   else lockMsgShow('지문 인증을 마치지 못했습니다 — 다시 하거나 백업 PIN을 넣어 주세요');
 }
 
-/* ---------- 설정 → 모바일 잠금 탭 ---------- */
+/* ---------- 설정 → 화면 잠금 탭 ---------- */
 function lockFootHtml(){ return '<button class="btn ghost" id="lockCancel">닫기</button><div class="spacer"></div>'; }
 function lockTabHtml(){
   const on = LOCK.on;
   const fp = !!LOCK.credId;
-  const head = '<p class="sec-desc">폰에서 이 가계부를 열 때 지문이나 백업 PIN을 먼저 확인합니다. 설정은 <b>이 브라우저(기기)에만</b> 적용되고, PC에서는 잠금 화면 없이 바로 열립니다.</p>'+
-    '<div class="lockstat' + (on ? ' on' : '') + '"><span class="dot"></span><span class="t">모바일 지문 잠금</span>'+
-    '<span class="v">' + (on ? (fp ? '켜짐 · 지문 등록됨' : '켜짐 · PIN만') : '꺼짐') + '</span></div>';
-  const foot = '<p class="locknote">백업 PIN은 SHA-256 해시만 저장하고 원래 숫자는 남기지 않습니다. 지문은 이 기기의 잠금(생체인증) 기능을 그대로 쓰며 어디에도 보내지 않습니다.</p>';
+  const head = '<p class="sec-desc">이 가계부를 열 때 폰·PC 모두 PIN(또는 등록한 생체인증)을 먼저 확인합니다. 켬/끔과 PIN 해시는 동기화되어 같은 PIN으로 어느 기기에서든 열 수 있고, 지문·Windows Hello는 기기마다 따로 등록합니다.</p>'+
+    '<div class="lockstat' + (on ? ' on' : '') + '"><span class="dot"></span><span class="t">화면 잠금 (PIN · 지문)</span>'+
+    '<span class="v">' + (on ? (fp ? '켜짐 · 생체인증 등록됨' : '켜짐 · PIN만') : '꺼짐') + '</span></div>';
+  const foot = '<p class="locknote">PIN은 SHA-256 해시와 salt만 저장하고 원래 숫자는 남기지 않으며, 해시만 동기화 저장소(settings.json)에 올립니다. 지문·Windows Hello는 이 기기의 생체인증 기능을 그대로 쓰고 기기 밖으로 내보내지 않습니다.</p>';
   if (!on){
     return head +
-      '<div class="sec-title">백업 PIN 정하기</div>'+
+      '<div class="sec-title">PIN 정하기</div>'+
       '<div class="lockrow"><input id="lockPinNew" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="숫자 4~6자리">'+
         '<button class="btn primary" data-lockact="enable">잠금 켜기</button></div>'+
-      '<p class="locknote">켜면 바로 지문 등록을 시도합니다(이 기기가 지원하면). 지문을 등록하지 못해도 백업 PIN으로 열 수 있습니다.</p>'+
+      '<p class="locknote">켜면 이 기기에서 생체인증(지문·Windows Hello) 등록을 시도합니다(지원하는 기기만). 등록하지 못해도 PIN으로 열 수 있습니다.</p>'+
       foot;
   }
   return head +
-    '<div class="sec-title">백업 PIN 바꾸기</div>'+
+    '<div class="sec-title">PIN 바꾸기</div>'+
     '<div class="lockrow"><input id="lockPinCur" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="지금 PIN">'+
       '<input id="lockPinNew" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="새 PIN 4~6자리">'+
       '<button class="btn" data-lockact="pinchange">PIN 바꾸기</button></div>'+
     '<div class="lockacts">'+
-      '<button class="btn ghost" data-lockact="fp">' + (fp ? '지문 다시 등록' : '지문 등록') + '</button>'+
+      '<button class="btn ghost" data-lockact="fp">' + (fp ? '생체인증 다시 등록' : '생체인증 등록') + '</button>'+
       '<button class="btn ghost" data-lockact="locknow">🔒 지금 잠그기</button>'+
       '<button class="btn danger" data-lockact="disable">잠금 끄기</button>'+
     '</div>'+
-    '<p class="locknote">' + (fp ? '지문을 다시 등록하면 예전 지문은 이 가계부에서 쓰이지 않습니다.' : '이 기기에서 지문을 등록하지 못했습니다 — 백업 PIN으로 열 수 있습니다.') + '</p>'+
+    '<p class="locknote">' + (fp ? '다시 등록하면 예전 생체인증은 이 기기에서 쓰이지 않습니다.' : '이 기기에서는 생체인증을 등록하지 못했습니다 — PIN으로 열 수 있습니다.') + '</p>'+
     foot;
 }
 let lockTabBound = false;   /* 설정 창을 다시 그려도 클릭 리스너는 한 번만 (중복 실행 방지) */
@@ -5338,8 +5345,10 @@ function bindLockTab(){
       LOCK.salt = lockRand(16);
       LOCK.hash = await lockHashPin(pin, LOCK.salt);
       LOCK.on = true; LOCK.pinAt = nowIso(); LOCK.credId = ''; LOCK.credAt = '';
-      lockSave(); renderModal();
-      toast('모바일 잠금을 켰습니다 · 이 기기 지문을 등록해 볼게요');
+      lockSave();
+      try { markSettingsDirty(); } catch(e){}     /* PIN 해시를 settings.json 으로 동기화 (2026-11-26) */
+      renderModal();
+      toast('화면 잠금을 켰습니다 · 이 기기에서는 지문/Windows Hello 등록을 시도합니다');
       const ok = await lockRegisterFingerprint(true);
       toast(ok ? '지문도 등록했습니다 — 다음부터 지문으로 열 수 있어요'
                : '지문은 등록하지 못했습니다 — 백업 PIN으로 열 수 있습니다');
@@ -5362,8 +5371,10 @@ function bindLockTab(){
       if (h !== LOCK.hash){ toast('지금 PIN이 맞지 않습니다'); return; }
       LOCK.salt = lockRand(16);
       LOCK.hash = await lockHashPin(pin, LOCK.salt);
-      LOCK.pinAt = nowIso(); lockSave(); renderModal();
-      toast('백업 PIN을 바꿨습니다');
+      LOCK.pinAt = nowIso(); lockSave();
+      try { markSettingsDirty(); } catch(e){}
+      renderModal();
+      toast('PIN을 바꿨습니다 · 다른 기기도 같은 PIN으로 열립니다');
       return;
     }
     if (act === 'disable'){
@@ -5373,10 +5384,11 @@ function bindLockTab(){
       if (h !== LOCK.hash){ toast('PIN이 맞지 않습니다'); return; }
       LOCK.on = false; LOCK.hash = ''; LOCK.salt = ''; LOCK.credId = ''; LOCK.credAt = ''; LOCK.pinAt = '';
       lockSave();
+      try { markSettingsDirty(); } catch(e){}
       try { sessionStorage.setItem(LOCK_SESSION, '1'); } catch(e){}
       document.documentElement.classList.remove('lock-pending');
       renderModal();
-      toast('모바일 잠금을 껐습니다');
+      toast('화면 잠금을 껐습니다');
       return;
     }
     if (act === 'locknow'){
@@ -7052,7 +7064,7 @@ async function pushMonth(month){
     throw err;
   }
 }
-function settingsSnapshot(){
+function settingsSnapshot(remoteJson){
   const colors = {}, cats = [];
   S.categories.forEach(c=>{ cats.push(c.name); if (c.color) colors[c.name] = c.color; });
   const snap = {v:1, limits:Object.assign({}, LIMITS), limitFormula:Object.assign({}, LIMIT_FORMULA), mileageGoal:(MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT),
@@ -7060,6 +7072,14 @@ function settingsSnapshot(){
                 hlPresets:HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
                 hlRetired:Object.assign({}, HL.retired),
                 updatedAt: OUTBOX.settingsAt || nowIso()};
+  /* 화면 잠금 — 이 기기에 설정 기록이 있을 때만 싣고, 없으면 원격 값을 그대로 보존합니다 (2026-11-26) */
+  if (LOCK.updatedAt){
+    snap.lockEnabled = !!LOCK.on; snap.lockPinHash = LOCK.hash || '';
+    snap.lockSalt = LOCK.salt || ''; snap.lockUpdatedAt = LOCK.updatedAt || '';
+  } else if (remoteJson && remoteJson.lockUpdatedAt){
+    snap.lockEnabled = !!remoteJson.lockEnabled; snap.lockPinHash = String(remoteJson.lockPinHash || '');
+    snap.lockSalt = String(remoteJson.lockSalt || ''); snap.lockUpdatedAt = String(remoteJson.lockUpdatedAt || '');
+  }
   OUTBOX.settingsAt = snap.updatedAt;
   return snap;
 }
@@ -7068,7 +7088,7 @@ async function pushSettings(){
   const path = settingsPath(g);
   let remote = await ghGetFileObj(path);
   for (let attempt = 0; attempt < 2; attempt++){
-    const snap = settingsSnapshot();
+    const snap = settingsSnapshot(remote && remote.json);
     if (remote && remote.json && remote.json.updatedAt && Date.parse(remote.json.updatedAt) > Date.parse(snap.updatedAt)){
       /* 원격이 더 최신이면 그쪽을 받아들입니다 */
       applyRemoteSettings(remote.json);
@@ -7151,6 +7171,22 @@ function applyRemoteSettings(p){
         });
       }
       hlSave(); hlPruneFilters(); changed++;
+    }
+  }
+  /* 화면 잠금 — 더 나중에 바꾼 쪽(lockUpdatedAt)을 따릅니다. PIN 해시·salt만 오가고 지문(credId)은 기기별 (2026-11-26) */
+  if (p.lockUpdatedAt){
+    const rLockAt = Date.parse(p.lockUpdatedAt) || 0;
+    const lLockAt = Date.parse(LOCK.updatedAt) || 0;
+    if (rLockAt > lLockAt){
+      const nextOn = !!p.lockEnabled && !!p.lockPinHash;
+      LOCK.on = nextOn;
+      LOCK.hash = nextOn ? String(p.lockPinHash) : '';
+      LOCK.salt = nextOn ? String(p.lockSalt || '') : '';
+      LOCK.updatedAt = String(p.lockUpdatedAt);
+      if (!nextOn){ LOCK.credId = ''; LOCK.credAt = ''; }   /* 잠금을 끄면 이 기기 생체인증도 함께 해제 */
+      lockSaveRemote();
+      changed++;
+      try { lockApply(); } catch(e){ document.documentElement.classList.remove('lock-pending'); }
     }
   }
   OUTBOX.settingsAt = p.updatedAt;
@@ -12348,7 +12384,7 @@ window.addEventListener('keydown', ev=>{
   loadSyncConfig();
   loadOutbox();
   dtlLoad();   /* 상세내역 📌 틀고정·필터 접힘 기본값 (2026-11-26) */
-  lockLoad();  /* 모바일 지문 잠금 설정 (2026-11-26) */
+  lockLoad();  /* 화면 잠금 설정 (2026-11-26) */
   seedCarryBudgetDefault();   /* 첫 달 우리은행 이월금 예산 51,886원 — 저장·동기화 (2026-11-25) */
   migrateCategoryNames();   /* 엑셀 시드에 남은 예전 분류 이름도 새 이름으로 */
   if (PUBLIC_BUILD){
@@ -12367,7 +12403,7 @@ window.addEventListener('keydown', ev=>{
     if (!document.hidden && SYNC.urls.length && SYNC.autoOn) runSync(true);
   });
   if (!LS_OK) { /* storage blocked: still works in-memory */ }
-  lockApply();   /* 모바일에서 잠금이 켜져 있으면 잠금 화면을 유지 (2026-11-26) */
+  lockApply();   /* 잠금이 켜져 있으면 폰·PC 모두 잠금 화면을 유지 (2026-11-26) */
   window.__dashboardReady = true;
 })();
 </script>
