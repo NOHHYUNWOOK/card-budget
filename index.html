@@ -7514,7 +7514,8 @@ async function flushOutbox(quiet){
     SYNC.upErr = '올리기 실패: ' + (stats.error || (SYNC.readonly ? '읽기 전용 토큰' : '저장소에 올리지 못했습니다')) + (pendingCount() ? ' — 못 올린 변경 ' + pendingCount() + '건' : '');
     if (!SYNC.readonly){
       setSyncState('err', SYNC.upErr);
-      if (!quiet) toast('⚠ ' + SYNC.upErr, 6500);
+      /* 자동 푸시라도 이번 실패가 처음이면 토스트로도 알립니다 — 조용히 지나가지 않게 (2026-11-26) */
+      if (!quiet || upRetryN === 0) toast('⚠ ' + SYNC.upErr, 6500);
       /* 잠시 뒤 스스로 한 번 더 올려 봅니다 — 네트워크가 잠깐 끊긴 경우 (화면당 최대 2번) (2026-11-26) */
       if (upRetryN < 2){
         upRetryN++;
