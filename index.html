@@ -4274,9 +4274,68 @@ function renderTrend(rows, sum){
 /* ============================================================
    TABLE
    ============================================================ */
+/* ============================================================
+   같은 날짜 안의 시간 순서 (2026-11-26 보강)
+   · 날짜 자체는 r.date 가 정하고, 같은 날짜 안에서 어느 쪽이 더 최근인지는 이 시각으로 가립니다.
+   · 11/26 11:01 이 11/26 14:47 보다 위에 있던 문제를 고칩니다 — 시각이 더 최근인 내역이 늘 위입니다.
+   ============================================================ */
+/* 행의 거래 시각 — r.time 또는 memo 속 'HH:MM'(예: 'SMS자동전달 · 11/26 14:47' → 14:47)이 있으면
+   그 날 0시 기준 밀리초로 돌려주고, 시각 표기가 아예 없으면 null 을 돌려줍니다. */
+function rowClockScore(r){
+  if (!r) return null;
+  const base = Date.parse(String(r.date || '').slice(0, 10) + 'T00:00:00');
+  let hh = null, mm = null, m = String(r.time || '').match(/(\d{1,2}):(\d{2})/);
+  if (m){ hh = +m[1]; mm = +m[2]; }
+  if (hh === null){
+    const memo = String(r.memo || '');
+    m = memo.match(/\d{1,2}\s*[\/\.\-]\s*\d{1,2}\s+(\d{1,2}):(\d{2})/);   /* '11/26 14:47' 처럼 날짜 뒤 시각 */
+    if (!m) m = memo.match(/(\d{1,2}):(\d{2})/);
+    if (m){ hh = +m[1]; mm = +m[2]; }
+  }
+  if (hh === null || !(hh >= 0 && hh < 24) || !(mm >= 0 && mm < 60) || !base) return null;
+  return base + hh * 3600000 + mm * 60000;
+}
+/* 시간 비교용 보조 키 — 시각 표기가 있으면 그 시각, 없으면 등록 시각(createdAt)을 씁니다. */
+function rowTimeScore(r){
+  const c = rowClockScore(r);
+  if (c !== null) return c;
+  return Date.parse(String((r && r.createdAt) || '')) || 0;
+}
+/* order(끌어 정한 순서)가 있는 행의 기준 시각 — 그 행의 거래 시각이 있으면 그 시각,
+   없으면 순서를 정한 시각(orderAt), 그것도 없으면 등록 시각(createdAt)을 씁니다. */
+function orderAnchorScore(r){
+  const c = rowClockScore(r);
+  if (c !== null) return c;
+  return Date.parse(String(r.orderAt || '')) || Date.parse(String(r.createdAt || '')) || 0;
+}
+/* order 가 없는 새 행이 이 목록의 몇 번째 자리에 들어갈지 — 날짜가 더 최근인 행 위로는 올라가지 않고,
+   같은 날짜에서는 시각이 더 이른 행 앞에 섭니다(최신이 위). */
+function timePlaceIndex(seq, m){
+  const md = String(m.date || ''), mt = rowTimeScore(m);
+  for (let i = 0; i < seq.length; i++){
+    const s = seq[i], sd = String(s.date || '');
+    if (sd > md) continue;                 /* 더 최근 날짜 행은 늘 위 */
+    if (sd < md) return i;                 /* 더 오래된 날짜 행 앞이 m 자리 */
+    const st = hasOrder(s) ? orderAnchorScore(s) : rowTimeScore(s);
+    if (st < mt) return i;                 /* 같은 날짜에서 시각이 더 이른 행 앞으로 */
+  }
+  return seq.length;
+}
+/* 한 달 안의 표시 순서 — 끌어 정한 행은 order 그대로(상대 순서 유지), 새 행은 날짜·시각 자리에 끼워 넣습니다.
+   그 달에 정한 순서가 하나도 없으면 null(날짜·시각 내림차순이 화면 순서). */
+function monthSequence(list){
+  const ordered = list.filter(hasOrder).sort((a,b)=> a.order - b.order);
+  const missing = list.filter(r=> !hasOrder(r));
+  if (!ordered.length) return null;
+  const seq = ordered.slice();
+  missing.slice()
+    .sort((a,b)=> String(a.date || '').localeCompare(String(b.date || '')) || (rowTimeScore(a) - rowTimeScore(b)))
+    .forEach(m=>{ seq.splice(timePlaceIndex(seq, m), 0, m); });
+  return seq;
+}
 /* 수동 순서(manual) 보기에서 쓸 표시 키 (2026-11-26 보강)
    · order 가 있는 행은 그 값을 그대로 씁니다 → 사용자가 끌어 정한 행끼리의 상대 순서는 늘 그대로입니다.
-   · 아직 order 가 없는 행(동기화·카드사 메일·직접 추가로 새로 들어온 건)은 같은 달의 날짜 위치에
+   · 아직 order 가 없는 행(동기화·카드사 메일·직접 추가로 새로 들어온 건)은 같은 달의 날짜·시각 위치에
      끼워 넣은 가상값을 씁니다. 그래서 최신 결제가 목록 맨 아래로 밀리지 않고 날짜 자리(맨 위)에 보입니다.
    · order 를 새로 써 넣지는 않습니다(보기만) — 저장된 순서·다른 기기 자료는 건드리지 않습니다. */
 function manualOrderKeys(rows){
@@ -4287,22 +4346,18 @@ function manualOrderKeys(rows){
     byMonth.get(m).push(r);
   });
   byMonth.forEach(list=>{
-    const ordered = list.filter(hasOrder).sort((a,b)=> a.order - b.order);
-    const missing = list.filter(r=> !hasOrder(r));
-    if (!ordered.length){
-      /* 그 달에 아직 정한 순서가 없으면 날짜 내림차순(최신이 위)이 화면 순서입니다 */
-      list.slice().sort((a,b)=> a.date !== b.date ? (a.date < b.date ? 1 : -1) : (b.amount - a.amount))
-        .forEach((r,i)=> out.set(r, i));
+    const seq = monthSequence(list);
+    if (!seq){
+      /* 그 달에 아직 정한 순서가 없으면 날짜 내림차순(최신이 위) · 같은 날짜는 시각 최신 순 */
+      list.slice().sort((a,b)=>{
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        const ta = rowTimeScore(a), tb = rowTimeScore(b);
+        if (ta !== tb) return tb - ta;
+        return b.amount - a.amount;
+      }).forEach((r,i)=> out.set(r, i));
       return;
     }
-    if (!missing.length){ ordered.forEach(r=> out.set(r, r.order)); return; }
-    /* order 가 있는 행들 사이에 새 행을 날짜 위치로 끼워 넣습니다 — 날짜가 더 최신이면 그 위 자리로 */
-    const seq = ordered.slice();
-    missing.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date))).forEach(m=>{
-      let at = seq.length;
-      for (let i = 0; i < seq.length; i++){ if (String(seq[i].date) < String(m.date)){ at = i; break; } }
-      seq.splice(at, 0, m);
-    });
+    if (!list.some(r=> !hasOrder(r))){ list.filter(hasOrder).forEach(r=> out.set(r, r.order)); return; }
     let prev = null;
     seq.forEach((r, i)=>{
       if (hasOrder(r)){ prev = r.order; out.set(r, r.order); return; }
@@ -4319,9 +4374,27 @@ function manualOrderKeys(rows){
   });
   return out;
 }
+/* 날짜 보기에서 같은 날짜 안의 순서 — 수동 보기와 같은 규칙(끌어 정한 순서 + 새 행의 시각 자리)을 씁니다. */
+function sameDateRank(rows){
+  const out = new Map(), byDay = new Map();
+  rows.forEach(r=>{
+    const k = String(r.month || '') + '|' + String(r.date || '');
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(r);
+  });
+  byDay.forEach(list=>{
+    const seq = monthSequence(list) || list.slice().sort((a,b)=>{
+      const ta = rowTimeScore(a), tb = rowTimeScore(b);
+      if (ta !== tb) return tb - ta;
+      return b.amount - a.amount;
+    });
+    seq.forEach((r,i)=> out.set(r, i));
+  });
+  return out;
+}
 function sortRows(rows){
   /* 편집 모드에서 끌어 정한 순서(manual) — 그 달 안에서 order 값 순서대로, 결제월은 최근 달부터.
-     order 가 없는 새 행은 날짜 위치에 끼워 넣어 최신 결제가 맨 위에 오게 합니다(manualOrderKeys). */
+     order 가 없는 새 행은 날짜·시각 위치에 끼워 넣어 최신 결제가 맨 위에 오게 합니다(manualOrderKeys). */
   if (S.ui.sortKey === 'manual'){
     const keys = manualOrderKeys(rows);
     const ord = r => keys.has(r) ? keys.get(r) : (hasOrder(r) ? r.order : Number.MAX_SAFE_INTEGER);
@@ -4331,24 +4404,21 @@ function sortRows(rows){
       const oa = ord(a), ob = ord(b);
       if (oa !== ob) return oa - ob;
       if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      const ta = rowTimeScore(a), tb = rowTimeScore(b);
+      if (ta !== tb) return tb - ta;
       return b.amount - a.amount;
     });
   }
   const k = S.ui.sortKey, dir = S.ui.sortDir === 'asc' ? 1 : -1;
+  const ranks = sameDateRank(rows);
   return rows.slice().sort((a,b)=>{
     if (k === 'amount') return (a.amount - b.amount) * dir;
     const da = a.date, db = b.date;
     if (da !== db) return (da < db ? -1 : 1) * dir;
-    /* 같은 날짜 — order(캡처 이미지 위→아래 순서 · 편집 모드에서 끌어 정한 순서)를 먼저 따릅니다.
-       order 가 없는 건(카드사 동기화·메일로 방금 들어온 내역)은 같은 날짜 안에서 맨 위로 둡니다 —
-       새로 들어온 결제가 기존 내역에 묻혀 아래로 밀리지 않게요(2026-11-26). */
-    const oa = hasOrder(a) ? a.order : null, ob = hasOrder(b) ? b.order : null;
-    if (oa !== null || ob !== null){
-      if (oa === null) return -1;
-      if (ob === null) return 1;
-      if (oa !== ob) return oa - ob;
-      return 0;
-    }
+    /* 같은 날짜 — 끌어 정한 순서(order)와 새 행의 시각(최신 위)으로 자리를 정합니다.
+       order 가 있는 행끼리는 order 그대로, 새 행은 시각이 더 최근이면 그 행 위로 올라갑니다(2026-11-26). */
+    const ra = ranks.get(a) || 0, rb = ranks.get(b) || 0;
+    if (ra !== rb) return ra - rb;
     return (b.amount - a.amount) * dir;
   });
 }
@@ -4736,12 +4806,10 @@ function materializeMonthOrder(month, force){
   } else {
     seq = ordered.slice();
     /* 날짜가 같은 여러 건이 한 번에 들어와도(캡처·동기화) 서로 뒤집히지 않게
-       같은 날짜 안에서는 들어온 순서를 그대로 두고, 이미 순서가 있는 같은 날짜 행 뒤에 붙입니다. */
-    missing.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date))).forEach(m=>{
-      let at = seq.length;
-      for (let i = 0; i < seq.length; i++){ if (String(seq[i].date) < String(m.date)){ at = i; break; } }
-      seq.splice(at, 0, m);
-    });
+       같은 날짜 안에서는 거래 시각이 최신인 건이 위로 오고, 이미 순서가 있는 같은 날짜 행 뒤에 붙습니다. */
+    missing.slice()
+      .sort((a,b)=> String(a.date || '').localeCompare(String(b.date || '')) || (rowTimeScore(a) - rowTimeScore(b)))
+      .forEach(m=>{ seq.splice(timePlaceIndex(seq, m), 0, m); });
   }
   const t = nowIso();
   seq.forEach((r, k)=>{
