@@ -1110,29 +1110,30 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
 .ksum .kbox-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .ksum .bdg{font-size:12px;font-weight:800;letter-spacing:-.01em;border-radius:8px;padding:4px 10px;line-height:1.15;white-space:nowrap}
 .ksum .bdg.a{background:#e4f5ec;color:#0f7a42}
-.ksum .krows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 18px}
+.ksum .krows{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 18px}
 .ksum .krow{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ksum .krow.out,.ksum .krow.bal{border-left:1px solid #eaf0f7;padding-left:18px}
-.ksum .krow .k{font-size:12px;font-weight:700;color:#5b6473;letter-spacing:-.01em}
-.ksum .krow .v{font-size:24px;font-weight:780;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ksum .krow.out,.ksum .krow.net,.ksum .krow.bal{border-left:1px solid #eaf0f7;padding-left:18px}
+.ksum .krow .k{font-size:12px;font-weight:700;color:#5b6473;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ksum .krow .v{font-size:24px;font-weight:780;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 .ksum .krow .v small{font-size:12.5px;font-weight:700;color:#475467;margin-left:1px;letter-spacing:0}
-.ksum .krow.in .v{color:#0f7a42}
-.ksum .krow.out .v{color:#1f2937}
-.ksum .krow.bal .v{color:#1d4ed8}
 .ksum .krow .d{font-size:12px;font-weight:750;color:#38445a;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:1px;word-break:keep-all}
+/* 비교 문구 색 — +(파랑) −(빨강) 0·자료없음 기본색 (2026-11-26) */
+.ksum .krow .d.up{color:#1d4ed8}
+.ksum .krow .d.down{color:#d92d20}
+.ksum .krow .d.none{color:#98a2b3;font-weight:650}
 .ksum-note{font-size:11.5px;color:#475467;line-height:1.5;margin-top:9px;font-weight:600;word-break:keep-all}
-/* 폴드 펼친·태블릿 폭(640~1023px): 3열 유지, 여백·글자를 한 단계 조여 좁은 폭에 맞춤 */
+/* 폴드 펼친·태블릿 폭(640~1023px): 4열 유지, 여백·글자를 한 단계 조여 좁은 폭에 맞춤 */
 @media (min-width:640px) and (max-width:1023px){
   .ksum .kbox{padding:12px 15px 14px;border-radius:15px}
-  .ksum .krows{gap:4px 14px}
-  .ksum .krow.out,.ksum .krow.bal{padding-left:14px}
-  .ksum .krow .k{font-size:11.5px}
-  .ksum .krow .v{font-size:21px}
-  .ksum .krow .v small{font-size:11.5px}
-  .ksum .krow .d{font-size:11px}
+  .ksum .krows{gap:4px 12px}
+  .ksum .krow.out,.ksum .krow.net,.ksum .krow.bal{padding-left:12px}
+  .ksum .krow .k{font-size:11px}
+  .ksum .krow .v{font-size:17px}
+  .ksum .krow .v small{font-size:10.5px}
+  .ksum .krow .d{font-size:10.5px}
   .ksum-note{font-size:11px;line-height:1.5;margin-top:8px}
 }
-/* 폴드 닫힘·모바일(<=639px): 총 수입 | 총 지출 2열 한 줄 + 총 잔액 한 줄로 압축 */
+/* 폴드 닫힘·모바일(<=639px): 총 수입 | 총 지출 / 수입−지출 | 총 계좌잔액 2×2 */
 @media (max-width:639px){
   .ksum .kbox{padding:11px 12px 12px;border-radius:13px}
   .ksum .kbox-h{margin-bottom:8px}
@@ -1140,7 +1141,8 @@ body[data-view="card"] .cv-bank,body[data-view="card"] .cv-settle{display:none!i
   .ksum .krows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
   .ksum .krow{gap:2px}
   .ksum .krow.out{padding-left:10px}
-  .ksum .krow.bal{grid-column:1 / -1;border-left:0;border-top:1px dashed #e8edf6;padding-left:0;padding-top:8px}
+  .ksum .krow.net{border-left:0;padding-left:0;border-top:1px dashed #e8edf6;padding-top:8px}
+  .ksum .krow.bal{padding-left:10px;border-top:1px dashed #e8edf6;padding-top:8px}
   .ksum .krow .k{font-size:11px;font-weight:700}
   .ksum .krow .v{font-size:16.5px;font-weight:760;line-height:1.2}
   .ksum .krow .v small{font-size:10.5px}
@@ -8940,24 +8942,38 @@ function renderBankSummary(){
      · 실행 잔액 = 계좌별 잔액 그대로(우리은행 + 토스 입출금 + 토스 모으기 3계좌 합) — 기존 '현재 총 잔액'
      · 예산 잔액 = 실행 잔액에 예산과 실행의 수입·지출 차이를 되돌린 값 (예산대로였다면 남았을 돈)
      → 세 가지 '예산 대비 차이'(수입·지출·잔액)가 서로 맞아떨어집니다. */
-  const execBal = bal;
+  const execBal = bal;                                  /* 총 계좌잔액 — 계좌별 잔액 그대로(3계좌 합) */
   const budBal = execBal + (budInc - act.inc) - (budExp - act.exp);
   const dInc = act.inc - budInc, dExp = act.exp - budExp, dBal = execBal - budBal;
+  /* 수입 − 지출 — 실행과 예산을 같은 방식으로 계산해 차이를 냅니다 (2026-11-26) */
+  const netAct = act.inc - act.exp, netBud = budInc - budExp, dNet = netAct - netBud;
+  /* 총 계좌잔액의 비교는 예산이 아니라 전월 — 직전 달에 자료가 있을 때만 */
+  const prevM = ymShift(month, -1);
+  const prevDoc = BANK.months[prevM];
+  const prevHas = !yMode && !!prevDoc && Array.isArray(prevDoc.rows) && prevDoc.rows.length > 0;
+  const prevBal = prevHas ? bankTotals(prevM).bal : null;
+  const dPrev = prevBal == null ? null : execBal - prevBal;
   const won = (v, plus)=> (v < 0 ? '−' : (plus && v > 0 ? '+' : '')) + fmt(Math.abs(v)) + '<small>원</small>';
   const diffTxt = (v)=> '예산 대비 ' + (v === 0 ? '0원' : (v > 0 ? '+' : '−') + fmt(Math.abs(v)) + '원');
+  /* 비교 문구 색 — +(많이) 파랑 · −(적게) 빨강 · 0·자료없음 기본색 (2026-11-26) */
+  const dCls = v => v == null ? ' none' : (v > 0 ? ' up' : (v < 0 ? ' down' : ''));
   const krow = (cls, label, val, diff, tip)=> '<div class="krow ' + cls + '">' +
       '<span class="k">' + label + '</span>' +
       '<span class="v">' + val + '</span>' +
-      (diff != null ? '<span class="d" title="' + esc(tip || '실행 − 예산') + '">' + diff + '</span>' : '') +
+      (diff != null ? '<span class="d' + (diff.cls || '') + '" title="' + esc(tip || '실행 − 예산') + '">' + diff.txt + '</span>' : '') +
     '</div>';
-  /* 실행 박스 하나 — 총 수입·총 지출·총 잔액을 3열 한 줄로 두고, 각 금액 아래에 '예산 대비' 차이를 작게 (2026-11-25 요청) */
+  /* 실행 박스 하나 — 총 수입 · 총 지출 · 수입−지출 · 총 계좌잔액 네 칸 (2026-11-26)
+     금액은 모두 검정, 아래 비교 문구만 +(파랑) −(빨강)으로 색을 줍니다. */
   el.innerHTML =
     '<div class="ksum">' +
-      '<section class="kbox act" aria-label="실행 기준 총 수입·총 지출·총 잔액">' +
+      '<section class="kbox act" aria-label="실행 기준 총 수입·총 지출·수입−지출·총 계좌잔액">' +
         '<div class="krows">' +
-          krow('in', '총 수입', won(act.inc, true), diffTxt(dInc), '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −') +
-          krow('out', '총 지출', won(-act.exp), diffTxt(dExp), '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −') +
-          krow('bal', '총 잔액', won(execBal), diffTxt(dBal), '잔액: 예산보다 많이 남은 만큼 +, 적게 남은 만큼 −') +
+          krow('in', '총 수입', won(act.inc, true), {txt: diffTxt(dInc), cls: dCls(dInc)}, '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −') +
+          krow('out', '총 지출', won(-act.exp), {txt: diffTxt(dExp), cls: dCls(dExp)}, '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −') +
+          krow('net', '수입 - 지출', won(netAct, true), {txt: diffTxt(dNet), cls: dCls(dNet)}, '(수입−지출) 실행 − (수입−지출) 예산') +
+          krow('bal', '총 계좌잔액', won(execBal),
+            {txt: dPrev == null ? '전월 데이터 없음' : ('전월 대비 ' + (dPrev === 0 ? '0원' : (dPrev > 0 ? '+' : '−') + fmt(Math.abs(dPrev)) + '원')),
+             cls: dCls(dPrev)}, '전월 총 계좌잔액 대비 증감') +
         '</div>' +
       '</section>' +
     '</div>' +
