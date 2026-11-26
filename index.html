@@ -391,6 +391,26 @@ button.lim-item:active{transform:scale(.99)}
 /* 붙었을 때만 아래 경계를 드리웁니다 — 높이가 변하지 않도록 그림자로만 */
 .dtl-fix.stuck{box-shadow:0 1px 0 var(--line),0 10px 18px -12px rgba(16,24,40,.30)}
 .table-card thead th{top:calc(var(--hdr,72px) + var(--dtlH,0px));z-index:15;background:#fafbfd}
+/* 2026-11-26 — 제목 옆 도구: 자물쇠 + 📌 틀고정 토글 + 필터 접기 */
+.dtl-tools{display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:-4px}
+.dtlbtn{display:inline-flex;align-items:center;justify-content:center;gap:3px;height:27px;padding:0 8px;
+  border:1px solid #e2e7f0;background:#fff;color:#6b7280;border-radius:9px;font:inherit;font-size:12px;
+  font-weight:750;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+.dtlbtn:hover{border-color:#c3cddd;background:#f7f9fc;color:#374151}
+.dtlbtn:active{transform:scale(.97)}
+.dtlbtn .car{font-size:9px;color:#a8afbc;line-height:1}
+.dtlbtn b{font-weight:800}
+.dtlbtn.pinbtn{width:27px;padding:0;font-size:13px;line-height:1}
+.dtlbtn.pinbtn[aria-pressed="true"]{border-color:#9dbcf7;background:#eef4ff;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+.dtlbtn.pinbtn[aria-pressed="false"]{filter:grayscale(1);opacity:.45}
+.dtlbtn.filtbtn.on{border-color:#b9cdf7;background:#f2f7ff;color:#1d4ed8}
+.dtlbtn.filtbtn.on b{color:#1d4ed8}
+/* 필터 접기 — 검색창·필터 칩 상자를 통째로 접습니다 */
+.dtl-fold.folded{display:none}
+/* 📌 꺼짐 — 머리·표 헤더행이 스크롤과 함께 자연스럽게 올라갑니다 */
+.table-card.nopin .dtl-fix{position:static}
+.table-card.nopin .dtl-fix.stuck{box-shadow:none}
+.table-card.nopin thead th{position:static;top:auto}
 /* ---------- detail panel filters (카드사 버튼 · 분류 칩: 이름만) ---------- */
 .detail-search{padding:10px 16px 9px}
 .detail-search .searchwrap{flex:none;min-width:0}
@@ -620,12 +640,13 @@ body.editmode tbody tr.dragging td{border-bottom-color:transparent}
 .qedit:hover{background:#eef4ff;border-color:#b9cdf7;color:#1d4ed8}
 tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:#f7faff}
 .rowedit-box{display:grid;gap:8px 10px;padding:11px 12px 12px;
-  grid-template-areas:"date amount" "merchant merchant" "act act";grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  grid-template-areas:"date amount" "merchant merchant" "memo memo" "act act";grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .rowedit-box .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
 .rowedit-box .fld > span{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.01em}
 .rowedit-box .fld.date{grid-area:date}
 .rowedit-box .fld.merchant{grid-area:merchant}
 .rowedit-box .fld.amount{grid-area:amount;position:relative}
+.rowedit-box .fld.memo{grid-area:memo}
 .rowedit-box .fld.amount input{padding-right:26px;text-align:right;font-variant-numeric:tabular-nums}
 .rowedit-box .fld.amount i{position:absolute;right:10px;bottom:8px;font-style:normal;font-size:12px;color:var(--muted)}
 .rowedit-box input{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:14px;
@@ -634,7 +655,7 @@ tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:
 .rowedit-act{grid-area:act;display:flex;gap:6px;justify-content:flex-end;align-items:center}
 .rowedit-act .btn{padding:6px 11px;font-size:12.5px;border-radius:9px}
 @media (min-width:720px){
-  .rowedit-box{grid-template-areas:"date merchant amount act";
+  .rowedit-box{grid-template-areas:"date merchant amount act" "memo memo memo act";
     grid-template-columns:150px minmax(0,1fr) 148px auto;align-items:end}
   .rowedit-act{padding-bottom:1px}
 }
@@ -929,7 +950,9 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   tbody td{border:0;padding:0}
   td.merchant{grid-area:n;max-width:none}
   td.merchant .nm{font-size:14px}
-  td.merchant .memo{display:none}
+  /* 모바일 카드형 목록 — 비고가 있으면 가맹점 이름 아래에 두 줄까지 보여 줍니다 (2026-11-26) */
+  td.merchant .memo{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+    white-space:normal;font-size:11.5px;line-height:1.35;margin-top:2px;overflow:hidden}
   td.amount{grid-area:a;text-align:right;font-size:14px}
   td.date{grid-area:d;font-size:11.5px}
   td.date .date-full{display:none}
@@ -942,7 +965,7 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .table-scroll{overflow-x:visible}
   .table-card .card-head{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px}
   .table-card .card-head h2{grid-column:1;grid-row:1}
-  .table-card .card-head .lockslot{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
+  .table-card .card-head .dtl-tools{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
   .table-card .card-head .head-actions{grid-column:3;grid-row:1;justify-self:end}
   .table-card .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0;text-align:left;line-height:1.4}
   /* 편집 모드: 행 왼쪽에 드래그 핸들 + 선택 칸, 오른쪽 위에 바로 삭제 */
@@ -1586,7 +1609,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   body.editmode #bankTable td.bamt{grid-column:3}
   #bankDetailCard .card-head{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 8px}
   #bankDetailCard .card-head h2{width:auto;grid-column:1;grid-row:1}
-  #bankDetailCard .card-head .lockslot{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
+  #bankDetailCard .card-head .dtl-tools{grid-column:2;grid-row:1;justify-self:start;align-self:center;margin-left:2px}
   #bankDetailCard .card-head .hint{grid-column:1 / -1;grid-row:2;margin-left:0}
   #bankDetailCard .card-head .head-actions{margin-left:0;justify-content:flex-start;flex-wrap:wrap;width:100%;grid-column:1 / -1;grid-row:3}
   #bankDetailCard .card-head .head-actions .btn{padding:6px 10px;font-size:12px}
@@ -1655,10 +1678,81 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   .bchart .lg{padding:3px 2px}
   .bchart .lg .nm{max-width:none;flex:1 1 auto}
 }
+/* ---------- 모바일 지문 잠금 + 백업 PIN (2026-11-26) ---------- */
+html.lock-pending body{overflow:hidden}
+html.lock-pending main,html.lock-pending header.topbar,html.lock-pending footer.pagefoot{visibility:hidden}
+html.lock-pending #lockScreen{display:flex}
+.lockscreen{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:22px;
+  background:rgba(244,245,247,.9);-webkit-backdrop-filter:blur(14px) saturate(120%);backdrop-filter:blur(14px) saturate(120%)}
+.lockscreen-card{width:100%;max-width:344px;background:var(--card);border:1px solid var(--line);border-radius:22px;
+  box-shadow:0 18px 50px rgba(16,24,40,.18);padding:24px 20px 18px;text-align:center}
+.lockscreen .lg-badge{width:52px;height:52px;border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;
+  justify-content:center;font-size:23px;background:linear-gradient(135deg,#2f6fed,#7c3aed);color:#fff}
+.lockscreen h2{font-size:17px;margin-bottom:4px}
+.lockscreen .sub{font-size:12.5px;color:var(--ink2);margin:0 0 16px;line-height:1.5}
+.lockscreen .fpbtn{width:100%;min-height:46px;font-size:14.5px;border-radius:12px}
+.lockscreen .or{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:11.5px;color:var(--muted)}
+.lockscreen .or::before,.lockscreen .or::after{content:'';flex:1;height:1px;background:var(--line)}
+.lockscreen-pinrow{display:flex;gap:6px}
+.lockscreen-pinrow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:15px;
+  letter-spacing:.2em;text-align:center;background:#fafbfd}
+.lockscreen-pinrow input:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft);background:#fff}
+.lockscreen-pinrow .btn{flex:none;min-height:42px}
+.lockscreen-msg{min-height:16px;margin-top:9px;font-size:11.5px;color:#b42318;font-weight:650;line-height:1.4}
+.lockscreen-msg.ok{color:#0f7a42}
+.lockscreen-note{margin:10px 0 0;font-size:11px;color:var(--muted);line-height:1.45}
+/* 설정 → 잠금 탭 */
+.lockstat{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fafbfd;margin-bottom:6px}
+.lockstat .dot{width:8px;height:8px;border-radius:50%;background:#c2c8d2;flex:none}
+.lockstat.on .dot{background:#12a150;box-shadow:0 0 0 3px rgba(18,161,80,.14)}
+.lockstat .t{font-size:13px;font-weight:750}
+.lockstat .v{margin-left:auto;font-size:11.5px;color:var(--ink2);font-weight:650}
+.lockrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:9px 0}
+.lockrow input{flex:1 1 130px;min-width:110px;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:14px;
+  letter-spacing:.14em;text-align:center;background:#fafbfd}
+.lockrow input:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft);background:#fff}
+.lockacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.locknote{font-size:11.5px;color:var(--ink2);line-height:1.5;margin:4px 0 0}
 </style>
+<script>
+/* 모바일 지문 잠금 — 본문이 그려지기 전에 잠금 상태를 먼저 가립니다 (2026-11-26).
+   실제 잠금 여부는 본문 스크립트가 한 번 더 확인합니다. */
+(function(){
+  try{
+    var keys = ['cardLedger.public.v1.lock', 'cardLedger.dashboard.v1.lock'], on = false;
+    for (var i = 0; i < keys.length; i++){
+      var raw = localStorage.getItem(keys[i]); if (!raw) continue;
+      var p = JSON.parse(raw); if (p && p.on){ on = true; break; }
+    }
+    if (!on) return;
+    var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    if (!mobile) return;
+    if (sessionStorage.getItem('cardLedger.unlocked') === '1') return;
+    document.documentElement.classList.add('lock-pending');
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <noscript><div style="padding:24px;text-align:center">이 대시보드는 브라우저의 자바스크립트가 필요합니다.</div></noscript>
+
+<!-- 모바일 지문 잠금 화면 (2026-11-26) — 잠긴 상태에서만 보입니다 -->
+<div class="lockscreen" id="lockScreen" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+  <div class="lockscreen-card">
+    <div class="lg-badge" aria-hidden="true">🔒</div>
+    <h2 id="lockTitle">Finance 잠금</h2>
+    <p class="sub" id="lockSub">가계부를 열려면 지문이나 백업 PIN이 필요해요</p>
+    <button type="button" class="btn primary fpbtn" id="lockFpBtn">👆 지문으로 열기</button>
+    <div class="or">또는</div>
+    <div class="lockscreen-pinrow">
+      <input id="lockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="백업 PIN" aria-label="백업 PIN 4~6자리">
+      <button type="button" class="btn" id="lockPinBtn">열기</button>
+    </div>
+    <div class="lockscreen-msg" id="lockMsg" aria-live="polite"></div>
+    <p class="lockscreen-note">잠금은 이 기기(모바일)에서만 걸립니다 · 가계부 자료는 지금처럼 이 브라우저에만 저장됩니다</p>
+  </div>
+</div>
 
 <header class="topbar">
   <div class="topbar-in">
@@ -1785,12 +1879,17 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
     <div class="dtl-fix">
     <div class="card-head" style="padding-bottom:10px">
       <h2>상세 내역</h2>
-      <span class="lockslot" data-lock="cardDetail"></span>
+      <span class="dtl-tools">
+        <span class="lockslot" data-lock="cardDetail"></span>
+        <button type="button" class="dtlbtn pinbtn" data-dtlpin="1" aria-pressed="true" aria-label="상세 내역 틀고정" title="틀고정 켜짐">📌</button>
+        <button type="button" class="dtlbtn filtbtn" data-dtlfilt="card" aria-expanded="true" aria-controls="cardFilterBox" title="검색·필터 접기">필터 <span class="car">▾</span></button>
+      </span>
       <span class="hint" id="tableHint"></span>
       <div class="head-actions">
         <button class="btn" id="btnCapture2" style="padding:5px 10px;font-size:12.5px" title="카드 사용내역 캡처 이미지로 내역 추가">📸 캡처로 추가</button>
       </div>
     </div>
+    <div class="dtl-fold" id="cardFilterBox">
     <div class="detail-search">
       <div class="searchwrap">
         <span class="ico">🔍</span>
@@ -1802,6 +1901,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
       <div class="chips" id="catChipsDetail"></div>
       <div class="catquick hidden" id="catQuick"></div>
       <div class="chips" id="cardHlChips"></div>
+    </div>
     </div>
     <div class="detail-sum hidden" id="detailSum" aria-live="polite"></div>
     <div class="editbar hidden" id="editBar" aria-live="polite">
@@ -1877,13 +1977,18 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
     <div class="dtl-fix">
     <div class="card-head" style="padding-bottom:10px">
       <h2>현금 상세 내역</h2>
-      <span class="lockslot" data-lock="bankDetail"></span>
+      <span class="dtl-tools">
+        <span class="lockslot" data-lock="bankDetail"></span>
+        <button type="button" class="dtlbtn pinbtn" data-dtlpin="1" aria-pressed="true" aria-label="현금 상세 내역 틀고정" title="틀고정 켜짐">📌</button>
+        <button type="button" class="dtlbtn filtbtn" data-dtlfilt="bank" aria-expanded="true" aria-controls="bankFilterBox" title="검색·필터 접기">필터 <span class="car">▾</span></button>
+      </span>
       <span class="hint" id="bankTableHint"></span>
       <div class="head-actions">
         <button class="btn" id="btnBankCapture" style="padding:5px 10px;font-size:12.5px" title="은행 앱 거래내역 캡처로 추가">📸 캡처로 추가</button>
         <button class="btn" id="btnBankAdd" style="padding:5px 10px;font-size:12.5px" title="거래를 직접 입력">+ 직접 추가</button>
       </div>
     </div>
+    <div class="dtl-fold" id="bankFilterBox">
     <div class="detail-search">
       <div class="searchwrap">
         <span class="ico">🔍</span>
@@ -1900,6 +2005,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
       <div class="catquick hidden" id="bankCatQuick"></div>
       <div class="chips" id="bankDirChips"></div>
       <div class="chips" id="bankHlChips"></div>
+    </div>
     </div>
     <div class="detail-sum hidden" id="bankSum" aria-live="polite"></div>
     <div class="editbar hidden" id="bankEditBar" aria-live="polite">
@@ -1981,6 +2087,7 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
       <button data-tab="rule">자동 분류 규칙</button>
       <button data-tab="ai">AI 캡처</button>
       <button data-tab="sync">동기화</button>
+      <button data-tab="lock">모바일 잠금</button>
       <button data-tab="data">데이터</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
@@ -4267,7 +4374,7 @@ function renderTable(rows, sum){
         '<span class="nm">'+esc(catName)+'</span><span class="car">▾</span></button></td>'+
       '<td class="num amount'+(r.amount<0?' neg':'')+'"'+(r.formula?' title="'+esc(r.formula)+' = '+fmt(r.amount)+'원"':'')+'>'+fmt(r.amount)+'원'+
         (EDITMODE ? '<button type="button" class="qexc'+(exc?' on':'')+'" data-exctoggle="'+esc(r.id)+'" title="'+(exc?'결제예정에 다시 반영':'결제예정 미반영으로 빼기')+'" aria-label="'+(exc?'결제예정 반영':'결제예정 미반영')+'">'+(exc?'↺':'⊘')+'</button>' : '')+
-        (EDITMODE ? '<button type="button" class="qedit" data-rowedit="'+esc(r.id)+'" title="이용일자·가맹점·금액 수정" aria-label="'+esc(r.merchant)+' 내용 수정">✎</button>' : '')+
+        (EDITMODE ? '<button type="button" class="qedit" data-rowedit="'+esc(r.id)+'" title="이용일자·가맹점·금액·비고 수정" aria-label="'+esc(r.merchant)+' 내용 수정">✎</button>' : '')+
         (EDITMODE ? '<button type="button" class="qdel" data-qdel="'+esc(r.id)+'" title="이 거래 바로 삭제" aria-label="'+esc(r.merchant)+' 바로 삭제">🗑</button>' : '')+'</td>'+
     '</tr>' + (EDITMODE && rowEdit && rowEdit.id === r.id ? rowEditTr(r) : '');
   }).join('');
@@ -4314,7 +4421,7 @@ const LOCK_META = {
   limit:     {name: '카드별 한도', tip: '카드별 한도 잠금을 풀었습니다 — 한도 칸을 눌러 고치세요'},
   bankItems: {name: '계좌내역',   tip: '계좌내역 잠금을 풀었습니다 — 항목·예산·실행을 누르면 고쳐지고, ⠿로 순서를 바꿉니다'},
   settle:    {name: '정산 Simulation', tip: '정산 예산 잠금을 풀었습니다 — 예산 칸을 눌러 고치세요'},
-  cardDetail:{name: '카드 상세 내역', tip: '상세 내역 잠금을 풀었습니다 — ✎로 날짜·가맹점·금액 수정, ⊘로 결제예정 미반영, ⠿로 순서 바꾸기, 골라서 삭제'},
+  cardDetail:{name: '카드 상세 내역', tip: '상세 내역 잠금을 풀었습니다 — ✎로 날짜·가맹점·금액·비고 수정, ⊘로 결제예정 미반영, ⠿로 순서 바꾸기, 골라서 삭제'},
   bankDetail:{name: '현금 상세 내역', tip: '현금 상세 잠금을 풀었습니다 — 행을 눌러 고치고, 골라서 지우고, ⠿로 순서를 바꿉니다'}
 };
 const LOCK_SVG_CLOSED = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
@@ -4384,15 +4491,19 @@ function rowEditTr(r){
   const date = e.date != null ? e.date : (toDateStr(r.date) || '');
   const merchant = e.merchant != null ? e.merchant : (r.merchant || '');
   const amount = e.amount != null ? e.amount : fmt(r.amount);
+  const memo = e.memo != null ? e.memo : (r.memo || '');
   return '<tr class="rowedit" data-editrow="'+esc(r.id)+'"><td colspan="'+(EDITMODE?6:5)+'">'+
     '<div class="rowedit-box">'+
       '<label class="fld date"><span>이용일자</span>'+
         '<input type="date" data-refield="date" value="'+esc(date)+'" aria-label="이용일자"></label>'+
       '<label class="fld merchant"><span>가맹점</span>'+
         '<input type="text" data-refield="merchant" value="'+esc(merchant)+'" maxlength="40" autocomplete="off" '+
-        'enterkeyhint="done" spellcheck="false" aria-label="가맹점"></label>'+
+        'enterkeyhint="next" spellcheck="false" aria-label="가맹점"></label>'+
       '<label class="fld amount"><span>금액</span>'+
         '<input type="text" data-refield="amount" inputmode="decimal" data-calc="1" value="'+esc(amount)+'" autocomplete="off" aria-label="금액(원)"><i>원</i></label>'+
+      '<label class="fld memo"><span>비고</span>'+
+        '<input type="text" data-refield="memo" value="'+esc(memo)+'" maxlength="80" autocomplete="off" '+
+        'enterkeyhint="done" placeholder="품목·메모 — 비우면 비고를 지웁니다" aria-label="비고"></label>'+
       '<div class="calc-hint" id="calcHint"></div>'+
       '<div class="rowedit-act">'+
         '<button type="button" class="btn primary" data-reactsave>저장</button>'+
@@ -4407,7 +4518,7 @@ function renderTableNow(){
 function openRowEdit(id){
   const r = S.rows.find(x=> x.id === id);
   if (!r) return;
-  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: r.formula || fmt(r.amount)};
+  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: r.formula || fmt(r.amount), memo: r.memo || ''};
   renderTableNow();
   const inp = document.querySelector('tr[data-editrow] [data-refield="merchant"]');
   if (inp){ inp.focus(); try { inp.setSelectionRange(0, inp.value.length); } catch(e){} }
@@ -4432,12 +4543,13 @@ function saveRowEdit(){
   if (!merchant){ toast('가맹점 이름을 넣어주세요'); focusRefield('merchant'); return; }
   if (!calc.ok){ toast('금액: ' + calc.error); focusRefield('amount'); return; }
   const amount = calc.value;
+  const memo = String(d.memo == null ? '' : d.memo).replace(/\s+/g,' ').trim().slice(0, 80);
   if (!amount){ toast('금액은 0원보다 커야 합니다 (환불은 앞에 -)'); focusRefield('amount'); return; }
-  if (date === row.date && merchant === row.merchant && amount === row.amount){
+  if (date === row.date && merchant === row.merchant && amount === row.amount && memo === (row.memo || '')){
     rowEdit = null; renderTableNow(); toast('바뀐 내용이 없습니다'); return;
   }
   const oldKey = rowKey(row);
-  row.date = date; row.merchant = merchant; row.amount = amount; rowEdited(row);
+  row.date = date; row.merchant = merchant; row.amount = amount; row.memo = memo; rowEdited(row);
   /* 금액을 '=100+100' 수식으로 적었으면 계산값과 함께 원문도 남깁니다 (2026-11-25) */
   const fm = isFormulaText(d.amount) ? formulaText(d.amount) : '';
   if (fm) row.formula = fm; else delete row.formula;
@@ -4776,6 +4888,7 @@ function renderAll(){
   renderBank();
   renderSettle();
   renderLocks();
+  renderDtlTools();
 }
 function updateModeUi(){
   $$('#modeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.mode === S.mode));
@@ -4940,6 +5053,347 @@ function watchDetailStick(){
 }
 window.addEventListener('scroll', ()=>{ syncDetailStuck(); }, {passive:true});
 watchDetailStick();
+
+/* ============================================================
+   상세내역 📌 틀고정 토글 · 필터 접기 (2026-11-26 사용자 요청)
+   · 📌 을 끄면 제목·필터·합계와 표 헤더행이 스크롤과 함께 올라갑니다(localStorage 저장).
+   · '필터 ▾'를 누르면 검색창·카드사/분류/하이라이트 칩 상자를 접고 펼칩니다.
+     639px 이하(폰)에서는 처음 열었을 때 접힌 상태로 시작해 내역이 바로 보입니다.
+   · 접기/펼치기·틀고정이 바뀌면 ResizeObserver(위 watchDetailStick) 가 머리 높이(--dtlH)를
+     다시 재서 표 헤더행 위치가 어긋나지 않게 맞춥니다.
+   ============================================================ */
+const DTL_KEY = LS_KEY + '.dtl';
+const DTL = {pin: true, fold: {card: true, bank: true}, user: {card: false, bank: false}};
+function dtlNarrow(){ return window.matchMedia('(max-width:639px)').matches; }
+function dtlLoad(){
+  try {
+    const p = JSON.parse(localStorage.getItem(DTL_KEY) || 'null');
+    if (p && typeof p.pin === 'boolean') DTL.pin = p.pin;
+  } catch(e){}
+  DTL.fold.card = DTL.fold.bank = !dtlNarrow();
+}
+function dtlSavePin(){ try { localStorage.setItem(DTL_KEY, JSON.stringify({pin: !!DTL.pin})); } catch(e){} }
+/* 지금 켜진 필터 개수 — 접힌 상태에서도 '필터 (2) ▾'처럼 보여 주려고 */
+function dtlFilterCount(which){
+  if (which === 'bank'){
+    const u = BANK.ui || {};
+    return (u.account ? 1 : 0) + (u.item ? 1 : 0) + (u.dir ? 1 : 0) + (u.hl ? 1 : 0) +
+      (String(u.q || '').trim() ? 1 : 0);
+  }
+  return (F.cards || []).length + (F.categories || []).length + (F.hl ? 1 : 0) +
+    (String(F.q || '').trim() ? 1 : 0);
+}
+function renderDtlTools(){
+  ['detailCard', 'bankDetailCard'].forEach(id=>{
+    const c = document.getElementById(id); if (c) c.classList.toggle('nopin', !DTL.pin);
+  });
+  $$('[data-dtlpin]').forEach(b=>{
+    b.setAttribute('aria-pressed', DTL.pin ? 'true' : 'false');
+    b.title = DTL.pin
+      ? '틀고정 켜짐 — 누르면 제목·필터가 스크롤과 함께 올라갑니다'
+      : '틀고정 꺼짐 — 누르면 제목·필터·표 헤더를 위에 고정합니다';
+  });
+  $$('[data-dtlfilt]').forEach(b=>{
+    const which = b.dataset.dtlfilt;
+    const open = !!DTL.fold[which];
+    const n = dtlFilterCount(which);
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    b.title = (open ? '검색·필터 접기' : '검색·필터 펼치기') + (n ? ' · 지금 ' + n + '개 필터 켜짐' : '');
+    b.innerHTML = '필터' + (n ? ' <b>(' + n + ')</b>' : '') + ' <span class="car">' + (open ? '▴' : '▾') + '</span>';
+    b.classList.toggle('on', n > 0);
+  });
+  [['card', 'cardFilterBox'], ['bank', 'bankFilterBox']].forEach(([k, id])=>{
+    const el = document.getElementById(id); if (el) el.classList.toggle('folded', !DTL.fold[k]);
+  });
+  syncDetailLayout();
+}
+function setDtlFold(which, open, byUser){
+  DTL.fold[which] = !!open;
+  if (byUser) DTL.user[which] = true;
+  renderDtlTools();
+}
+document.addEventListener('click', ev=>{
+  const pin = ev.target.closest('[data-dtlpin]');
+  if (pin){
+    DTL.pin = !DTL.pin; dtlSavePin(); renderDtlTools();
+    toast(DTL.pin ? '틀고정 켜짐 — 제목·필터·표 헤더가 위에 붙어 있습니다'
+                  : '틀고정 꺼짐 — 스크롤하면 제목·필터도 함께 올라갑니다');
+    return;
+  }
+  const fb = ev.target.closest('[data-dtlfilt]');
+  if (fb){ setDtlFold(fb.dataset.dtlfilt, !DTL.fold[fb.dataset.dtlfilt], true); }
+});
+/* 창 폭이 폰·PC 경계(640px)를 넘나들 때, 아직 직접 접고 펼친 적 없는 탭만 기본값을 다시 맞춥니다 */
+let dtlNarrowPrev = dtlNarrow();
+window.addEventListener('resize', ()=>{
+  const n = dtlNarrow();
+  if (n === dtlNarrowPrev) return;
+  dtlNarrowPrev = n;
+  ['card', 'bank'].forEach(w=>{ if (!DTL.user[w]) DTL.fold[w] = !n; });
+  renderDtlTools();
+}, {passive:true});
+
+/* ============================================================
+   모바일 지문 잠금 + 백업 PIN (2026-11-26 사용자 요청)
+   · 폰(모바일 브라우저)에서만 잠금 화면을 띄우고, PC 에서는 그대로 열립니다.
+   · 지문은 WebAuthn 플랫폼 인증기(navigator.credentials)를 쓰고, 등록한 credential ID 만 저장합니다.
+   · 백업 PIN 은 SHA-256 해시(설치마다 다른 salt)로만 저장하고, 원래 숫자는 남기지 않습니다.
+   · 해제 상태는 sessionStorage 에만 기록됩니다 — 브라우저를 닫으면 다시 잠깁니다.
+   ============================================================ */
+const LOCK_KEY = LS_KEY + '.lock';
+const LOCK_SESSION = 'cardLedger.unlocked';
+const LOCK = {on:false, hash:'', salt:'', credId:'', pinAt:'', credAt:'', updatedAt:''};
+
+function lockIsMobileDevice(){
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+}
+function lockLoad(){
+  try {
+    const p = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null');
+    if (p && typeof p === 'object'){
+      LOCK.on = !!p.on; LOCK.hash = String(p.hash || ''); LOCK.salt = String(p.salt || '');
+      LOCK.credId = String(p.credId || ''); LOCK.pinAt = p.pinAt || ''; LOCK.credAt = p.credAt || '';
+      LOCK.updatedAt = p.updatedAt || '';
+    }
+  } catch(e){}
+  if (LOCK.on && !LOCK.hash) LOCK.on = false;   /* PIN 해시가 없으면 잠글 수 없습니다 */
+}
+function lockSave(){
+  LOCK.updatedAt = nowIso();
+  try {
+    localStorage.setItem(LOCK_KEY, JSON.stringify({v:1, on:LOCK.on, hash:LOCK.hash, salt:LOCK.salt,
+      credId:LOCK.credId, pinAt:LOCK.pinAt, credAt:LOCK.credAt, updatedAt:LOCK.updatedAt}));
+  } catch(e){}
+}
+function lockRand(n){
+  const a = new Uint8Array(n);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+  else for (let i = 0; i < n; i++) a[i] = Math.floor(Math.random() * 256);
+  return Array.from(a).map(b=> b.toString(16).padStart(2,'0')).join('');
+}
+function lockHasCrypto(){ return !!(window.crypto && crypto.subtle && crypto.subtle.digest); }
+async function lockHashPin(pin, salt){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(salt) + ':' + String(pin)));
+  return Array.from(new Uint8Array(buf)).map(b=> b.toString(16).padStart(2,'0')).join('');
+}
+function lockB64url(u8){
+  let s = ''; u8 = new Uint8Array(u8);
+  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function lockFromB64url(s){
+  const b = atob(String(s).replace(/-/g, '+').replace(/_/g, '/'));
+  const u8 = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i);
+  return u8;
+}
+async function lockPlatformReady(){
+  if (!window.PublicKeyCredential || !navigator.credentials || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return false;
+  try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch(e){ return false; }
+}
+async function lockRegisterFingerprint(quiet){
+  if (!window.PublicKeyCredential || !navigator.credentials){
+    if (!quiet) toast('이 브라우저는 지문 잠금(WebAuthn)을 지원하지 않습니다 — 백업 PIN으로 쓰세요');
+    return false;
+  }
+  const ready = await lockPlatformReady();
+  if (!ready){
+    if (!quiet) toast('이 기기에서 지문 인증기를 쓸 수 없습니다 — 백업 PIN으로 잠글 수 있어요');
+    return false;
+  }
+  try {
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: {name: 'Finance'},
+      user: {id: crypto.getRandomValues(new Uint8Array(16)),
+             name: 'finance-' + (LOCK.salt || lockRand(6)).slice(0, 10), displayName: 'Finance 가계부'},
+      pubKeyCredParams: [{type:'public-key', alg:-7}, {type:'public-key', alg:-257}],
+      authenticatorSelection: {authenticatorAttachment:'platform', userVerification:'required', residentKey:'preferred'},
+      timeout: 60000, attestation: 'none'
+    }});
+    if (!cred || !cred.rawId) throw new Error('no credential');
+    LOCK.credId = lockB64url(new Uint8Array(cred.rawId));
+    LOCK.credAt = nowIso(); lockSave();
+    return true;
+  } catch(e){
+    if (!quiet) toast('지문 등록을 마치지 못했습니다 — 백업 PIN으로는 그대로 쓸 수 있습니다');
+    return false;
+  }
+}
+async function lockAuthFingerprint(){
+  if (!LOCK.credId || !navigator.credentials) return false;
+  try {
+    const hint = await navigator.credentials.get({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      timeout: 60000,
+      userVerification: 'required',
+      allowCredentials: [{type:'public-key', id: lockFromB64url(LOCK.credId)}]
+    }});
+    return !!hint;
+  } catch(e){ return false; }
+}
+function lockMsgShow(t, ok){
+  const m = $('#lockMsg'); if (!m) return;
+  m.textContent = t || ''; m.classList.toggle('ok', !!ok);
+}
+function lockShowOverlay(){
+  lockMsgShow('');
+  const fp = $('#lockFpBtn');
+  if (fp){
+    fp.disabled = false;
+    fp.textContent = LOCK.credId ? '👆 지문으로 열기' : '백업 PIN으로 열기';
+  }
+  const pin = $('#lockPin'); if (pin) pin.value = '';
+  const sub = $('#lockSub');
+  if (sub) sub.textContent = LOCK.credId ? '가계부를 열려면 지문이나 백업 PIN이 필요해요'
+                                         : '등록된 지문이 없어요 — 백업 PIN을 넣어 주세요';
+  document.documentElement.classList.add('lock-pending');
+}
+function lockHideOverlay(){
+  document.documentElement.classList.remove('lock-pending');
+  try { sessionStorage.setItem(LOCK_SESSION, '1'); } catch(e){}
+}
+function lockApply(){
+  if (LOCK.on && lockIsMobileDevice()){
+    if (sessionStorage.getItem(LOCK_SESSION) === '1'){ document.documentElement.classList.remove('lock-pending'); return; }
+    lockShowOverlay();
+  } else {
+    document.documentElement.classList.remove('lock-pending');
+  }
+}
+function lockNow(){
+  if (!LOCK.on){ toast('먼저 모바일 잠금을 켜 주세요'); return; }
+  try { sessionStorage.removeItem(LOCK_SESSION); } catch(e){}
+  lockShowOverlay();
+  const i = $('#lockPin'); if (i && !LOCK.credId) i.focus();
+}
+async function lockTryPin(){
+  const inp = $('#lockPin'); if (!inp) return;
+  if (!LOCK.hash){ lockMsgShow('잠금 설정이 없습니다'); return; }
+  const pin = String(inp.value || '').replace(/\D/g, '');
+  if (!/^\d{4,6}$/.test(pin)){ lockMsgShow('PIN은 숫자 4~6자리입니다'); inp.focus(); return; }
+  const h = await lockHashPin(pin, LOCK.salt);
+  if (h !== LOCK.hash){ lockMsgShow('PIN이 맞지 않습니다'); inp.value = ''; inp.focus(); return; }
+  lockMsgShow('열었습니다', true);
+  lockHideOverlay();
+  toast('잠금을 풀었습니다');
+}
+async function lockTryFingerprint(){
+  if (!LOCK.credId){
+    lockMsgShow('등록된 지문이 없습니다 — 아래에 백업 PIN을 넣어 주세요');
+    const i = $('#lockPin'); if (i) i.focus();
+    return;
+  }
+  lockMsgShow('지문을 확인하는 중…');
+  const ok = await lockAuthFingerprint();
+  if (ok){ lockMsgShow('열었습니다', true); lockHideOverlay(); toast('잠금을 풀었습니다'); }
+  else lockMsgShow('지문 인증을 마치지 못했습니다 — 다시 하거나 백업 PIN을 넣어 주세요');
+}
+
+/* ---------- 설정 → 모바일 잠금 탭 ---------- */
+function lockFootHtml(){ return '<button class="btn ghost" id="lockCancel">닫기</button><div class="spacer"></div>'; }
+function lockTabHtml(){
+  const on = LOCK.on;
+  const fp = !!LOCK.credId;
+  const head = '<p class="sec-desc">폰에서 이 가계부를 열 때 지문이나 백업 PIN을 먼저 확인합니다. 설정은 <b>이 브라우저(기기)에만</b> 적용되고, PC에서는 잠금 화면 없이 바로 열립니다.</p>'+
+    '<div class="lockstat' + (on ? ' on' : '') + '"><span class="dot"></span><span class="t">모바일 지문 잠금</span>'+
+    '<span class="v">' + (on ? (fp ? '켜짐 · 지문 등록됨' : '켜짐 · PIN만') : '꺼짐') + '</span></div>';
+  const foot = '<p class="locknote">백업 PIN은 SHA-256 해시만 저장하고 원래 숫자는 남기지 않습니다. 지문은 이 기기의 잠금(생체인증) 기능을 그대로 쓰며 어디에도 보내지 않습니다.</p>';
+  if (!on){
+    return head +
+      '<div class="sec-title">백업 PIN 정하기</div>'+
+      '<div class="lockrow"><input id="lockPinNew" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="숫자 4~6자리">'+
+        '<button class="btn primary" data-lockact="enable">잠금 켜기</button></div>'+
+      '<p class="locknote">켜면 바로 지문 등록을 시도합니다(이 기기가 지원하면). 지문을 등록하지 못해도 백업 PIN으로 열 수 있습니다.</p>'+
+      foot;
+  }
+  return head +
+    '<div class="sec-title">백업 PIN 바꾸기</div>'+
+    '<div class="lockrow"><input id="lockPinCur" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="지금 PIN">'+
+      '<input id="lockPinNew" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="새 PIN 4~6자리">'+
+      '<button class="btn" data-lockact="pinchange">PIN 바꾸기</button></div>'+
+    '<div class="lockacts">'+
+      '<button class="btn ghost" data-lockact="fp">' + (fp ? '지문 다시 등록' : '지문 등록') + '</button>'+
+      '<button class="btn ghost" data-lockact="locknow">🔒 지금 잠그기</button>'+
+      '<button class="btn danger" data-lockact="disable">잠금 끄기</button>'+
+    '</div>'+
+    '<p class="locknote">' + (fp ? '지문을 다시 등록하면 예전 지문은 이 가계부에서 쓰이지 않습니다.' : '이 기기에서 지문을 등록하지 못했습니다 — 백업 PIN으로 열 수 있습니다.') + '</p>'+
+    foot;
+}
+let lockTabBound = false;   /* 설정 창을 다시 그려도 클릭 리스너는 한 번만 (중복 실행 방지) */
+function bindLockTab(){
+  if (lockTabBound) return;
+  lockTabBound = true;
+  const box = $('#modalBody'); if (!box) return;
+  const foot = $('#modalFoot');
+  if (foot) foot.addEventListener('click', ev=>{ if (ev.target.closest('#lockCancel')) closeModal(); });
+  box.addEventListener('click', async ev=>{
+    const b = ev.target.closest('[data-lockact]'); if (!b) return;
+    const act = b.dataset.lockact;
+    const val = id=>{ const el = document.getElementById(id); return el ? String(el.value || '').replace(/\D/g,'') : ''; };
+    if (act === 'enable'){
+      if (!lockHasCrypto()){ toast('이 브라우저에서는 잠금을 켤 수 없습니다 (보안 저장소 없음)'); return; }
+      const pin = val('lockPinNew');
+      if (!/^\d{4,6}$/.test(pin)){ toast('PIN은 숫자 4~6자리로 정해 주세요'); return; }
+      LOCK.salt = lockRand(16);
+      LOCK.hash = await lockHashPin(pin, LOCK.salt);
+      LOCK.on = true; LOCK.pinAt = nowIso(); LOCK.credId = ''; LOCK.credAt = '';
+      lockSave(); renderModal();
+      toast('모바일 잠금을 켰습니다 · 이 기기 지문을 등록해 볼게요');
+      const ok = await lockRegisterFingerprint(true);
+      toast(ok ? '지문도 등록했습니다 — 다음부터 지문으로 열 수 있어요'
+               : '지문은 등록하지 못했습니다 — 백업 PIN으로 열 수 있습니다');
+      renderModal();
+      return;
+    }
+    if (act === 'fp'){
+      toast('이 기기의 지문을 등록합니다…');
+      const ok = await lockRegisterFingerprint(false);
+      toast(ok ? '지문을 등록했습니다' : '지문을 등록하지 못했습니다');
+      renderModal();
+      return;
+    }
+    if (act === 'pinchange'){
+      const cur = val('lockPinCur'), pin = val('lockPinNew');
+      if (!LOCK.hash){ toast('먼저 잠금을 켜 주세요'); return; }
+      if (!/^\d{4,6}$/.test(cur)){ toast('지금 PIN을 넣어 주세요'); return; }
+      if (!/^\d{4,6}$/.test(pin)){ toast('새 PIN은 숫자 4~6자리로 정해 주세요'); return; }
+      const h = await lockHashPin(cur, LOCK.salt);
+      if (h !== LOCK.hash){ toast('지금 PIN이 맞지 않습니다'); return; }
+      LOCK.salt = lockRand(16);
+      LOCK.hash = await lockHashPin(pin, LOCK.salt);
+      LOCK.pinAt = nowIso(); lockSave(); renderModal();
+      toast('백업 PIN을 바꿨습니다');
+      return;
+    }
+    if (act === 'disable'){
+      const cur = val('lockPinCur');
+      if (!/^\d{4,6}$/.test(cur)){ toast('잠금을 끄려면 지금 PIN을 넣어 주세요'); return; }
+      const h = await lockHashPin(cur, LOCK.salt);
+      if (h !== LOCK.hash){ toast('PIN이 맞지 않습니다'); return; }
+      LOCK.on = false; LOCK.hash = ''; LOCK.salt = ''; LOCK.credId = ''; LOCK.credAt = ''; LOCK.pinAt = '';
+      lockSave();
+      try { sessionStorage.setItem(LOCK_SESSION, '1'); } catch(e){}
+      document.documentElement.classList.remove('lock-pending');
+      renderModal();
+      toast('모바일 잠금을 껐습니다');
+      return;
+    }
+    if (act === 'locknow'){
+      closeModal();
+      lockNow();
+      return;
+    }
+  });
+}
+
+/* 잠금 화면 버튼 */
+$('#lockFpBtn').addEventListener('click', lockTryFingerprint);
+$('#lockPinBtn').addEventListener('click', lockTryPin);
+$('#lockPin').addEventListener('keydown', ev=>{
+  if (ev.key === 'Enter'){ ev.preventDefault(); lockTryPin(); }
+});
 /* 카드별 한도 — 칸을 누르면 금액 입력, 저장하면 바로 남은 한도 계산 */
 $('#limitGrid').addEventListener('click', ev=>{
   const act = ev.target.closest('[data-limact]');
@@ -5609,6 +6063,7 @@ function renderModal(){
   else if (modalTab === 'rule'){ body.innerHTML = ruleTabHtml(); foot.innerHTML = ruleFootHtml(); bindRuleTab(); }
   else if (modalTab === 'ai'){ body.innerHTML = aiTabHtml(); foot.innerHTML = aiFootHtml(); bindAiTab(); }
   else if (modalTab === 'sync'){ body.innerHTML = syncTabHtml(); foot.innerHTML = syncFootHtml(); bindSyncTab(); }
+  else if (modalTab === 'lock'){ body.innerHTML = lockTabHtml(); foot.innerHTML = lockFootHtml(); bindLockTab(); }
   else { body.innerHTML = dataTabHtml(); foot.innerHTML = dataFootHtml(); bindDataTab(); }
 }
 
@@ -11798,6 +12253,8 @@ window.addEventListener('keydown', ev=>{
   loadAiConfig();
   loadSyncConfig();
   loadOutbox();
+  dtlLoad();   /* 상세내역 📌 틀고정·필터 접힘 기본값 (2026-11-26) */
+  lockLoad();  /* 모바일 지문 잠금 설정 (2026-11-26) */
   seedCarryBudgetDefault();   /* 첫 달 우리은행 이월금 예산 51,886원 — 저장·동기화 (2026-11-25) */
   migrateCategoryNames();   /* 엑셀 시드에 남은 예전 분류 이름도 새 이름으로 */
   if (PUBLIC_BUILD){
@@ -11816,6 +12273,7 @@ window.addEventListener('keydown', ev=>{
     if (!document.hidden && SYNC.urls.length && SYNC.autoOn) runSync(true);
   });
   if (!LS_OK) { /* storage blocked: still works in-memory */ }
+  lockApply();   /* 모바일에서 잠금이 켜져 있으면 잠금 화면을 유지 (2026-11-26) */
   window.__dashboardReady = true;
 })();
 </script>
