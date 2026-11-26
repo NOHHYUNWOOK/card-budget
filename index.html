@@ -7455,6 +7455,7 @@ function scheduleFlush(delay){
 }
 /* 탭을 닫거나 앱을 전환하는 순간 — 대기 중인 변경이 있으면 기다리지 않고 바로 올립니다 (2026-11-26) */
 function flushNowIfPending(){
+  if (syncing) return;          /* 동기화 중이면 그 안에서 올리므로 겹치지 않게 */
   if (!SYNC.urls.length || !SYNC.token || SYNC.readonly) return;
   if (!pendingCount()) return;
   clearTimeout(outboxTimer); outboxTimer = null;
