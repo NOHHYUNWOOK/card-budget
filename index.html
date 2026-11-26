@@ -7157,11 +7157,49 @@ async function pushSettings(){
     throw err;
   }
 }
+/* 원격 settings.json 에 아직 없는 기존 잠금만 덧붙여 올립니다 (2026-11-26)
+   · 이 기기 설정이 예전 상태여도 서버의 한도·분류·규칙·결제일을 지우지 않도록,
+     원격 문서를 그대로 두고 잠금 항목 네 개와 updatedAt 만 더합니다. */
+async function pushLockOnly(){
+  const g = ghParse(); if (!g || !SYNC.token || SYNC.readonly) return false;
+  if (!(LOCK.on && LOCK.hash)) return false;
+  const path = settingsPath(g);
+  for (let attempt = 0; attempt < 2; attempt++){
+    const remote = await ghGetFileObj(path);
+    const base = (remote && remote.json && typeof remote.json === 'object' && !Array.isArray(remote.json))
+      ? remote.json : {v:1};
+    if (base.lockUpdatedAt) return false;          /* 그사이 다른 기기가 올렸습니다 */
+    const at = LOCK.updatedAt || LOCK.pinAt || nowIso();
+    LOCK.updatedAt = at; lockSaveRemote();
+    const next = Object.assign({}, base, {lockEnabled:true, lockPinHash:LOCK.hash,
+      lockSalt:LOCK.salt || '', lockUpdatedAt:at, updatedAt:nowIso()});
+    const r = await ghPutFileObj(path, next, remote && remote.sha, '웹앱 화면 잠금(PIN) 동기화');
+    if (r.ok){
+      OUTBOX.settingsAt = next.updatedAt; saveOutbox();
+      if (!/화면 잠금/.test(SYNC.lastMsg || '')){
+        SYNC.lastMsg = (SYNC.lastMsg ? SYNC.lastMsg + ' · ' : '') + '화면 잠금 올림';
+        saveSyncConfig();
+      }
+      updateSyncLabel();
+      return true;
+    }
+    if (r.conflict && attempt === 0) continue;     /* 최신 sha 로 한 번 다시 */
+    throw new Error(r.message || ('HTTP ' + r.status));
+  }
+  return false;
+}
+let lockPushQueued = false;
+/* 동기화 때 원격에 잠금 기록이 없던 경우 — 잠금만 올리는 일을 짧게 미뤄 한 번만 예약합니다 */
+function queueLockPush(){
+  if (lockPushQueued) return;
+  lockPushQueued = true;
+  setTimeout(()=>{ lockPushQueued = false; pushLockOnly().catch(()=>{}); }, 400);
+}
 /* 원격 settings.json 이 더 최신이면 이 기기에 반영합니다 */
 function applyRemoteSettings(p){
   if (!p || typeof p !== 'object' || Array.isArray(p)) return '';
   /* 아직 서버에 한 번도 올라가지 않은 기존 잠금 — 원격 settings.json 에 잠금 기록이 없는데 이 기기에
-     켜 둔 잠금(PIN 해시)이 있으면 시각을 채우고 올릴 대상으로 표시합니다 (2026-11-26) */
+     켜 둔 잠금(PIN 해시)이 있으면 시각을 채우고 잠금만 올리는 일을 예약합니다 (2026-11-26) */
   let lockBackfill = false;
   if (!p.lockUpdatedAt && LOCK.on && LOCK.hash){
     if (!LOCK.updatedAt) LOCK.updatedAt = LOCK.pinAt || nowIso();
@@ -7170,9 +7208,9 @@ function applyRemoteSettings(p){
   }
   const remoteAt = p.updatedAt ? Date.parse(p.updatedAt) : 0;
   const localAt = OUTBOX.settingsAt ? Date.parse(OUTBOX.settingsAt) : 0;
-  if (!remoteAt){ if (lockBackfill) markSettingsDirty(); return ''; }
+  if (!remoteAt){ if (lockBackfill) queueLockPush(); return ''; }
   if (localAt && remoteAt <= localAt){                      /* 이 기기가 더 최신 — 올릴 차례 */
-    if (lockBackfill) markSettingsDirty();
+    if (lockBackfill) queueLockPush();
     return '';
   }
   let changed = 0;
@@ -7257,7 +7295,7 @@ function applyRemoteSettings(p){
   }
   OUTBOX.settingsAt = p.updatedAt;
   saveOutbox(); saveState();
-  if (lockBackfill) markSettingsDirty();   /* 원격에 없던 잠금을 이 기기에서 올리도록 (2026-11-26) */
+  if (lockBackfill) queueLockPush();   /* 원격에 없던 잠금을 이 기기에서 올리도록 (2026-11-26) */
   if (changed){ migrateCategoryNames(); renderAll(); }
   return changed ? 'settings' : '';
 }
