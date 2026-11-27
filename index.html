@@ -58,6 +58,10 @@ input,select{font:inherit;color:inherit}
 .hdr-icobtn:active{transform:scale(.96)}
 /* 카드 설정(💳)은 카드 탭에서만 보입니다 (2026-11-27) */
 body[data-view="bank"] #btnCardCfg,body[data-view="settle"] #btnCardCfg{display:none!important}
+/* 계좌 설정(통장 아이콘)은 현금 탭에서만 보입니다 — 카드 아이콘과 같은 자리·같은 크기 (2026-11-27) */
+body[data-view="card"] #btnAccCfg,body[data-view="settle"] #btnAccCfg{display:none!important}
+.hdr-icobtn .bksvg{display:block;width:18px;height:18px;pointer-events:none}
+#btnAccCfg{padding:6.5px 9px}
 .btn{
   border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 13px;font-size:13.5px;font-weight:600;
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;
@@ -825,6 +829,10 @@ details.sync-help code{background:#f1f3f8;border-radius:5px;padding:1px 5px;font
 .ccfg-hint{display:block;margin-top:5px;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:-.01em}
 .ccfg-hint.warn{color:#b42318}
 .ccfg-empty{padding:18px 6px;text-align:center;color:var(--muted);font-size:13px}
+/* ---------- 계좌 설정 창 (2026-11-27) — 카드 설정 창과 같은 모양 ---------- */
+#accCfgBody .ccfg-f input[data-accfg="alias"]{text-align:left;font-weight:700}
+#accCfgBody .ccfg-row{background:#fbfdfd}
+#accCfgBody .accfg-swatch{flex:none;width:26px;height:26px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;cursor:pointer}
 @media (max-width:430px){
   .ccfg-fields{grid-template-columns:1fr}
   .ccfg-f .lb{min-width:44px}
@@ -1909,14 +1917,27 @@ html.lock-pending #lockScreen{display:flex}
         <button type="button" data-jump="detailCard">내역</button>
       </nav>
     </div>
-    <!-- 상단 버튼은 카드 설정(💳)·새로고침(🔄)·설정(⚙) 세 개만 아이콘으로 남깁니다(💳은 카드 탭에서만).
-         캡처는 각 내역 패널의 '📸 캡처로 추가', CSV는 설정 → 데이터에 있습니다 (2026-11-27). -->
+    <!-- 상단 버튼은 카드 설정(💳)·계좌 설정(통장)·새로고침(🔄)·설정(⚙) 아이콘입니다.
+         💳은 카드 탭에서만, 통장 아이콘은 현금 탭에서만 같은 자리에 보입니다 (2026-11-27).
+         캡처는 각 내역 패널의 '📸 캡처로 추가', CSV는 설정 → 데이터에 있습니다. -->
     <div class="top-actions">
       <div class="seg" id="modeSeg" title="데이터 모드 전환">
         <button data-mode="mine">내 데이터</button>
         <button data-mode="empty">빈 가계부</button>
       </div>
       <button type="button" class="btn hdr-icobtn" id="btnCardCfg" title="카드 설정 (추가·이름·색·순서·한도·혜택)" aria-label="카드 설정"><span class="ic" aria-hidden="true">💳</span></button>
+      <button type="button" class="btn hdr-icobtn" id="btnAccCfg" title="계좌 설정 (추가·이름·색·별칭·삭제)" aria-label="계좌 설정">
+        <!-- 통장 모양 아이콘 — 💳 카드 아이콘과 같은 19px, 같은 자리 (2026-11-27) -->
+        <svg class="bksvg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+          <!-- 통장: 흰 종이 뭉치(오른쪽·아래) + 짙은 초록 표지 + 왼쪽 책등 + 이름표 + 금색 엠블럼 -->
+          <rect x="4.4" y="4.6" width="17" height="16" rx="2" fill="#ffffff"/>
+          <rect x="2.2" y="3.4" width="17.6" height="15.8" rx="2.2" fill="#0f766e"/>
+          <rect x="2.2" y="3.4" width="3.6" height="15.8" fill="#0a5a52"/>
+          <rect x="7.4" y="6.7" width="9.4" height="4" rx="1" fill="#ffffff"/>
+          <rect x="7.4" y="12.3" width="6" height="1.6" rx=".8" fill="#8fdfe2"/>
+          <circle cx="15.6" cy="14.9" r="1.6" fill="#f7c65a"/>
+        </svg>
+      </button>
       <button type="button" class="btn hdr-icobtn" id="btnSync" title="최신 자료로 새로고침 (동기화)" aria-label="최신 자료로 새로고침 (동기화)"><span class="ic" aria-hidden="true">🔄</span></button>
       <button type="button" class="btn hdr-icobtn" id="btnSettings" title="분류·규칙·데이터 설정" aria-label="설정 (분류·규칙·데이터)"><span class="ic" aria-hidden="true">⚙</span></button>
     </div>
@@ -2246,6 +2267,22 @@ html.lock-pending #lockScreen{display:flex}
       <button class="btn" id="cardCfgAdd">＋ 카드 추가</button>
       <div class="spacer"></div>
       <button class="btn primary" id="cardCfgDone">완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- 계좌 설정 창 — 현금 탭 통장 아이콘으로 엽니다 (2026-11-27) -->
+<div class="modal-backdrop" id="accCfgBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>계좌 설정</h2>
+      <button class="iconbtn" id="accCfgClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="accCfgBody"></div>
+    <div class="modal-foot">
+      <button class="btn" id="accCfgAdd">＋ 계좌 추가</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="accCfgDone">완료</button>
     </div>
   </div>
 </div>
@@ -3005,7 +3042,7 @@ function catQuickHtml(){
     '<button type="button" class="btn ghost" id="catQuickCancel">취소</button>';
 }
 function bankCatQuickHtml(){
-  const acc = (BANK.ui.account && BANK_ACCOUNTS.indexOf(BANK.ui.account) >= 0) ? BANK.ui.account : '우리은행';
+  const acc = (BANK.ui.account && BANK_ACCOUNTS.indexOf(BANK.ui.account) >= 0) ? BANK.ui.account : (BANK_ACCOUNTS[0] || MAIN_ACC);
   return '<span class="lbl">새 분류</span>' +
     '<select id="bcatQuickAcc" aria-label="계좌">' + BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select>' +
     '<input type="text" id="bcatQuickName" maxlength="24" placeholder="새 분류 이름 (예: 경조사비)" autocomplete="off" enterkeyhint="done">' +
@@ -3045,7 +3082,7 @@ function bankCatQuickSubmit(){
   const nmEl = document.getElementById('bcatQuickName');
   const dirEl = document.getElementById('bcatQuickDir');
   if (!nmEl) return;
-  const acc = accEl ? accEl.value : '우리은행';
+  const acc = accEl ? accEl.value : (BANK_ACCOUNTS[0] || MAIN_ACC);
   const nm = String(nmEl.value || '').trim().replace(/\s+/g, ' ').slice(0, 24);
   const dir = (dirEl && dirEl.value === 'in') ? 'in' : 'out';
   if (!nm){ toast('분류 이름을 입력하세요'); try { nmEl.focus(); } catch(e){} return; }
@@ -6285,6 +6322,47 @@ $('#cardCfgBody').addEventListener('change', ev=>{
     cardCfgRefreshRow(card);
   }
 });
+/* ---------- 계좌 설정 창 — 추가·이름·색·삭제·별칭 (2026-11-27) ---------- */
+$('#btnAccCfg').addEventListener('click', accCfgOpen);
+$('#accCfgClose').addEventListener('click', accCfgClose);
+$('#accCfgDone').addEventListener('click', accCfgClose);
+$('#accCfgBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'accCfgBackdrop') accCfgClose(); });
+$('#accCfgAdd').addEventListener('click', addAccCfg);
+$('#accCfgBody').addEventListener('click', ev=>{
+  const btn = ev.target.closest('[data-accfg]');
+  if (!btn || btn.dataset.accfg !== 'del') return;
+  const row = btn.closest('[data-acc]'); if (!row) return;
+  deleteAccCfg(row.dataset.acc);
+});
+$('#accCfgBody').addEventListener('change', ev=>{
+  const inp = ev.target.closest('[data-accfg]');
+  if (!inp) return;
+  const row = inp.closest('[data-acc]'); if (!row) return;
+  const acc = row.dataset.acc;
+  const act = inp.dataset.accfg;
+  if (act === 'name'){
+    const ok = renameAccount(acc, inp.value);
+    if (!ok) inp.value = acc;                 /* 못 바꿨으면 원래 이름으로 */
+    renderAccCfg(); renderAll();
+    return;
+  }
+  if (act === 'color'){
+    const v = String(inp.value || '').trim();
+    if (!/^#[0-9a-f]{6}$/i.test(v)) return;
+    ACC_COLOR_OVR[acc] = v;
+    accCfgSave(); markSettingsDirty(acc + ' 계좌 색');
+    renderAll(); renderAccCfg();
+    return;
+  }
+  if (act === 'alias'){
+    const v = String(inp.value || '').trim().slice(0, 10);
+    if (v) ACC_ALIAS[acc] = v; else delete ACC_ALIAS[acc];
+    inp.value = v;
+    accCfgSave(); markSettingsDirty(acc + ' 계좌 별칭');
+    renderAll();
+    toast(v ? acc + ' 별칭: ' + v : acc + ' 별칭을 지웠습니다');
+  }
+});
 /* 대한항공 마일리지 — 숫자를 누르면 보유 마일 입력, 저장하면 바로 반영 */
 $('#mileCard').addEventListener('click', ev=>{
   const act = ev.target.closest('[data-mileact]');
@@ -7184,7 +7262,8 @@ function bindDataTab(){
   });
   $('#btnJsonSave').addEventListener('click', ()=>{
     const data = {v:1, savedAt:new Date().toISOString(), mode:S.mode, rows:S.rows, categories:S.categories, rules:S.rules, dueDates:S.dueDates, limits:LIMITS, mileage:MILE,
-      cards:CARD_PREF.slice(), cardColors:Object.assign({}, CARD_COLOR_OVR), cardBenefit:CARD_BEN, cardHidden:CARD_HIDDEN, cardAlias:CARD_ALIAS};
+      cards:CARD_PREF.slice(), cardColors:Object.assign({}, CARD_COLOR_OVR), cardBenefit:CARD_BEN, cardHidden:CARD_HIDDEN, cardAlias:CARD_ALIAS,
+    accounts:BANK_ACCOUNTS.slice(), accColors:Object.assign({}, ACC_COLOR_OVR), accAlias:Object.assign({}, ACC_ALIAS), accHidden:Object.assign({}, ACC_HIDDEN)};
     download('카드가계부_백업_'+stamp()+'.json', JSON.stringify(data, null, 1), 'application/json');
     toast('백업 파일을 저장했습니다');
   });
@@ -7216,6 +7295,10 @@ function bindDataTab(){
             cardCfgApply({list: Array.isArray(p.cards) ? p.cards : null, colors: p.cardColors || null,
                           benefit: p.cardBenefit || null, hidden: p.cardHidden || null, alias: p.cardAlias || null});
           }
+          if (Array.isArray(p.accounts) || p.accColors || p.accAlias || p.accHidden){
+            accCfgApply({list: Array.isArray(p.accounts) ? p.accounts : null, colors: p.accColors || null,
+                         alias: p.accAlias || null, hidden: p.accHidden || null});
+          }
           if (p.mileage && typeof p.mileage === 'object'){
             MILE = MILE_EMPTY();
             if (p.mileage.skypass != null && isFinite(+p.mileage.skypass)) MILE.skypass = Math.max(0, Math.round(+p.mileage.skypass));
@@ -7239,9 +7322,13 @@ function bindDataTab(){
   });
   $('#btnWipe').addEventListener('click', ()=>{
     askConfirm('저장된 자료를 지울까요?', '이 브라우저의 자동 저장(localStorage)과 화면 자료를 지우고 빈 가계부로 돌아갑니다. 카드별 한도도 함께 지워집니다. CSV 백업을 먼저 받아두세요.', '지우기', ()=>{
-      try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(LIMITF_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); localStorage.removeItem(CARDCFG_KEY); } catch(e){}
+      try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(LIMITF_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); localStorage.removeItem(CARDCFG_KEY); localStorage.removeItem(ACCCFG_KEY); } catch(e){}
       LIMITS = {}; LIMIT_FORMULA = {}; limitEdit = null; FB_AI = null; FB_AI_OFF = null;
       CARD_BEN = {}; CARD_COLOR_OVR = {}; CARD_HIDDEN = {}; CARD_ALIAS = {}; cardCfgSetList(['삼성카드','우리카드','KB국민카드','현대카드']);
+      /* 계좌 설정도 처음 상태로 (2026-11-27) */
+      ACC_COLOR_OVR = {}; ACC_ALIAS = {}; ACC_HIDDEN = {};
+      BANK_ACCOUNTS.splice(0, BANK_ACCOUNTS.length, '우리은행', '토스 입출금', '토스 모으기');
+      MAIN_ACC = ACC_ROLE_DEFAULT.main; SAVE_ACC = ACC_ROLE_DEFAULT.save; WIDE_ACC = ACC_ROLE_DEFAULT.main;
       MILE = MILE_EMPTY(); mileEdit = false;
       mileGoalEdit = false;
       S = blankState(true); F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
@@ -8148,6 +8235,8 @@ function settingsSnapshot(remoteJson){
                 cards:CARD_PREF.slice(), cardColors:Object.assign({}, CARD_COLOR_OVR),
                 cardBenefit:JSON.parse(JSON.stringify(CARD_BEN)), cardHidden:Object.assign({}, CARD_HIDDEN),
                 cardAlias:Object.assign({}, CARD_ALIAS),
+                accounts:BANK_ACCOUNTS.slice(), accColors:Object.assign({}, ACC_COLOR_OVR),
+                accAlias:Object.assign({}, ACC_ALIAS), accHidden:Object.assign({}, ACC_HIDDEN),
                 hlPresets:HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
                 hlRetired:Object.assign({}, HL.retired),
                 updatedAt: OUTBOX.settingsAt || nowIso()};
@@ -8263,6 +8352,11 @@ function applyRemoteSettings(p){
     if (cardCfgApply({list: Array.isArray(p.cards) ? p.cards : null, colors: p.cardColors || null,
                       benefit: p.cardBenefit || null, hidden: p.cardHidden || null,
                       alias: p.cardAlias || null})) changed++;
+  }
+  /* 계좌 설정(목록·색·별칭·지운 계좌) — settings.json 에 이 칸이 없으면 지금 계좌 목록 그대로 둡니다 (2026-11-27) */
+  if (remoteAt > localAt && (Array.isArray(p.accounts) || p.accColors || p.accAlias || p.accHidden)){
+    if (accCfgApply({list: Array.isArray(p.accounts) ? p.accounts : null, colors: p.accColors || null,
+                     alias: p.accAlias || null, hidden: p.accHidden || null})) changed++;
   }
   if (p.mileageGoal != null && isFinite(+p.mileageGoal)){
     const gv = Math.max(0, Math.round(+p.mileageGoal));
@@ -9266,7 +9360,7 @@ function capRowHtml(r){
   const i = CAP.results.indexOf(r);
   if (CAP.mode === 'bank'){
     const accVal = r.account || '';
-    const acc = accVal || '우리은행';          /* 항목 후보를 고르기 위한 기본 계좌 */
+    const acc = accVal || (BANK_ACCOUNTS[0] || MAIN_ACC);          /* 항목 후보를 고르기 위한 기본 계좌 */
     const list = bankItemList(CAP.month || capNowMonth(), acc);
     let items = list.in.concat(list.out).filter((v,k,a)=> a.indexOf(v) === k);
     if (r.item && items.indexOf(r.item) < 0) items = [r.item].concat(items);
@@ -9710,8 +9804,24 @@ document.addEventListener('keydown', ev=>{
    · 개인 이름·금액은 코드에 넣지 않습니다 — 공개 배포본은 비어 있고, 자료는 비공개 저장소에서만 들어옵니다.
    ============================================================ */
 const BANK_ACCOUNTS = ['우리은행', '토스 입출금', '토스 모으기'];
+/* ---------- 계좌 설정 (추가·이름·색·삭제·별칭) — 2026-11-27 ----------
+   · 계좌 목록은 BANK_ACCOUNTS(배열 내용을 바꿔 씁니다)이고, 색·별칭·지운 계좌는 아래 값에 담습니다.
+   · 이 브라우저(localStorage)에 저장하고 settings.json(accounts·accColors·accAlias·accHidden)으로 기기끼리 맞춥니다.
+   · 지운 계좌의 내역·예산은 저장소에 그대로 남기고 화면 합계에서만 뺍니다 — 같은 이름으로 다시 넣으면 다시 보입니다.
+   · 계좌 이름을 바꾸면 그 계좌의 거래·예산·순서·모으기 이름까지 같은 이름으로 옮깁니다(renameAccount). */
+const ACCCFG_KEY = LS_KEY + '.acccfg';
+let ACC_COLOR_OVR = {};        /* { '카카오뱅크': '#fee500' } — 계좌 설정에서 고른 색 */
+let ACC_ALIAS = {};            /* { '우리은행': '주거래' } — 계좌별 잔액·계좌내역에 '우리은행 - 주거래'로 표시 */
+let ACC_HIDDEN = {};           /* 지운 계좌 — 내역은 남기고 화면 목록·합계에서만 뺍니다 */
+const ACC_PALETTE = ['#0f766e','#b45309','#7c3aed','#be123c','#0e7490','#4d7c0f','#9d174d','#c2410c','#4338ca','#475569'];
+const isAccHidden = a => !!ACC_HIDDEN[a];
+/* 계좌의 '역할' 이름 — 이름을 바꿔도 역할은 따라갑니다 (아래 리터럴 대신 이 값을 씁니다) */
+let MAIN_ACC = '우리은행';       /* 대표 계좌 — 카드요금 자동·월급 예산·첫 달 이월금 기본값 */
+let SAVE_ACC = '토스 모으기';    /* 모으기(단기예탁) 계좌 — 총 수입·총 지출에서 빠짐 */
+/* 역할 기본값 — 계좌를 지우거나 초기화할 때 돌아갈 이름 */
+const ACC_ROLE_DEFAULT = {main: '우리은행', save: '토스 모으기'};
 /* 예산·실행 3열 표라 폭이 넓어야 하는 계좌 — 폴드 펼친 폭에서는 혼자 윗줄 전체 폭을 씁니다 (2026-11-25) */
-const WIDE_ACC = '우리은행';
+let WIDE_ACC = '우리은행';
 /* 계좌내역이 윗줄(우리은행 전체 폭) + 아랫줄(토스 2열)로 나뉘는 폭 — CSS 미디어쿼리와 같은 경계 */
 const SC_SPLIT_MQ = window.matchMedia('(min-width: 640px) and (max-width: 1023px)');
 const scSplitLayout = ()=> !!SC_SPLIT_MQ.matches;
@@ -9719,9 +9829,205 @@ const BANK_ACC_COLORS = {'우리은행': '#0067ac', '토스 입출금': '#3182f6
 const BANK_ACC_DARK = {'우리은행': '#00477a', '토스 입출금': '#1b56c4', '토스 모으기': '#08795a'};
 const BANK_ACC_SOFT = {'우리은행': 'rgba(0,103,172,.07)', '토스 입출금': 'rgba(49,130,246,.09)', '토스 모으기': 'rgba(18,184,134,.10)'};
 const BANK_ACC_SHORT = {'우리은행': '우리', '토스 입출금': '토스', '토스 모으기': '모으기'};
-const bankAccColor = a => BANK_ACC_COLORS[a] || '#64748b';
-const bankAccVars = a => '--ac:' + bankAccColor(a) + ';--acd:' + (BANK_ACC_DARK[a] || bankAccColor(a)) + ';--acs:' + (BANK_ACC_SOFT[a] || 'rgba(100,116,139,.08)');
+const bankAccColor = a => ACC_COLOR_OVR[a] || BANK_ACC_COLORS[a] || '#64748b';
+/* 색 도우미 — 새 계좌는 고른 색 하나로 진한 글자색·연한 배경색을 만들어 씁니다 */
+function hexRgb(hex){ const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '')); if (!m) return null; const v = parseInt(m[1], 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; }
+function shadeHex(hex, k){ const c = hexRgb(hex); if (!c) return hex; const f = v=> Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [f(c[0]), f(c[1]), f(c[2])].map(v=> v.toString(16).padStart(2, '0')).join(''); }
+function softRgba(hex, alpha){ const c = hexRgb(hex); if (!c) return 'rgba(100,116,139,.09)'; return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha == null ? 0.09 : alpha) + ')'; }
+const bankAccDark = a => BANK_ACC_DARK[a] || (ACC_COLOR_OVR[a] ? shadeHex(ACC_COLOR_OVR[a], .66) : bankAccColor(a));
+const bankAccSoft = a => BANK_ACC_SOFT[a] || softRgba(bankAccColor(a), .09);
+const bankAccVars = a => '--ac:' + bankAccColor(a) + ';--acd:' + bankAccDark(a) + ';--acs:' + bankAccSoft(a);
 const bankAccShort = a => BANK_ACC_SHORT[a] || a;
+/* 별칭 — 계좌별 잔액·계좌내역 제목 옆에 '계좌명 - 별칭'으로 (카드 설정의 별칭과 같은 모양) */
+const bankAccAliasHtml = a => ACC_ALIAS[a] ? '<span class="als"> - ' + esc(ACC_ALIAS[a]) + '</span>' : '';
+const bankAccLabel = a => a + (ACC_ALIAS[a] ? ' - ' + ACC_ALIAS[a] : '');
+
+/* ============================================================
+   계좌 설정 — 추가·이름·색·삭제·별칭 (2026-11-27)
+   · 카드 설정과 같은 모양의 창에서 계좌 목록을 다룹니다.
+   · 이름을 바꾸면 그 계좌의 거래·예산·항목 구분·순서·모으기 이름까지 같은 이름으로 옮깁니다.
+   · 지우면 내역은 저장소에 그대로 두고 화면 목록·합계에서만 뺍니다.
+   ============================================================ */
+function accCfgSave(){
+  try {
+    localStorage.setItem(ACCCFG_KEY, JSON.stringify({v: 1, list: BANK_ACCOUNTS.slice(),
+      colors: Object.assign({}, ACC_COLOR_OVR), alias: Object.assign({}, ACC_ALIAS), hidden: Object.assign({}, ACC_HIDDEN)}));
+  } catch(e){}
+}
+function accCfgSetList(list){
+  const clean = [];
+  list.forEach(n=>{ const s = String(n == null ? '' : n).trim().slice(0, 20); if (s && clean.indexOf(s) < 0) clean.push(s); });
+  BANK_ACCOUNTS.splice(0, BANK_ACCOUNTS.length, ...clean);
+  /* 역할 이름이 목록에서 사라졌으면 비워 둡니다 — 없는 계좌에 카드요금 자동·모으기 제외를 붙이지 않게 */
+  if (BANK_ACCOUNTS.indexOf(MAIN_ACC) < 0) MAIN_ACC = '';
+  if (BANK_ACCOUNTS.indexOf(SAVE_ACC) < 0) SAVE_ACC = '';
+  if (BANK_ACCOUNTS.indexOf(WIDE_ACC) < 0) WIDE_ACC = '';
+  return clean;
+}
+function accCfgNormAlias(src){
+  const out = {};
+  Object.keys(src || {}).forEach(a=>{
+    const v = String(src[a] == null ? '' : src[a]).trim().slice(0, 10);
+    if (v) out[a] = v;
+  });
+  return out;
+}
+/* 저장된 값·서버 settings.json 값을 그대로 적용합니다 */
+function accCfgApply(p){
+  if (!p || typeof p !== 'object') return false;
+  let did = false;
+  if (Array.isArray(p.list) && p.list.length){
+    const next = [];
+    p.list.forEach(n=>{ const s = String(n == null ? '' : n).trim().slice(0, 20); if (s && next.indexOf(s) < 0) next.push(s); });
+    const prev = BANK_ACCOUNTS.slice();
+    const hid = (p.hidden && typeof p.hidden === 'object') ? p.hidden : {};
+    const missing = prev.filter(a=> next.indexOf(a) < 0 && !hid[a]);
+    const added = next.filter(a=> prev.indexOf(a) < 0);
+    /* 다른 기기에서 이름 하나만 바꿔 온 경우 — 이 기기의 내역·예산도 조용히 함께 옮깁니다 */
+    if (missing.length === 1 && added.length === 1) accMigrateAccount(missing[0], added[0], true);
+    if (next.join('|') !== prev.join('|')){ accCfgSetList(next); did = true; }
+  }
+  if (p.colors && typeof p.colors === 'object'){
+    const nc = {};
+    Object.keys(p.colors).forEach(a=>{ const v = String(p.colors[a] || '').trim(); if (/^#[0-9a-f]{6}$/i.test(v)) nc[a] = v; });
+    ACC_COLOR_OVR = nc; did = true;
+  }
+  if (p.alias && typeof p.alias === 'object'){ ACC_ALIAS = accCfgNormAlias(p.alias); did = true; }
+  if (p.hidden && typeof p.hidden === 'object'){ ACC_HIDDEN = p.hidden; did = true; }
+  if (did) accCfgSave();
+  return did;
+}
+function accCfgLoad(){
+  try {
+    const raw = localStorage.getItem(ACCCFG_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object') return;
+    accCfgApply(p);
+  } catch(e){}
+}
+/* 이름을 바꿔도 따라가는 것 — 계좌 기병용 기본 항목·색·축약 이름·고정행·역할 이름 */
+function accRekeyRoles(o, n){
+  const mv = obj=>{ if (obj && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, o)){ obj[n] = obj[o]; delete obj[o]; } };
+  mv(BANK_ITEMS_BASE); mv(BANK_ACC_COLORS); mv(BANK_ACC_DARK); mv(BANK_ACC_SOFT); mv(BANK_ACC_SHORT); mv(MOVE_DEFS);
+  const i = MOVE_ACCOUNTS.indexOf(o); if (i >= 0) MOVE_ACCOUNTS[i] = n;
+  if (MAIN_ACC === o) MAIN_ACC = n;
+  if (SAVE_ACC === o) SAVE_ACC = n;
+  if (WIDE_ACC === o) WIDE_ACC = n;
+}
+/* 계좌 이름 옮기기 — 이 브라우저의 모든 달 자료에서 계좌 이름을 함께 바꿉니다.
+   quiet=true 면 동기화에 '이 기기 변경'으로 표시하지 않습니다(다른 기기의 이름 변경을 받아들일 때). */
+function accMigrateAccount(oldName, newName, quiet){
+  if (!newName || newName === oldName) return 0;
+  const i = BANK_ACCOUNTS.indexOf(oldName);
+  if (i >= 0) BANK_ACCOUNTS[i] = newName;
+  const touched = [];
+  Object.keys(BANK.months).forEach(m=>{
+    const d = BANK.months[m]; if (!d) return;
+    let ch = false;
+    (d.rows || []).forEach(r=>{
+      if (r.account !== oldName) return;
+      const oldK = bankRowKey(r);
+      r.account = newName;
+      if (bankRowKey(r) !== oldK) addBankTomb(oldK, m, r.id);   /* 예전 이름의 같은 줄이 되살아나지 않게 */
+      ch = true;
+    });
+    ['budgets', 'budgetFormula', 'budgetAt', 'itemDir', 'transfer', 'rowOrder', 'rowOrderAt', 'hiddenMoves', 'hiddenMovesAt'].forEach(k=>{
+      const o = d[k];
+      if (!o || typeof o !== 'object' || Array.isArray(o)) return;
+      if (Object.prototype.hasOwnProperty.call(o, oldName)){ o[newName] = o[oldName]; delete o[oldName]; ch = true; }
+    });
+    if (ch){ d.updatedAt = nowIso(); touched.push(m); }
+  });
+  if (BANK.moveNames && BANK.moveNames[oldName]){ BANK.moveNames[newName] = BANK.moveNames[oldName]; delete BANK.moveNames[oldName]; }
+  if (BANK.moveNamesAt && BANK.moveNamesAt[oldName]){ BANK.moveNamesAt[newName] = BANK.moveNamesAt[oldName]; delete BANK.moveNamesAt[oldName]; }
+  if (BANK.ui && BANK.ui.account === oldName) BANK.ui.account = newName;
+  if (ACC_ALIAS[oldName]){ ACC_ALIAS[newName] = ACC_ALIAS[oldName]; delete ACC_ALIAS[oldName]; }
+  if (ACC_COLOR_OVR[oldName]){ ACC_COLOR_OVR[newName] = ACC_COLOR_OVR[oldName]; delete ACC_COLOR_OVR[oldName]; }
+  delete ACC_HIDDEN[oldName];
+  accRekeyRoles(oldName, newName);
+  bankSave();
+  if (!quiet) touched.forEach(m=> markBankDirty(m, {label: oldName + ' → ' + newName + ' 계좌 이름', action: '수정'}));
+  return touched.length;
+}
+function accCfgRowHtml(a, i, n){
+  let cnt = 0, mon = 0;
+  Object.keys(BANK.months).forEach(m=>{
+    const rs = (BANK.months[m].rows || []).filter(r=> r.account === a);
+    if (rs.length){ mon++; cnt += rs.length; }
+  });
+  const role = (a === MAIN_ACC) ? '대표 계좌 · 카드요금 자동·월급·첫 달 이월금'
+             : (a === SAVE_ACC) ? '모으기 계좌 · 총 수입·총 지출에서 빠짐' : '';
+  const hint = [role, cnt ? '저장된 내역 ' + fmt(cnt) + '건 · ' + mon + '개월' : '저장된 내역 없음'].filter(Boolean).join(' · ');
+  return '<div class="ccfg-row" data-acc="' + esc(a) + '">' +
+    '<div class="ccfg-hd">' +
+      '<input class="accfg-swatch" type="color" data-accfg="color" value="' + esc(bankAccColor(a)) + '" aria-label="' + esc(a) + ' 색">' +
+      '<input class="ccfg-name" type="text" data-accfg="name" value="' + esc(a) + '" maxlength="20" aria-label="계좌 이름" title="이름을 바꾸면 이 계좌의 내역·예산도 함께 바뀝니다">' +
+      '<button class="ccfg-del" type="button" data-accfg="del" aria-label="' + esc(a) + ' 삭제" title="계좌 지우기">✕</button>' +
+    '</div>' +
+    '<div class="ccfg-fields">' +
+      '<label class="ccfg-f wide"><span class="lb">별칭</span><input type="text" data-accfg="alias" value="' + esc(ACC_ALIAS[a] || '') + '" maxlength="10" placeholder="예: 주거래" title="계좌별 잔액·계좌내역에 ‘계좌명 - 별칭’으로 표시됩니다"><span class="u"></span></label>' +
+    '</div>' +
+    '<span class="ccfg-hint">' + esc(hint) + '</span>' +
+    '</div>';
+}
+function renderAccCfg(){
+  const body = $('#accCfgBody'); if (!body) return;
+  const list = BANK_ACCOUNTS.slice();
+  body.innerHTML = '<p class="sec-desc">계좌 이름·색·별칭을 정하고, 계좌를 더하거나 지웁니다. 바꾼 내용은 settings.json 으로 다른 기기와 자동으로 맞춰집니다.</p>' +
+    (list.length
+      ? '<div class="ccfg-list">' + list.map((a, i)=> accCfgRowHtml(a, i, list.length)).join('') + '</div>'
+      : '<div class="ccfg-empty">계좌가 없습니다 — [＋ 계좌 추가]로 넣어 주세요.</div>');
+}
+function accCfgOpen(){ renderAccCfg(); const bd = $('#accCfgBackdrop'); if (bd) bd.classList.add('show'); }
+function accCfgClose(){ const bd = $('#accCfgBackdrop'); if (bd) bd.classList.remove('show'); }
+function addAccCfg(){
+  const used = new Set(BANK_ACCOUNTS.map(a=> bankAccColor(a)));
+  const col = ACC_PALETTE.find(x=> !used.has(x)) || ACC_PALETTE[BANK_ACCOUNTS.length % ACC_PALETTE.length];
+  let name = '새 계좌', k = 2;
+  while (BANK_ACCOUNTS.indexOf(name) >= 0) name = '새 계좌 ' + (k++);
+  BANK_ACCOUNTS.push(name);
+  ACC_COLOR_OVR[name] = col;
+  delete ACC_HIDDEN[name];
+  accCfgSave(); markSettingsDirty(name + ' 계좌 추가');
+  renderAccCfg(); renderAll();
+  const row = document.querySelector('#accCfgBody [data-acc="' + name.replace(/"/g, '\\"') + '"] .ccfg-name');
+  if (row){ row.focus(); try { row.setSelectionRange(0, row.value.length); } catch(e){} }
+  toast(name + ' 계좌를 추가했습니다 — 이름·별칭을 정해 주세요');
+}
+function renameAccount(oldName, newName){
+  newName = String(newName == null ? '' : newName).trim().slice(0, 20);
+  if (!newName || newName === oldName) return false;
+  if (BANK_ACCOUNTS.indexOf(newName) >= 0 || ACC_HIDDEN[newName]){ toast('이미 있는 계좌 이름입니다'); return false; }
+  if (BANK_ACCOUNTS.indexOf(oldName) < 0) return false;
+  accMigrateAccount(oldName, newName, false);
+  accCfgSave(); markSettingsDirty(oldName + ' → ' + newName + ' 계좌 이름');
+  toast('계좌 이름을 바꿨습니다 — 이 계좌의 내역·예산도 함께 옮겼습니다');
+  return true;
+}
+function deleteAccCfg(name){
+  let cnt = 0;
+  Object.keys(BANK.months).forEach(m=>{
+    const d = BANK.months[m];
+    cnt += (d.rows || []).filter(r=> r.account === name).length;
+    if (Object.keys(((d.budgets || {})[name]) || {}).length) cnt += 0;
+  });
+  askConfirm('계좌를 지울까요?', '"' + name + '" 계좌를 계좌 목록에서 지웁니다.\n' +
+    (cnt ? '저장된 내역 ' + fmt(cnt) + '건과 예산은 그대로 보관되고, 화면 목록·잔액 합계에서만 빠집니다.\n같은 이름으로 다시 추가하면 다시 나타납니다.\n' : '') +
+    '계좌 색·별칭 설정은 함께 지워집니다.', '지우기', ()=>{
+    const i = BANK_ACCOUNTS.indexOf(name);
+    if (i >= 0) BANK_ACCOUNTS.splice(i, 1);
+    ACC_HIDDEN[name] = 1;
+    delete ACC_COLOR_OVR[name]; delete ACC_ALIAS[name];
+    if (MAIN_ACC === name) MAIN_ACC = '';
+    if (SAVE_ACC === name) SAVE_ACC = '';
+    if (WIDE_ACC === name) WIDE_ACC = '';
+    if (BANK.ui.account === name) BANK.ui.account = '';
+    accCfgSave(); markSettingsDirty(name + ' 계좌 지우기');
+    renderAccCfg(); renderAll();
+    toast(name + ' 계좌를 목록에서 지웠습니다');
+  });
+}
 /* 금액 입력의 안전한 수식 계산 — eval 금지. 50000+12000 · 15000*3 · (100,000+5,000)/2 · -5000 */
 function calcAmount(raw){
   let s = String(raw == null ? '' : raw).trim();
@@ -9795,12 +10101,17 @@ function refreshCalcHint(inp){
   hint.classList.toggle('bad', !r.ok);
 }
 const normBankAccount = v => {
-  const s = String(v == null ? '' : v).trim();
+  /* 설정한 계좌 이름을 가장 먼저 알아보고, 옛 표기(계좌 이름만·토스 따위)는 설정된 계좌로 맞춥니다.
+     모르는 이름은 그대로 보존합니다 — 원격·다른 기기의 새 계좌 이름을 엉뚱한 계좌로 옮기지 않기 위해 (2026-11-27) */
+  const s = String(v == null ? '' : v).trim().slice(0, 20);
   if (!s) return '';
-  if (/우리/.test(s)) return '우리은행';
-  if (/모으기|적금|세이브/.test(s)) return '토스 모으기';
-  if (/토스/.test(s)) return '토스 입출금';
-  return '';
+  if (BANK_ACCOUNTS.indexOf(s) >= 0) return s;
+  if (ACC_HIDDEN[s]) return s;
+  const pick = re => { const hit = BANK_ACCOUNTS.find(a=> re.test(a)); return hit || ''; };
+  if (/모으기|적금|세이브/.test(s)) return pick(/모으기|적금|세이브/);
+  if (/우리/.test(s)) return pick(/우리/);
+  if (/토스/.test(s)) return pick(/토스/);
+  return s;
 };
 /* 항목 이름 — 2026-11-24 옛 표기 '전월이월금' → '이월금'.
    저장된 옛 이름은 같은 항목으로 읽고, 저장할 때는 '이월금' 하나로 정리합니다. */
@@ -10157,7 +10468,7 @@ function bankRowOrderAtCopy(month){
 function isKpiExcludedRow(r){
   if (!r) return false;
   if (isTransferRow(r)) return true;
-  return r.account === '토스 모으기' || isMoveItem(r.item) || isMoveItem(r.name) ||
+  return r.account === SAVE_ACC || isMoveItem(r.item) || isMoveItem(r.name) ||
          !!moveLabelInfo(r.account, r.item) || !!moveLabelInfo(r.account, r.name);
 }
 /* 기본 항목 — 범용 이름만. 실제 쓰는 이름(예: 가족 이름이 든 항목)은 비공개 저장소의 월별 자료에서 그대로 나타납니다. */
@@ -10283,7 +10594,7 @@ function bankNormalizeRow(raw){
   if (!hasAmt || (!item && !name)) return null;
   const ord = (raw.order !== null && raw.order !== undefined && raw.order !== '' && isFinite(+raw.order)) ? +raw.order : null;
   const r = {id: bankKeepId(raw.id), month: String(raw.month || '').slice(0, 7),
-    account: normBankAccount(raw.account) || '우리은행',
+    account: normBankAccount(raw.account) || BANK_ACCOUNTS[0] || MAIN_ACC,
     date: toDateStr(raw.date) || '', item: item || name, name: name || item,
     amount: amount, memo: String(raw.memo || '').trim().slice(0, 80),
     order: ord, orderAt: ord == null ? '' : String(raw.orderAt || '')};
@@ -10343,7 +10654,7 @@ function bankTotalsRaw(month, account){
   const d = BANK.months[month];
   if (!d) return {inc: 0, exp: 0, bal: 0, n: 0};
   let inc = 0, exp = 0, n = 0;
-  d.rows.forEach(r=>{ if (account && r.account !== account) return; n++; if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
+  d.rows.forEach(r=>{ if (isAccHidden(r.account)) return; if (account && r.account !== account) return; n++; if (r.amount > 0) inc += r.amount; else exp -= r.amount; });
   return {inc: inc, exp: exp, bal: inc - exp, n: n};
 }
 /* 직전 달에 이 계좌 자료가 있는지 — 거래나 예산이 하나라도 있으면 이월금 연동 대상 */
@@ -10381,7 +10692,7 @@ function carryBudgetHas(d, account){
 }
 /* 첫 달 우리은행 이월금 예산 기본값 — 첫 달(전월 자료 없음)에만, 저장값이 없을 때만 */
 function carryBudgetDefaultFor(month, account){
-  if (account !== '우리은행') return 0;
+  if (account !== MAIN_ACC) return 0;
   if (!month) return 0;
   if (bankPrevAccountData(month, account)) return 0;
   if (bankMonths()[0] !== month) return 0;
@@ -10392,11 +10703,11 @@ function seedCarryBudgetDefault(){
   const ms = bankMonths();
   if (!ms.length) return false;
   const month = ms[0];
-  if (bankPrevAccountData(month, '우리은행')) return false;
+  if (bankPrevAccountData(month, MAIN_ACC)) return false;
   const d = ensureBankDoc(month);
-  if (!d.budgets['우리은행'] || typeof d.budgets['우리은행'] !== 'object') d.budgets['우리은행'] = {};
-  if (carryBudgetHas(d, '우리은행')) return false;
-  d.budgets['우리은행'][CARRY_ITEM] = CARRY_BUDGET_DEFAULT;
+  if (!d.budgets[MAIN_ACC] || typeof d.budgets[MAIN_ACC] !== 'object') d.budgets[MAIN_ACC] = {};
+  if (carryBudgetHas(d, MAIN_ACC)) return false;
+  d.budgets[MAIN_ACC][CARRY_ITEM] = CARRY_BUDGET_DEFAULT;
   d.updatedAt = nowIso();
   bankSave();
   try { markBankDirty(month); } catch(e){}   /* 다른 기기·저장소에도 같은 값이 남도록 */
@@ -10417,7 +10728,7 @@ function bankCarryValue(month, account){
   }
   const prev = ymShift(month, -1);
   return {auto: true, src: prev, act: bankTotals(prev, account).bal,
-    bud: account === '우리은행' ? bankBudgetTotal(prev, account) : 0};
+    bud: account === MAIN_ACC ? bankBudgetTotal(prev, account) : 0};
 }
 /* 이월금 자동 행 — 직전 달 자료가 있으면 그 달 총합으로 채웁니다 */
 function bankCarryVirtual(month, account){
@@ -10430,6 +10741,7 @@ function bankCarryVirtual(month, account){
 function bankRowsAll(month){
   const d = BANK.months[month];
   let rows = d ? d.rows.slice() : [];
+  rows = rows.filter(r=> !isAccHidden(r.account));   /* 계좌 설정에서 지운 계좌의 내역은 화면에서 뺍니다 — 저장소에는 남아 있습니다 */
   BANK_ACCOUNTS.forEach(a=>{
     const v = bankCarryVirtual(month, a);
     if (!v) return;
@@ -10442,7 +10754,7 @@ function bankRowsAll(month){
 function bankTotals(month, account){
   const d = BANK.months[month];
   /* 연동되는 달은 저장된 이월 행 대신 자동 행만 더합니다 — 같은 돈이 두 번 잡히지 않게 */
-  const rows = d ? d.rows.filter(r=> (!account || r.account === account) && !(r.carry && bankPrevAccountData(month, r.account))) : [];
+  const rows = d ? d.rows.filter(r=> (!account || r.account === account) && !isAccHidden(r.account) && !(r.carry && bankPrevAccountData(month, r.account))) : [];
   const v = account ? [bankCarryVirtual(month, account)].filter(Boolean)
                     : BANK_ACCOUNTS.map(a=> bankCarryVirtual(month, a)).filter(Boolean);
   let inc = 0, exp = 0;
@@ -10467,7 +10779,7 @@ function bankFootTotals(sel, acc){
       if (r.kind === TRANSFER_KIND) return;                                    /* 계좌이동 */
       if (bankTransferInfo(m, acc, r.item) || bankTransferInfo(m, acc, r.name)) return;
       if (isMoveItem(r.item) || moveAnyInfo(acc, r.item)) return;             /* 모으기채우기·꺼내기(이름 바꾼 것 포함) */
-      if (acc === '토스 모으기' && /^(채우기|꺼내기)$/.test(String(r.item || r.name || '').trim())) return;   /* 모으기 계좌의 채우기·꺼내기도 계좌 사이 돈 */
+      if (acc === SAVE_ACC && /^(채우기|꺼내기)$/.test(String(r.item || r.name || '').trim())) return;   /* 모으기 계좌의 채우기·꺼내기도 계좌 사이 돈 */
       const dir = inItems.has(r.item) ? 'in' : (outItems.has(r.item) ? 'out' : (r.amount > 0 ? 'in' : 'out'));
       if (dir === 'in') inc += r.amount; else exp -= r.amount;
     });
@@ -10483,7 +10795,7 @@ function scgFootHtml(sel, acc, T){
     '<span class="in">수입 <b>' + (T.inc > 0 ? '+' : (T.inc < 0 ? '−' : '')) + fmt(Math.abs(T.inc)) + '</b></span>' +
     '<span class="out">지출 <b>' + (T.exp > 0 ? '−' + fmt(T.exp) : (T.exp < 0 ? '+' + fmt(Math.abs(T.exp)) : '0')) + '</b></span>' +
     '<span class="net ' + cls + '" title="차액 = 수입 − 지출 (계좌이동·이월금 제외)">차액 <b>' + sign + fmt(Math.abs(net)) + '</b></span>' +
-    (acc === '토스 모으기' ? '<span class="exfoot" title="모으기 계좌는 내 계좌끼리 옮긴 돈이라 전체 요약의 총 수입·총 지출에서는 빠집니다 (잔액에는 들어갑니다)">전체 요약 제외</span>' : '') +
+    (acc === SAVE_ACC ? '<span class="exfoot" title="모으기 계좌는 내 계좌끼리 옮긴 돈이라 전체 요약의 총 수입·총 지출에서는 빠집니다 (잔액에는 들어갑니다)">전체 요약 제외</span>' : '') +
   '</div>';
 }
 function cardTotalFor(month){
@@ -10509,7 +10821,7 @@ function bankSalaryBudget(month, account, item){
   return null;
 }
 function bankBudget(month, account, item){
-  if (account === '우리은행' && item === '카드요금' && bankCardLinked(month)) return cardTotalFor(month);
+  if (account === MAIN_ACC && item === '카드요금' && bankCardLinked(month)) return cardTotalFor(month);
   if (isCarryName(item)){
     const cv = bankCarryValue(month, account);
     if (cv.auto || cv.bud) return Math.round(cv.bud || 0);   /* 연동값 · 첫 달 기본값(51,886) */
@@ -10830,8 +11142,18 @@ function renderScSelSum(){
    · 이월금·계좌이동·모으기(토스 모으기 계좌 + 모으기채우기/꺼내기)는 계좌 사이 돈이라 뺩니다
    → 계좌내역 우리은행·토스 입출금 하단 수입/지출을 그대로 더한 값과 1원까지 같습니다 */
 function bankActFlowOf(m){
-  const w = bankFootTotals(m, '우리은행'), t = bankFootTotals(m, '토스 입출금');
-  return {inc: w.inc + t.inc, exp: w.exp + t.exp, w: w, t: t};
+  /* 모으기(단기예탁) 계좌만 빼고 모든 계좌의 항목 구분 기준 수입·지출을 더합니다.
+     w = 대표 계좌(항목 예산이 있는 계좌), t = 나머지 계좌 합 (2026-11-27: 계좌를 늘려도 그대로) */
+  let inc = 0, exp = 0;
+  let w = {inc: 0, exp: 0}, t = {inc: 0, exp: 0};
+  BANK_ACCOUNTS.forEach(a=>{
+    if (a === SAVE_ACC) return;
+    const f = bankFootTotals(m, a);
+    inc += f.inc; exp += f.exp;
+    if (a === MAIN_ACC){ w = f; }
+    else { t = {inc: t.inc + f.inc, exp: t.exp + f.exp}; }
+  });
+  return {inc: inc, exp: exp, w: w, t: t};
 }
 function bankActFlow(){ return bankActFlowOf(F.month); }
 /* 예산 기준 흐름 — 우리은행은 항목 예산, 예산 열이 없는 토스 입출금은 실행값으로 셉니다 */
@@ -10870,7 +11192,7 @@ function renderBankSummary(){
   /* 실행 — 계좌내역 하단 수입·지출과 같은 항목 구분 기준 */
   const act = bankActFlow();
   /* 예산 — 우리은행 항목 예산 + 토스 입출금 실행값 (예산 열이 없는 계좌) */
-  const bw = bankBudgetFlow(F.month, '우리은행');
+  const bw = bankBudgetFlow(F.month, MAIN_ACC);
   const budInc = bw.inc + act.t.inc;
   const budExp = bw.exp + act.t.exp;
   /* 2026-11-26: 박스 아래 '수입 N건 · 지출 M건' 설명줄을 없애 건수 계산도 함께 걷어냈습니다 */
@@ -10947,7 +11269,7 @@ function renderBankSummary(){
       return '<button type="button" class="lim-item' + (over ? ' over' : '') + '" data-bankacc="' + esc(a) + '" title="' +
           esc(a + ((!yMode && (expectIn || expectOut)) ? ' · 예상 잔고 ' + fmt(expected) + '원' : '') + ' — 눌러서 이 계좌 내역만 보기') + '">' +
         '<span class="top"><span class="dot" style="background:' + bankAccColor(a) + '"></span>' +
-          '<span class="nm" style="color:' + (BANK_ACC_DARK[a] || bankAccColor(a)) + '">' + esc(a) + '</span></span>' +
+          '<span class="nm" style="color:' + bankAccDark(a) + '">' + esc(a) + bankAccAliasHtml(a) + '</span></span>' +
         '<span class="rem">' + fmt(t.bal) + '<small>원 ' + (yMode ? (isYearSel(F.month) ? '연말 잔액' : '최근 잔액') : '잔액') + '</small></span>' +
         '<span class="bar"><i style="width:' + r.toFixed(1) + '%"></i></span>' +
         '<span class="meta" title="수입 대비 지출 ' + rateTxt + '">수입 ' + fmt(t.inc) + ' · 지출 ' + fmt(t.exp) +
@@ -11101,7 +11423,7 @@ function bankSumRowHtml(month, acc, row, wide, unlocked){
 }
 /* 계좌 표 맨 아래 총합 행 — 예산 합(우리은행)·실행 합을 수입·지출 합산 순합계로 (2026-11-24) */
 function bankSumTotalHtml(month, acc){
-  const wide = acc === '우리은행';
+  const wide = acc === MAIN_ACC;
   const rows = bankSumItemRows(month, acc);
   let budNet = 0, actNet = 0;
   rows.forEach(r=>{
@@ -11118,7 +11440,7 @@ function scEditHtml(month, acc){
   const e = scEdit;
   const st = 'style="' + bankAccVars(acc) + '"';
   if (e.field === 'new'){
-    const wide = acc === '우리은행';
+    const wide = acc === MAIN_ACC;
     return '<div class="sc-edit" ' + st + '>' +
       '<span class="who">＋ 새 항목</span>' +
       '<label class="fld"><span>이름</span><input id="scNewName" type="text" maxlength="24" placeholder="항목 이름" autocomplete="off"></label>' +
@@ -11165,7 +11487,7 @@ function scEditHtml(month, acc){
   /* 0원으로 정해 둔 칸은 빈 칸이 아니라 '0'으로 다시 열립니다 (2026-11-26) */
   const valSet = isAct ? bankItemActSet(month, acc, item) : bankBudgetIsSet(month, acc, item);
   const fm = isAct ? bankItemFormula(month, acc, item) : bankBudgetFormula(month, acc, item);   /* 적어 둔 수식이 있으면 그대로 보여 줌 */
-  const linked = !isAct && acc === '우리은행' && item === '카드요금' && bankCardLinked(month);
+  const linked = !isAct && acc === MAIN_ACC && item === '카드요금' && bankCardLinked(month);
   const trInfo = bankTransferInfo(month, acc, item);
   return '<div class="sc-edit" ' + st + '>' +
     '<span class="who">' + esc(bankAccShort(acc)) + ' · ' + (isAct ? '실행 합계' : '예산') + (linked ? ' ⇄' : '') + (trInfo ? ' · 계좌이동 ' + (trInfo.dir === 'in' ? '+' : '−') : '') + '</span>' +
@@ -11177,7 +11499,7 @@ function scEditHtml(month, acc){
   '</div>';
 }
 function scGroupHtml(month, acc, rowsArg, padN){
-  const wide = acc === '우리은행';
+  const wide = acc === MAIN_ACC;
   const unlocked = lockOpen('bankItems');       /* 잠금이면 ⠿ 핸들·＋ 항목·금액 편집이 사라집니다 (2026-11-25) */
   const rows = rowsArg || bankSumItemRows(month, acc);
   const T = bankTotals(month, acc);
@@ -11207,7 +11529,7 @@ function scGroupHtml(month, acc, rowsArg, padN){
   }
   if (editingNew) body += scEditHtml(month, acc);
   return '<section class="scg ' + (wide ? 'w3' : 'w2') + '" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
-    '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
+    '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + bankAccAliasHtml(acc) + '</span>' +
       (unlocked ? '<button type="button" class="add" data-scadd="' + esc(acc) + '" title="' + esc(acc) + '에 항목 더하기">＋ 항목</button>' : '') + '</div>' +
     '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body +
@@ -11248,7 +11570,7 @@ function bankMoveSortRows(acc, rows){
   return rows.slice().sort((a, b)=> idx(a.item) - idx(b.item));
 }
 function bankSumRowHtmlYear(acc, row){
-  const wide = acc === '우리은행';
+  const wide = acc === MAIN_ACC;
   const bud = row.bud, act = row.act;
   const isMove = isMoveItem(row.item) || !!row.fixedMove;
   const isTr = !isMove && !!row.transfer;
@@ -11263,7 +11585,7 @@ function bankSumRowHtmlYear(acc, row){
     budCell + actCell + '</div>';
 }
 function scGroupHtmlYear(acc, rows){
-  const wide = acc === '우리은행';
+  const wide = acc === MAIN_ACC;
   const T = bankYearTotals(F.month, acc);
   let budNet = 0, actNet = 0;
   rows.forEach(r=>{ if (r.bud) budNet += (r.dir === 'in' ? r.bud : -r.bud); if (r.act) actNet += r.act; });
@@ -11276,7 +11598,7 @@ function scGroupHtmlYear(acc, rows){
     ? rows.map(r=> bankSumRowHtmlYear(acc, r)).join('')
     : '<div class="scg-row"><span class="inm" style="color:var(--muted);font-weight:600;cursor:default">이 해에 항목이 없습니다</span></div>';
   return '<section class="scg ' + (wide ? 'w3' : 'w2') + ' ro" style="' + bankAccVars(acc) + '" data-acc="' + esc(acc) + '">' +
-    '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + '</span>' +
+    '<div class="scg-h"><span class="dot"></span><span class="nm">' + esc(acc) + bankAccAliasHtml(acc) + '</span>' +
       '<span class="yrall" title="그 기간 예산·실행을 더한 값">' + esc(multiSelLabel()) + '</span></div>' +
     '<div class="scg-cols"><span>항목</span>' + (wide ? '<span class="num bud">예산</span>' : '') + '<span class="num act sep">실행</span></div>' +
     body + (rows.length ? total : '') +
@@ -11311,6 +11633,8 @@ function renderBankItems(){
     /* 폴드 펼친 폭(640~1023px)에서는 우리은행이 윗줄 전체 폭 · 토스 두 계좌가 아랫줄 2열이므로
        맞춤 빈 행도 줄 단위로 — 우리은행은 빈 행 없이, 토스 두 계좌끼리만 총합 행 높이를 맞춥니다 (2026-11-25). */
     if (scSplitLayout()){
+      /* 넓은 표 계좌는 언제나 윗줄 — 계좌 순서를 바꿔도 배치가 깨지지 않게 (2026-11-27) */
+      lists.sort((a, b)=> (a.acc === WIDE_ACC ? 0 : 1) - (b.acc === WIDE_ACC ? 0 : 1));
       const pairN = lists.filter(x=> x.acc !== WIDE_ACC)
         .reduce((m, x)=> Math.max(m, x.rows.length), 0);
       return lists.map(x=> scGroupHtml(month, x.acc, x.rows, x.acc === WIDE_ACC ? x.rows.length : pairN)).join('');
@@ -11620,7 +11944,7 @@ function scSave(){
   const fm = isFormulaText(rawAmt) ? formulaText(rawAmt) : '';   /* '=100+100' 수식 원문 */
   if (e.field === 'bud'){
     if (c.value < 0){ toast('예산은 0원 이상이어야 합니다'); return; }
-    if (acc === '우리은행' && e.item === '카드요금' && bankCardLinked(month)){
+    if (acc === MAIN_ACC && e.item === '카드요금' && bankCardLinked(month)){
       const d = ensureBankDoc(month); d.cardLink = false; d.updatedAt = nowIso();
     }
     bankSetBudget(month, acc, e.item, c.value, fm, {label: acc + ' · ' + e.item + ' 예산', action: '수정'});
@@ -11703,7 +12027,7 @@ function setBankSort(dir){
 function bankAccChipsHtml(){
   return '<span class="lbl">계좌</span>' +
     '<button type="button" class="chip' + (BANK.ui.account ? '' : ' on') + '" data-bchips="" title="모든 계좌">전체</button>' +
-    BANK_ACCOUNTS.map(a=> '<button type="button" class="chip accchip' + (BANK.ui.account === a ? ' on' : '') + '" style="' + bankAccVars(a) + '" data-bchips="' + esc(a) + '">' +
+    BANK_ACCOUNTS.map(a=> '<button type="button" class="chip accchip' + (BANK.ui.account === a ? ' on' : '') + '" style="' + bankAccVars(a) + '" data-bchips="' + esc(a) + '" title="' + esc(bankAccLabel(a)) + '">' +
       '<span class="dot" style="background:' + bankAccColor(a) + '"></span>' + esc(a) + '</button>').join('');
 }
 function bankDirChipsHtml(){
@@ -11967,7 +12291,7 @@ function renderBankDetail(){
 }
 function bankRowEditHtml(d0, r){
   const d = d0 || {};
-  const acc = d.account || r.account || '우리은행';
+  const acc = d.account || r.account || (BANK_ACCOUNTS[0] || MAIN_ACC);
   const list = bankItemList(d.month, acc);
   let items = list.in.concat(list.out).filter((v,i,a)=> a.indexOf(v) === i);
   if (d.item && items.indexOf(d.item) < 0) items = [d.item].concat(items);
@@ -12024,7 +12348,7 @@ function settleData(month){
   const src = st ? null : settlePrevWithData(month);
   const base = st || (src ? BANK.months[src].settlement : null);
   /* 월급 예산은 현금 탭 '월급' 항목 예산(직전 달 연동 포함)을 그대로 씁니다 — 두 탭 숫자가 같도록 */
-  const bankSal = bankBudget(month, '우리은행', '월급') || 0;
+  const bankSal = bankBudget(month, MAIN_ACC, '월급') || 0;
   const out = {salary: bankSal > 0 ? bankSal : (base && base.salary != null ? Math.round(+base.salary || 0) : 0),
     cash: {}, card: {}, stored: !!st, copiedFrom: src};
   SETTLE_CASH_ROWS.forEach(r=> out.cash[r.key] = (base && base.cash && base.cash[r.key] != null) ? Math.round(+base.cash[r.key] || 0) : 0);
@@ -12033,7 +12357,7 @@ function settleData(month){
 }
 function settleSalaryActual(month){
   let s = 0;
-  bankRowsAll(month).forEach(r=>{ if (r.account === '우리은행' && r.amount > 0 && /월급|급여/.test(r.item || '')) s += r.amount; });
+  bankRowsAll(month).forEach(r=>{ if (r.account === MAIN_ACC && r.amount > 0 && /월급|급여/.test(r.item || '')) s += r.amount; });
   return s;
 }
 /* 연도 전체 정산 — 달별 예산을 더해 1년 계획으로 보고, 집행은 그 해 1~12월 합계 (2026-11-25) */
@@ -12081,7 +12405,7 @@ function settleSet(kind, key, v, formula){
   if (kind === 'salary'){
     next.salary = val;
     /* 정산 탭에서 고친 월급 예산을 현금 탭 '월급' 항목에도 같이 저장 — 다음 달 예산으로 이어집니다 */
-    bankSetBudget(month, '우리은행', '월급', val, fm);
+    bankSetBudget(month, MAIN_ACC, '월급', val, fm);
   }
   else if (kind === 'cash') next.cash[key] = val;
   else next.card[key] = val;
@@ -13168,7 +13492,7 @@ function openBankRowEdit(id){
   if (inp) inp.focus();
 }
 function openBankNew(){
-  bRowEdit = {id: null, month: bankCurrentMonth(), account: BANK.ui.account || '우리은행', date: todayStr(),
+  bRowEdit = {id: null, month: bankCurrentMonth(), account: BANK.ui.account || (BANK_ACCOUNTS[0] || MAIN_ACC), date: todayStr(),
     item: '', name: '', amount: '', memo: '', isNew: true, dir: 'out'};
   renderBank();
   const el = $('#bankDetailCard');
@@ -13189,7 +13513,7 @@ function bankNewOrder(doc){
 function saveBankRow(){
   const d = bRowEdit; if (!d) return;
   const itemRaw = String(d.item || '').trim();
-  const account0 = normBankAccount(d.account) || d.account || '우리은행';
+  const account0 = normBankAccount(d.account) || d.account || (BANK_ACCOUNTS[0] || MAIN_ACC);
   const moveHit = moveAnyInfo(account0, itemRaw);            /* 그 계좌에서 바꿔 둔 모으기 이름으로 넣어도 같은 슬롯 (2026-11-25) */
   const name = String(d.name || '').trim() || (moveHit ? bankMoveLabel(moveHit.item, account0) : itemRaw);
   const calc = calcAmount(d.amount);
@@ -13782,6 +14106,7 @@ window.addEventListener('keydown', ev=>{
    BOOT
    ============================================================ */
 (function boot(){
+  accCfgLoad();    /* 계좌 목록·색·별칭 — bankLoad 보다 먼저 (거래의 계좌 이름을 읽을 때 필요) (2026-11-27) */
   bankLoad();
   hlLoad();
   loadState();
