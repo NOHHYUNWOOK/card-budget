@@ -3486,10 +3486,31 @@ function cardCfgRowHtml(c, i, n){
         '<option value="calendar"' + (basis === 'calendar' ? ' selected' : '') + '>1일~말일 사용 기준</option>' +
       '</select></label>' +
     '</div>' +
-    (b && b.amt && basis === 'calendar'
-      ? '<span class="ccfg-hint">매월 1일~말일 사용액이 ' + benefitTargetText(b.amt) + '을 넘으면 카드별 한도 칸에 ‘혜택달성’으로 표시됩니다</span>'
-      : (limSet && lim && lim < 1000 ? '<span class="ccfg-hint warn">한도가 너무 작습니다 — 원 단위입니다 (' + fmt(lim) + '원)</span>' : '')) +
+    ((function(){ const info = cardCfgHintOf(c);
+        return info.txt ? '<span class="ccfg-hint' + (info.warn ? ' warn' : '') + '">' + esc(info.txt) + '</span>' : ''; })()) +
     '</div>';
+}
+/* 한 칸을 고친 뒤에는 그 카드 줄의 안내 글만 새로 고칩니다 — 입력 중인 칸이 사라지지 않게 (2026-11-27) */
+function cardCfgHintOf(c){
+  const limSet = limitIsSet(c), lim = limSet ? limitOf(c) : null;
+  const b = CARD_BEN[c] || null;
+  const basis = (b && b.basis) || 'billing';
+  if (b && b.amt > 0 && basis === 'calendar')
+    return {txt: '매월 1일~말일 사용액이 ' + benefitTargetText(b.amt) + '을 넘으면 카드별 한도 칸에 ‘혜택달성’으로 표시됩니다', warn: false};
+  if (limSet && lim && lim < 1000)
+    return {txt: '한도가 너무 작습니다 — 원 단위입니다 (' + fmt(lim) + '원)', warn: true};
+  return {txt: '', warn: false};
+}
+function cardCfgRefreshRow(card){
+  const body = $('#cardCfgBody'); if (!body) return;
+  const row = body.querySelector('[data-card="' + String(card).replace(/"/g, '\\"') + '"]');
+  if (!row) return;
+  const info = cardCfgHintOf(card);
+  let h = row.querySelector('.ccfg-hint');
+  if (!info.txt){ if (h) h.remove(); return; }
+  if (!h){ h = document.createElement('span'); h.className = 'ccfg-hint'; row.appendChild(h); }
+  h.textContent = info.txt;
+  h.classList.toggle('warn', info.warn);
 }
 function renderCardCfg(){
   const body = $('#cardCfgBody'); if (!body) return;
@@ -6226,7 +6247,6 @@ $('#cardCfgBody').addEventListener('change', ev=>{
     if (!/^#[0-9a-f]{6}$/i.test(v)) return;
     CARD_COLOR_OVR[card] = v;
     cardCfgTouch(shortCard(card) + ' 색');
-    renderCardCfg();
     return;
   }
   if (act === 'alias'){
@@ -6234,7 +6254,6 @@ $('#cardCfgBody').addEventListener('change', ev=>{
     if (v) CARD_ALIAS[card] = v; else delete CARD_ALIAS[card];
     inp.value = v;
     cardCfgTouch(shortCard(card) + ' 별칭');
-    renderCardCfg();
     toast(v ? shortCard(card) + ' 별칭: ' + v : shortCard(card) + ' 별칭을 지웠습니다');
     return;
   }
@@ -6244,7 +6263,7 @@ $('#cardCfgBody').addEventListener('change', ev=>{
     LIMITS[card] = v; setLimitFormula(card, ''); saveLimits(); limitEdit = null;
     inp.value = v === null ? '' : fmt(v);
     cardCfgTouch(shortCard(card) + ' 한도');
-    renderCardCfg();
+    cardCfgRefreshRow(card);
     toast(v === null ? shortCard(card) + ' 한도를 지웠습니다'
       : shortCard(card) + ' 월 한도 ' + won(v) + (v ? '' : ' (0원 한도)'));
     return;
@@ -6256,7 +6275,7 @@ $('#cardCfgBody').addEventListener('change', ev=>{
     if (amt > 0) CARD_BEN[card] = {amt: amt, basis: basis}; else delete CARD_BEN[card];
     inp.value = amt ? fmt(amt) : '';
     cardCfgTouch(shortCard(card) + ' 혜택금액');
-    renderCardCfg();
+    cardCfgRefreshRow(card);
     toast(amt ? shortCard(card) + ' 혜택금액 ' + won(amt) : shortCard(card) + ' 혜택금액을 지웠습니다');
     return;
   }
@@ -6266,7 +6285,7 @@ $('#cardCfgBody').addEventListener('change', ev=>{
     CARD_BEN[card].basis = v;
     if (!(CARD_BEN[card].amt > 0)) delete CARD_BEN[card];   /* 금액이 없으면 기준만 바꿔도 보이지 않음 */
     cardCfgTouch(shortCard(card) + ' 혜택 기준');
-    renderCardCfg();
+    cardCfgRefreshRow(card);
   }
 });
 /* 대한항공 마일리지 — 숫자를 누르면 보유 마일 입력, 저장하면 바로 반영 */
