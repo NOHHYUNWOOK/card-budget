@@ -414,7 +414,7 @@ function cleanMerchant(t){
 }
 
 /* ---------- 분류 ----------
-   사용자의 실제 분류 규칙은 비공개 저장소의 data/rules.json(앱 ⚙ 설정 → 분류 규칙)을 그대로 읽어 쓵니다.
+   사용자의 실제 분류 규칙은 비공개 저장소의 data/rules.json(앱 ⚙ 설정 → 분류 규칙)을 그대로 읽어 적용합니다.
    공개 저장소에 개인 단골 가맹점 이름을 넣지 않기 위해서입니다. 읽지 못했을 때만 아래 일반 규칙으로 대신합니다. */
 const CAT_COLORS = {생활비: '#3b82f6', 용돈: '#f59e0b', 기타: '#94a3b8', 보험료: '#8b5cf6', 생활공과금: '#f43f5e', EV9충전: '#10b981', '하이패스/세차': '#06b6d4'};
 const FALLBACK_RULES = [
@@ -530,7 +530,8 @@ function bankTombstoned(doc, n){
 }
 
 /* ---------- 문자 해석 ---------- */
-function parseSms(title, text, nowMs){
+function parseSms(title, text, nowMs, hints){
+  hints = hints || {};
   const raw = normSms((title ? title + '\n' : '') + (text || ''));
   if (!raw.trim()) return {skip: 'empty'};
   if (/메시지\s*전송\s*테스트/.test(raw)) return {skip: 'no_keyword', detail: 'test_message'};
@@ -586,7 +587,8 @@ function parseSms(title, text, nowMs){
   }
 
   /* 3) 카드 승인·취소 */
-  const issuer = cardIssuerOf(raw);
+  const last4 = (/[\(\(](\d{4})[\)\)]/.exec(raw) || [])[1] || '';
+  const issuer = cardIssuerOf(raw) || (last4 && hints[last4]) || '';
   if (!issuer) return {skip: 'unknown_card'};
   const amts = amountCandidates(raw).filter(a => !a.excluded);
   if (!amts.length) return {skip: 'no_amount'};
@@ -780,6 +782,17 @@ function readIngestBody(raw, ctype){
   return out;
 }
 
+/* 카드 뒷 4자리로 카드사를 알아보는 보조 설정 (선택) — 예: INGEST_CARD_HINTS="0108=우리카드" */
+function cardHints(env){
+  const out = {};
+  String((env && env.INGEST_CARD_HINTS) || '').split(',').forEach(pair => {
+    const p = pair.split('=');
+    const k = (p[0] || '').trim(), v = (p[1] || '').trim();
+    if (/^\d{4}$/.test(k) && v) out[k] = v;
+  });
+  return out;
+}
+
 async function handleIngest(request, env){
   const url = new URL(request.url);
   if (request.method === 'GET' || request.method === 'HEAD'){
@@ -805,7 +818,7 @@ async function handleIngest(request, env){
   const key = request.headers.get('X-Ingest-Key') || url.searchParams.get('key') || body.key || '';
   if (!safeEqual(key, env.INGEST_KEY)) return json({ok: false, error: '인증 실패 — X-Ingest-Key 를 확인하세요'}, request, 401);
 
-  const parsed = parseSms(body.title, body.text, Date.now());
+  const parsed = parseSms(body.title, body.text, Date.now(), cardHints(env));
   if (parsed.skip) return json({ok: true, skipped: parsed.skip, detail: parsed.detail || undefined}, request, 200);
 
   parsed.month = parsed.kind === 'card' ? billingMonthOf(parsed.date) : parsed.date.slice(0, 7);
