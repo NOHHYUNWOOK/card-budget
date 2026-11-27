@@ -708,7 +708,7 @@ tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 /* ---------- sync bar ---------- */
-.syncbar{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.syncbar{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);flex-wrap:nowrap;min-width:0}
 .syncbar .dot{width:7px;height:7px;border-radius:50%;background:#cbd5e1;flex:none}
 .syncbar .dot.on{background:var(--ok)}
 .syncbar .dot.err{background:var(--danger)}
@@ -717,7 +717,8 @@ tbody tr.rowedit > td{padding:0;border-bottom:1px solid var(--line2);background:
 @keyframes pulse{50%{opacity:.25}}
 .syncbar b{color:var(--ink2);font-weight:700}
 .syncbar .sp{margin-left:auto}
-.syncbar button{border:0;background:transparent;color:var(--accent);font-weight:700;font-size:12px;padding:2px 4px;text-decoration:underline}
+/* 상태 문구는 한 줄 고정 — 길어지면 …로 줄입니다 (2026-11-27) */
+.syncbar .syncinfo{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 못 올린 변경 — 마우스를 올리면 상세 대화상자 (2026-11-26) */
 .sync-trigger{cursor:help;border-bottom:1px dashed rgba(229,72,77,.5);padding-bottom:1px;outline:none}
 .sync-trigger:hover,.sync-trigger:focus-visible{border-bottom-color:var(--danger);color:#b3252b}
@@ -1938,9 +1939,7 @@ html.lock-pending #lockScreen{display:flex}
   <section class="card filters cv-card" id="summaryCard">
     <div class="syncbar" id="syncbar">
       <span class="dot" id="syncDot"></span>
-      <span id="syncInfo">마지막 동기화 —</span>
-      <span class="sp"></span>
-      <button id="syncSetupBtn">동기화 설정</button>
+      <span class="syncinfo" id="syncInfo">동기화 —</span>
     </div>
     <div class="active-bar" id="activeBar"></div>
     <div class="sum-block" id="kpis"></div>
@@ -2081,9 +2080,7 @@ html.lock-pending #lockScreen{display:flex}
     <div class="bank-sum-body">
     <div class="syncbar" data-sync-mirror>
       <span class="dot" data-sync-dot></span>
-      <span data-sync-info>마지막 동기화 —</span>
-      <span class="sp"></span>
-      <button data-sync-setup>동기화 설정</button>
+      <span class="syncinfo" data-sync-info>동기화 —</span>
     </div>
     <div class="active-bar" id="bankActiveBar"></div>
     <div class="sum-block" id="bankKpis"></div>
@@ -7609,6 +7606,7 @@ function handleFile(f){
    ============================================================ */
 let SYNC = {urls:[], token:'', autoOn:true, intervalMin:0, lastSync:null, lastMsg:''};
 let syncTimer = null, syncing = false;
+let SYNC_FULL_TITLE = '';   /* 상태줄에 마우스를 올렸을 때 보여 줄 전체 문구 (2026-11-27) */
 
 function loadSyncConfig(){
   let stored = null;
@@ -7632,6 +7630,13 @@ function fmtDateTime(iso){
   const p = n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
 }
+function fmtShortDT(iso){
+  /* 상태줄용 짧은 날짜 — '11/27 11:11' (2026-11-27) */
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (isNaN(d)) return '—';
+  const p = n=>String(n).padStart(2,'0');
+  return p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function updateSyncLabel(state, msg){
   const dot = $('#syncDot'), info = $('#syncInfo');
   /* 헤더의 새로고침 아이콘도 동기화 중이면 돌려 줍니다 (2026-11-27) */
@@ -7642,18 +7647,29 @@ function updateSyncLabel(state, msg){
   /* 올리기 실패·읽기 전용으로 남은 변경이 있으면 점을 빨강으로 — 상태줄과 색이 따로 놀지 않게 (2026-11-26) */
   const shown = state || (SYNC.upErr || SYNC.readonly ? 'err' : '');
   dot.className = 'dot' + (shown ? ' ' + shown : (SYNC.urls.length ? ' on' : ''));
+  /* 한 줄에 담기는 짧은 문구만 — 자세한 내용은 마우스를 올리면(title) 보입니다 (2026-11-27) */
   let text;
   const pend = pendingDisplayCount();
-  const pendTxt = pend ? ' · 올릴 변경 <b>' + pend + '건</b>' : '';
-  if (state === 'busy') text = '동기화 중…';
-  else if (state === 'err') text = /^올리기 실패/.test(String(msg || '')) ? '⚠ ' + msg : ('동기화 실패 · ' + (msg || '주소·토큰 확인'));
-  else if (state === 'warn') text = '⚠ ' + (msg || '저장소에 올리지 못했습니다');
-  else if (SYNC.readonly) text = '읽기 전용 토큰 · 이 기기에만 저장';
-  else if (SYNC.upErr) text = '⚠ ' + SYNC.upErr + (SYNC.lastSync ? ' · 받기 ' + fmtDateTime(SYNC.lastSync) : '');
-  else if (SYNC.lastSync) text = '마지막 동기화 <b>' + fmtDateTime(SYNC.lastSync) + '</b>' + (SYNC.lastMsg ? ' · ' + SYNC.lastMsg : '') + pendTxt;
-  else if (SYNC.urls.length) text = '아직 동기화 안 됨 · 주소는 저장돼 있습니다' + pendTxt;
+  const pendTxt = pend ? ' · 올릴 <b>' + pend + '건</b>' : '';
+  const m = String(SYNC.lastMsg || '');
+  const added = (m.match(/새로\s*(\d+)\s*건/) || [])[1];
+  const updated = (m.match(/갱신\s*(\d+)\s*건/) || [])[1];
+  let delta = '';
+  if (added && added !== '0') delta += ' · 새로 <b>' + added + '건</b>';
+  if (updated && updated !== '0') delta += ' · 갱신 <b>' + updated + '건</b>';
+  const failTxt = '⚠ 올리기 실패' + (pend ? ' · <b>' + pend + '건</b>' : '');
+  if (state === 'busy' || syncing) text = '동기화 중…';
+  else if (state === 'err') text = /^올리기 실패/.test(String(msg || '')) ? failTxt : '⚠ 동기화 실패';
+  else if (state === 'warn') text = '⚠ 저장 못 함';
+  else if (SYNC.readonly) text = '읽기 전용 · 이 기기에만';
+  else if (SYNC.upErr) text = failTxt;
+  else if (SYNC.lastSync) text = '<b>' + fmtShortDT(SYNC.lastSync) + '</b>' + (delta || ' 동기화 완료') + pendTxt;
+  else if (SYNC.urls.length) text = '아직 동기화 안 됨' + pendTxt;
   else text = '자동 동기화 꺼짐';
   info.innerHTML = text;
+  SYNC_FULL_TITLE = (SYNC.urls.length || SYNC.lastSync)
+    ? (syncStateText() + (pend ? ' · 올릴 변경 ' + pend + '건' : ''))
+    : '';
   $$('[data-sync-mirror]').forEach(m=>{
     const d = m.querySelector('[data-sync-dot]');
     if (d) d.className = dot.className;
@@ -7790,7 +7806,8 @@ function applySyncTrigger(){
       el.setAttribute('aria-expanded', SYNC_POP_OPEN && SYNC_POP_ANCHOR === el ? 'true' : 'false');
       el.removeAttribute('title');
     } else {
-      ['role','tabindex','aria-haspopup','aria-expanded','title'].forEach(a=> el.removeAttribute(a));
+      ['role','tabindex','aria-haspopup','aria-expanded'].forEach(a=> el.removeAttribute(a));
+      el.title = SYNC_FULL_TITLE;      /* 짧게 줄인 문구의 전체 내용 (2026-11-27) */
     }
   });
   const st = $('#syncState');
@@ -8929,7 +8946,7 @@ function bindSyncTab(){
   });
   $('#syncCancel').addEventListener('click', closeModal);
 }
-$('#syncSetupBtn').addEventListener('click', ()=> openModal('sync'));
+/* 동기화 설정은 ⚙ 설정 창의 '동기화' 칸에서 엽니다 — 상단 요약 카드의 링크는 뺐습니다 (2026-11-27) */
 $('#btnSync').addEventListener('click', refreshNow);
 
 /* ============================================================
