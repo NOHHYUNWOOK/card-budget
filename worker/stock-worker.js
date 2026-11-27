@@ -19,7 +19,7 @@ const ALLOWED_ORIGIN = [
   /^http:\/\/localhost(:\d+)?$/,
   /^http:\/\/127\.0\.0\.1(:\d+)?$/
 ];
-const QUOTE_TTL = 10 * 1000;          // 현재가 10초
+const QUOTE_TTL = 12 * 1000;          // 현재가 12초 (앱은 10초마다 물어 캐시와 번갈아 씁니다)
 const HIST_TTL = 6 * 60 * 60 * 1000;  // 과거 일봉 6시간
 const UPSTREAM_TIMEOUT = 8000;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';

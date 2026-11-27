@@ -14537,12 +14537,14 @@ async function stkWorkerJson(path){
   if (!j || (!j.ok && !j.quotes && !j.series)) throw new Error((j && j.error) || ('시세 서버 오류 HTTP ' + r.status));
   return j;
 }
-function stkAllSymbols(){
+function stkAllSymbols(onlyCore){
   const set = new Set();
   STK.accounts.forEach(a => (a.holdings || []).forEach(h => { if (h.symbol) set.add(h.symbol); }));
   (STK.indices || []).forEach(i => { if (i.symbol) set.add(i.symbol); });
-  ((STK.watchlist || {}).kr || []).forEach(w => { if (w.symbol) set.add(w.symbol); });
-  ((STK.watchlist || {}).us || []).forEach(w => { if (w.symbol) set.add(w.symbol); });
+  if (!onlyCore){                       /* 관심종목 30개는 30초에 한 번만 (시세 서버 호출량을 줄입니다) */
+    ((STK.watchlist || {}).kr || []).forEach(w => { if (w.symbol) set.add(w.symbol); });
+    ((STK.watchlist || {}).us || []).forEach(w => { if (w.symbol) set.add(w.symbol); });
+  }
   return Array.from(set);
 }
 function stkQuoteOf(sym){
@@ -14552,9 +14554,13 @@ function stkQuoteOf(sym){
   if (p && p.price != null) return {price: p.price, prevClose: p.prevClose, pct: p.pct, at: p.at ? Date.parse(p.at) : 0, live: false, source: p.source};
   return {price: null, prevClose: null, pct: null, at: 0, live: false};
 }
-async function stkRefreshQuotes(opts){
+let STK_TICK = 0;
+async function stkRefreshQuotes(manual){
   if (STK_QBUSY) return;
-  const syms = stkAllSymbols();
+  STK_TICK++;
+  /* 10초 자동 갱신은 보유·지수만, 관심종목까지는 3번에 한 번(≈30초)·수동 갱신 때 */
+  const core = !manual && (STK_TICK % 3 !== 1);
+  const syms = stkAllSymbols(core);
   if (!syms.length) return;
   STK_QBUSY = true;
   stkLive('busy', '시세 받는 중…');
