@@ -398,13 +398,14 @@ function findDateTime(t, nowMs){
 function cleanMerchant(t){
   const s = t
     .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\(주\)|\(유\)|㈜/g, ' ')
     .replace(/누적\s*:?\s*[\d,]+\s*원?/g, ' ')
     .replace(/잔액\s*:?\s*[\d,]+\s*원?/g, ' ')
     .replace(/\d{1,2}\s*\/\s*\d{1,2}\s+(\d{1,2}):(\d{2})(?::\d{2})?/g, ' ')
     .replace(/\d{1,2}\s*월\s*\d{1,2}\s*일\s*(오전|오후)?\s*\d{1,2}:\d{2}/g, ' ')
     .replace(/[\d,]+\s*원/g, ' ')
     .replace(/(KB국민카드|KB\s*국민|KB\s*Pay|KB\s*페이|우리카드|현대카드|삼성카드)\s*\d{0,4}/gi, ' ')
-    .replace(/[가-힣]\s*\*\s*[가-힣]\s*님/g, ' ')
+    .replace(/[가-힣]\s*\*\s*[가-힣]?\s*님?/g, ' ')     /* 노*욱님·김*수 */
     .replace(/(일시불|할부|체크|신용|승인|결제|취소|정상|거절)/g, ' ')
     .replace(/[\/|·:;,\-–]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -466,7 +467,14 @@ async function loadRules(env){
 }
 
 /* ---------- 중복 판정 ---------- */
-function merchKey(s){ return String(s || '').replace(/[\s()\[\]{}·.,\/\-_'"`]/g, '').toLowerCase(); }
+/* 앱(merchKey)과 같은 방식으로 가맹점 이름을 비교용으로 줄입니다 — 법인 표기·공백·기호 차이 무시 */
+function merchKey(s){
+  return String(s == null ? '' : s).normalize('NFKC').toLowerCase()
+    .replace(/\(주\)|\(유\)|주식회사?|㈜|\(합자\)|\(유한\)/g, '')
+    .replace(/[\s\u00a0\u3000]+/g, '')
+    .replace(/[()\[\]{}.,·・\-_\/\\'"`~!@#$%^&*+=|<>?:;]/g, '')
+    .trim();
+}
 function sameMerchant(a, b){
   const x = merchKey(a), y = merchKey(b);
   if (!x || !y) return false;
