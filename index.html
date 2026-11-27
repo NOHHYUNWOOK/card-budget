@@ -14451,6 +14451,7 @@ function stkEnterTab(){
   if (!STK.accounts.length && !((STK.watchlist || {}).kr || []).length) return;
   if (!STK_QBUSY && (!STK_QAT || Date.now() - STK_QAT > 12000)) stkRefreshQuotes();
   if (STK_UI.sub === 'my' || STK_UI.sub === 'parent') stkEnsureHistory();
+  stkMaybeSnapshot();     /* 탭에 들어올 때 오늘 평가액을 한 번 남겨 둡니다 */
 }
 function stkForStore(){
   const prices = Object.assign({}, STK.prices || {});
