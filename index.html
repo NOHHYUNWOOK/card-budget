@@ -9881,11 +9881,17 @@ function accCfgApply(p){
     p.list.forEach(n=>{ const s = String(n == null ? '' : n).trim().slice(0, 20); if (s && next.indexOf(s) < 0) next.push(s); });
     const prev = BANK_ACCOUNTS.slice();
     const hid = (p.hidden && typeof p.hidden === 'object') ? p.hidden : {};
-    const missing = prev.filter(a=> next.indexOf(a) < 0 && !hid[a]);
-    const added = next.filter(a=> prev.indexOf(a) < 0);
-    /* 다른 기기에서 이름 하나만 바꿔 온 경우 — 이 기기의 내역·예산도 조용히 함께 옮깁니다 */
-    if (missing.length === 1 && added.length === 1) accMigrateAccount(missing[0], added[0], true);
-    if (next.join('|') !== prev.join('|')){ accCfgSetList(next); did = true; }
+    /* 다른 기기에서 같은 자리의 계좌 이름만 바뀌어 온 경우 — 이 기기의 내역·예산도 조용히 함께 옮깁니다.
+       (지운 계좌라면 이름 변경으로 보지 않습니다) */
+    const pairs = [];
+    const nMin = Math.min(prev.length, next.length);
+    for (let i = 0; i < nMin; i++){
+      const o = prev[i], v = next[i];
+      if (o === v || next.indexOf(o) >= 0 || prev.indexOf(v) >= 0 || hid[o]) continue;
+      pairs.push([o, v]);
+    }
+    pairs.forEach(pr=> accMigrateAccount(pr[0], pr[1], true));
+    if (next.join('|') !== BANK_ACCOUNTS.join('|')){ accCfgSetList(next); did = true; }
   }
   if (p.colors && typeof p.colors === 'object'){
     const nc = {};
@@ -9918,10 +9924,11 @@ function accRekeyRoles(o, n){
 /* 계좌 이름 옮기기 — 이 브라우저의 모든 달 자료에서 계좌 이름을 함께 바꿉니다.
    quiet=true 면 동기화에 '이 기기 변경'으로 표시하지 않습니다(다른 기기의 이름 변경을 받아들일 때). */
 function accMigrateAccount(oldName, newName, quiet){
-  if (!newName || newName === oldName) return 0;
+  if (!newName || newName === oldName) return {months: 0, rows: 0};
   const i = BANK_ACCOUNTS.indexOf(oldName);
   if (i >= 0) BANK_ACCOUNTS[i] = newName;
   const touched = [];
+  let movedRows = 0;
   Object.keys(BANK.months).forEach(m=>{
     const d = BANK.months[m]; if (!d) return;
     let ch = false;
@@ -9930,7 +9937,7 @@ function accMigrateAccount(oldName, newName, quiet){
       const oldK = bankRowKey(r);
       r.account = newName;
       if (bankRowKey(r) !== oldK) addBankTomb(oldK, m, r.id);   /* 예전 이름의 같은 줄이 되살아나지 않게 */
-      ch = true;
+      movedRows++; ch = true;
     });
     ['budgets', 'budgetFormula', 'budgetAt', 'itemDir', 'transfer', 'rowOrder', 'rowOrderAt', 'hiddenMoves', 'hiddenMovesAt'].forEach(k=>{
       const o = d[k];
@@ -9948,7 +9955,7 @@ function accMigrateAccount(oldName, newName, quiet){
   accRekeyRoles(oldName, newName);
   bankSave();
   if (!quiet) touched.forEach(m=> markBankDirty(m, {label: oldName + ' → ' + newName + ' 계좌 이름', action: '수정'}));
-  return touched.length;
+  return {months: touched.length, rows: movedRows};
 }
 function accCfgRowHtml(a, i, n){
   let cnt = 0, mon = 0;
@@ -10000,9 +10007,9 @@ function renameAccount(oldName, newName){
   if (!newName || newName === oldName) return false;
   if (BANK_ACCOUNTS.indexOf(newName) >= 0 || ACC_HIDDEN[newName]){ toast('이미 있는 계좌 이름입니다'); return false; }
   if (BANK_ACCOUNTS.indexOf(oldName) < 0) return false;
-  accMigrateAccount(oldName, newName, false);
+  const mv = accMigrateAccount(oldName, newName, false);
   accCfgSave(); markSettingsDirty(oldName + ' → ' + newName + ' 계좌 이름');
-  toast('계좌 이름을 바꿨습니다 — 이 계좌의 내역·예산도 함께 옮겼습니다');
+  toast('계좌 이름을 바꿨습니다' + (mv.rows ? ' — 이 계좌의 내역 ' + fmt(mv.rows) + '건도 함께 옮겼습니다' : ''));
   return true;
 }
 function deleteAccCfg(name){
