@@ -1784,8 +1784,9 @@ html.lock-pending #lockScreen{display:flex}
 @media (max-width:430px){
   .testbar .tb-sub{display:none}
   .testbar .tb-clear{padding:4px 9px;font-size:12px}
-  .tb-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-  .tb-btn{justify-content:center;min-height:38px}
+  /* 10개(5~50KB)를 5칸 × 2줄로 — 좁은 폰에서도 두 줄에 담기게 */
+  .tb-btns{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:10px 12px 0}
+  .tb-btn{justify-content:center;min-height:38px;padding:6px 2px;font-size:12px}
 }
 </style>
 <script>
@@ -5091,7 +5092,7 @@ document.addEventListener('mouseout', ev=>{
      가계부 숫자는 건드리지 않고 testSizeTarget·testPad·testAt 만 더합니다.
    ============================================================ */
 const TEST_MONTH = '2027-01';
-const TEST_KBS = [5, 10, 15, 20, 25, 30];
+const TEST_KBS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 let TESTRES = {busy:'', items:[]};
 
 function testBarOn(){ return VIEW === 'card' && F.month === TEST_MONTH; }
