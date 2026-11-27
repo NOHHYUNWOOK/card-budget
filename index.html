@@ -51,6 +51,13 @@ input,select{font:inherit;color:inherit}
 .brand h1{font-size:17px;line-height:1.15}
 .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
 .top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 아이콘만 남긴 상단 버튼 — 새로고침(🔄)·설정(⚙) (2026-11-27) */
+.hdr-icobtn{padding:8px 9px;min-width:36px;justify-content:center}
+.hdr-icobtn .ic{display:block;font-size:15px;line-height:1}
+.hdr-icobtn.busy .ic{animation:spin .9s linear infinite}
+.hdr-icobtn:active{transform:scale(.96)}
+/* 카드 설정(💳)은 카드 탭에서만 보입니다 (2026-11-27) */
+body[data-view="bank"] #btnCardCfg,body[data-view="settle"] #btnCardCfg{display:none!important}
 .btn{
   border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 13px;font-size:13.5px;font-weight:600;
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;
@@ -156,6 +163,8 @@ input,select{font:inherit;color:inherit}
 @media (min-width:1100px){
   .topbar-tools{order:0;flex:0 1 auto;margin-top:0;padding-top:0;border-top:0;gap:10px}
   .topbar-tools #monthSeg{max-width:none}
+  /* 넓은 화면: 아이콘 버튼을 바로가기 줄(내역 옆)에 붙여 둡니다 (2026-11-27) */
+  .top-actions{margin-left:12px}
 }
 @media (max-width:560px){
   .topbar-tools{gap:6px;padding-top:7px}
@@ -254,11 +263,20 @@ button.lim-item:active{transform:scale(.99)}
 .lim-item .top .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .lim-item .top .use{margin-left:auto;flex:none;font-size:11px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .lim-item .top .use.zero{font-weight:600;color:var(--muted)}
+/* 카드 제목 옆 별칭 — 좁은 칸에서는 끝이 …로 줄어듭니다 (2026-11-27) */
+.lim-item .top .nm .als{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:0}
 .lim-item .rem{font-size:15px;font-weight:750;letter-spacing:-.02em;line-height:1.25;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lim-item .rem small{font-size:11.5px;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
 .lim-item .bar{height:4px;border-radius:3px;background:#e8ebf1;overflow:hidden}
 .lim-item .bar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
-.lim-item .meta{font-size:11px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lim-item .meta{font-size:11px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;}
+/* 한도 글과 혜택 달성액을 같은 줄에 — 좁은 칸에서는 혜택만 다음 줄 오른쪽으로 (2026-11-27) */
+.lim-item .meta{display:flex;flex-wrap:wrap;align-items:center;gap:1px 6px;min-width:0}
+.lim-item .meta .mt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lim-item .meta .bf{margin-left:auto;flex:none;font-size:10.5px;font-weight:800;letter-spacing:-.01em;color:#8a93a3;
+  background:#f1f3f8;border-radius:999px;padding:1px 6px;white-space:nowrap}
+.lim-item .meta .bf.ok{color:#0b7a4b;background:#e5f7ee}
+.lim-item .meta .bf.hot{color:#1d4ed8;background:#e8f0ff}
 /* 수입·지출·비율을 한 줄에 — 비율만 조금 진하게 (2026-11-26) */
 .lim-item .meta b{font-weight:800;color:var(--ink2);letter-spacing:-.01em}
 .lim-item.unset .rem{font-size:12.5px;font-weight:650;color:var(--accent)}
@@ -774,6 +792,42 @@ details.sync-help code{background:#f1f3f8;border-radius:5px;padding:1px 5px;font
 .modal-body{padding:16px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
 .modal-foot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line);background:#fcfcfe;flex-wrap:wrap}
 .modal-foot .spacer{margin-left:auto}
+/* ---------- 카드 설정 창 (2026-11-27) ---------- */
+.ccfg-list{display:flex;flex-direction:column;gap:8px}
+.ccfg-row{border:1px solid var(--line);border-radius:12px;background:#fbfcfe;padding:9px 10px}
+.ccfg-hd{display:flex;align-items:center;gap:6px;min-width:0}
+.ccfg-ord{display:inline-flex;flex-direction:column;gap:1px;flex:none}
+.ccfg-ord button{border:1px solid var(--line);background:#fff;border-radius:6px;width:22px;height:15px;line-height:1;
+  font-size:8.5px;color:var(--ink2);display:grid;place-items:center;padding:0}
+.ccfg-ord button:hover{background:#f2f5fa}
+.ccfg-ord button:disabled{opacity:.3}
+.ccfg-color{flex:none;width:26px;height:26px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:2px;cursor:pointer}
+.ccfg-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;
+  font-size:13.5px;font-weight:800;color:var(--ink);background:#fff}
+.ccfg-name:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.ccfg-del{flex:none;border:1px solid #f3c9cb;background:#fff;color:var(--danger);border-radius:8px;width:26px;height:26px;
+  font-size:12px;display:grid;place-items:center;padding:0}
+.ccfg-del:hover{background:#fff5f5}
+.ccfg-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:7px}
+.ccfg-f{display:flex;align-items:center;gap:4px;min-width:0}
+.ccfg-f .lb{flex:none;font-size:11px;font-weight:700;color:var(--ink2)}
+.ccfg-f input{flex:1;min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;padding:5px 7px;font:inherit;
+  font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;background:#fff;color:var(--ink)}
+.ccfg-f input:focus{outline:none;border-color:#b9cdf7;background:#fff}
+.ccfg-f .u{flex:none;font-size:10.5px;color:var(--muted);font-weight:600}
+.ccfg-f.sel{grid-column:1/-1}
+.ccfg-f.wide{grid-column:1/-1}
+.ccfg-f input[data-ccfg="alias"]{text-align:left;font-weight:700}
+.ccfg-f.sel .lb{display:none}
+.ccfg-f select{flex:1;min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;padding:5px 7px;
+  font:inherit;font-size:12.5px;font-weight:700;color:var(--ink);background:#fff}
+.ccfg-hint{display:block;margin-top:5px;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:-.01em}
+.ccfg-hint.warn{color:#b42318}
+.ccfg-empty{padding:18px 6px;text-align:center;color:var(--muted);font-size:13px}
+@media (max-width:430px){
+  .ccfg-fields{grid-template-columns:1fr}
+  .ccfg-f .lb{min-width:44px}
+}
 
 /* ---------- 거래 한 건의 분류 선택 시트 (선택·추가·삭제) ---------- */
 .sheet-backdrop{
@@ -1021,6 +1075,8 @@ footer.pagefoot{max-width:1280px;margin:0 auto;padding:0 16px 40px;font-size:12p
   .syncbtn-txt{display:none}
   .top-actions{gap:6px}
   .btn{padding:7px 10px}
+  .hdr-icobtn{padding:7px;min-width:32px}
+  .hdr-icobtn .ic{font-size:14.5px}
 }
 @media (max-width:430px){
   .kpis{grid-template-columns:1fr 1fr}
@@ -1852,15 +1908,16 @@ html.lock-pending #lockScreen{display:flex}
         <button type="button" data-jump="detailCard">내역</button>
       </nav>
     </div>
+    <!-- 상단 버튼은 새로고침·설정 두 개만 아이콘으로 남깁니다. 캡처는 각 내역 패널의 '📸 캡처로 추가',
+         CSV는 설정 → 데이터에 있습니다 (2026-11-27). -->
     <div class="top-actions">
-      <button class="btn" id="btnCapture" title="카드 사용내역 캡처 이미지로 내역 추가" aria-label="캡처로 내역 추가">📸 <span class="syncbtn-txt">캡처</span></button>
       <div class="seg" id="modeSeg" title="데이터 모드 전환">
         <button data-mode="mine">내 데이터</button>
         <button data-mode="empty">빈 가계부</button>
       </div>
-      <button class="btn" id="btnSync" title="최신 자료로 새로고침 (동기화)">🔄 <span class="syncbtn-txt">새로고침</span></button>
-      <button class="btn" id="btnExport" title="현재 화면 기준 CSV 내려받기">⬇ <span class="syncbtn-txt">CSV</span></button>
-      <button class="btn" id="btnSettings" title="분류·규칙·데이터 설정">⚙ 설정</button>
+      <button type="button" class="btn hdr-icobtn" id="btnCardCfg" title="카드 설정 (추가·이름·색·순서·한도·혜택)" aria-label="카드 설정"><span class="ic" aria-hidden="true">💳</span></button>
+      <button type="button" class="btn hdr-icobtn" id="btnSync" title="최신 자료로 새로고침 (동기화)" aria-label="최신 자료로 새로고침 (동기화)"><span class="ic" aria-hidden="true">🔄</span></button>
+      <button type="button" class="btn hdr-icobtn" id="btnSettings" title="분류·규칙·데이터 설정" aria-label="설정 (분류·규칙·데이터)"><span class="ic" aria-hidden="true">⚙</span></button>
     </div>
   </div>
 </header>
@@ -2181,6 +2238,21 @@ html.lock-pending #lockScreen{display:flex}
   </div>
 </div>
 
+<div class="modal-backdrop" id="cardCfgBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>카드 설정</h2>
+      <button class="iconbtn" id="cardCfgClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="cardCfgBody"></div>
+    <div class="modal-foot">
+      <button class="btn" id="cardCfgAdd">＋ 카드 추가</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="cardCfgDone">완료</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="dialogBackdrop">
   <div class="modal small">
     <div class="modal-head"><h2 id="dlgTitle">확인</h2></div>
@@ -2265,6 +2337,14 @@ const DEFAULT_SYNC_URLS = [];
 const LS_KEY = PUBLIC_BUILD ? 'cardLedger.public.v1' : 'cardLedger.dashboard.v1';
 const SYNC_KEY = LS_KEY + '.sync';
 const CARD_COLORS = {'삼성카드':'#1428a0','KB국민카드':'#f0a500','현대카드':'#1f2937','우리카드':'#0067ac','내 카드':'#64748b','기타카드':'#8b93a1'};
+/* ---------- 카드 설정(추가·이름·색·순서·삭제·혜택) — 사용자가 바꾼 값 (2026-11-27) ---------- */
+const CARDCFG_KEY = LS_KEY + '.cardcfg';
+let CARD_COLOR_OVR = {};      /* { '삼성카드': '#1428a0' } — 카드 설정에서 고른 색 */
+let CARD_BEN = {};            /* { '삼성카드': {amt: 400000, basis: 'billing'|'calendar'} } */
+let CARD_ALIAS = {};          /* { '삼성카드': '마일리지' } — 카드별 한도 패널에 '삼성 - 마일리지'로 표시 */
+let CARD_HIDDEN = {};         /* 지운 카드 — 지출 내역은 남기고 카드별 한도 패널에서만 빼 둡니다 */
+const CARD_PALETTE = ['#1428a0','#f0a500','#1f2937','#0067ac','#7c3aed','#0f9d58','#e11d48','#0891b2','#b45309','#64748b'];
+function isCardHidden(c){ return !!CARD_HIDDEN[c]; }   /* 카드 설정에서 지운 카드 — 내역은 남기고 화면 목록에서만 뺍니다 */
 const CARD_SHORT = {'삼성카드':'삼성','KB국민카드':'KB국민','현대카드':'현대','우리카드':'우리'};
 const shortCard = c => CARD_SHORT[c] || c;
 /* ---------- 상세내역 행 하이라이트 (2026-11-24 개편) ----------
@@ -2350,7 +2430,8 @@ function hlBtnHtml(kind, id, key){
 }
 /* 카드사 표시 순서 — 한도 패널·카드사 차트·연간 필터·상세 필터·캡처/수정 선택까지 모든 화면이 이 순서를 따릅니다.
    목록에 없는 카드사는 뒤에 가나다순으로 붙습니다. */
-const CARD_PREF = ['삼성카드','우리카드','KB국민카드','현대카드'];
+/* 카드 표시 순서 — 카드 설정 창에서 바꿀 수 있어 let (배열 자체는 그대로 두고 내용만 바꿉니다) */
+let CARD_PREF = ['삼성카드','우리카드','KB국민카드','현대카드'];
 const cardRank = c => { const i = CARD_PREF.indexOf(c); return i < 0 ? 99 : i; };
 const sortCards = list => list.slice().sort((a,b)=> (cardRank(a) - cardRank(b)) || String(a).localeCompare(String(b),'ko'));
 
@@ -2435,7 +2516,7 @@ function anchorMonthIn(sel, all){
   if (isYearSel(sel)) return sel + '-12';
   return (sel && sel !== 'all') ? sel : (all && all.length ? all[all.length - 1] : null);
 }
-const cardColor = c => CARD_COLORS[c] || '#64748b';
+const cardColor = c => CARD_COLOR_OVR[c] || CARD_COLORS[c] || '#64748b';
 
 let toastTimer = null;
 function toast(msg, ms){
@@ -2815,14 +2896,16 @@ function monthsIn(rows){
 function cardsIn(rows){
   const m = new Map();
   rows.forEach(r=> m.set(r.card, (m.get(r.card)||0) + r.amount));
-  return sortCards(Array.from(m.keys()).filter(Boolean));
+  return sortCards(Array.from(m.keys()).filter(c=> c && !isCardHidden(c)));
 }
+/* 활성 카드 목록 — 카드 설정에서 정한 순서 그대로, 지운 카드는 빠집니다 (2026-11-27) */
+function cardListAll(){ return CARD_PREF.filter(c=> !isCardHidden(c)); }
 function availableCards(){
   const set = new Set();
   S.rows.forEach(r=> set.add(r.card));
   Object.keys(S.dueDates || {}).forEach(m=> Object.keys(S.dueDates[m] || {}).forEach(c=> set.add(c)));
   (S.filtersCards || []).forEach(c=> set.add(c));
-  return sortCards(Array.from(set).filter(Boolean));
+  return sortCards(Array.from(set).filter(c=> c && !isCardHidden(c)));
 }
 function catMeta(name){
   return S.categories.find(c=>c.name===name) || {name, color:'#cbd5e1'};
@@ -3196,7 +3279,7 @@ function resetPanelFilters(){
 function limitCards(){
   const known = new Set(CARD_PREF);
   availableCards().concat(cardsIn(S.rows)).concat(Object.keys(LIMITS)).forEach(c=>{ if (c) known.add(c); });
-  return sortCards(Array.from(known));
+  return sortCards(Array.from(known).filter(c=> !isCardHidden(c)));
 }
 function limitContext(){
   const ms = monthsIn(S.rows);
@@ -3209,8 +3292,9 @@ function limitContext(){
 function limitTileHtml(c, ctx, unlocked){
   const lim = limitOf(c);
   const used = ctx.spent.get(c) || 0;
+  const als = CARD_ALIAS[c] ? '<span class="als"> - ' + esc(CARD_ALIAS[c]) + '</span>' : '';
   const nm = '<span class="dot" style="background:'+cardColor(c)+'"></span>' +
-    '<span class="nm">' + esc(shortCard(c)) + '</span>' +
+    '<span class="nm">' + esc(shortCard(c)) + als + '</span>' +
     '<span class="use' + (used ? '' : ' zero') + '">' + fmt(used) + '원</span>';
   /* 잠금 상태에서는 누를 수 없는 div 로 그립니다 — 칸을 눌러도 한도 입력줄이 열리지 않습니다 */
   const tag = unlocked ? 'button' : 'div';
@@ -3227,11 +3311,16 @@ function limitTileHtml(c, ctx, unlocked){
   const p = lim > 0 ? Math.min(100, Math.max(0, Math.round(used / lim * 1000) / 10))
                     : (used > 0 ? 100 : 0);
   const near = !over && p >= 90;
+  /* 혜택(실적) 1일~말일 기준 카드 — 한도 금액 오른쪽 끝에 혜택달성 사용액 (2026-11-27) */
+  const bp = benefitProgress(c, ctx.month);
+  const bpHtml = bp
+    ? '<span class="bf' + (bp.ok ? ' ok' : '') + '" title="' + esc(monthLabel(ctx.month)) + ' 1일~말일 사용 ' + won(bp.used) + ' / 혜택금액 ' + won(bp.target) + (bp.ok ? ' — 달성' : ' — ' + bp.pct + '%') + '">혜택달성 ' + '￦' + fmt(bp.used) + '/' + benefitTargetText(bp.target) + '</span>'
+    : '';
   return '<'+tag+' class="lim-item'+(over ? ' over' : (near ? ' near' : ''))+'"'+tap+' title="'+esc(shortCard(c))+(unlocked ? ' 한도 수정' : ' 한도 — 제목 옆 자물쇠를 열어 수정')+(limitFormulaOf(c) ? ' · ' + esc(limitFormulaOf(c)) : '')+'">'+
     '<span class="top">'+nm+'</span>'+
     '<span class="rem">'+(over ? '−' : '')+fmt(Math.abs(rem))+'<small>원 '+(over ? '초과' : '남음')+'</small></span>'+
     '<span class="bar"><i style="width:'+p+'%"></i></span>'+
-    '<span class="meta">한도 '+(lim ? shortKrw(lim) : '0원')+'</span>'+
+    '<span class="meta"><span class="mt">한도 '+(lim ? shortKrw(lim) : '0원')+'</span>'+bpHtml+'</span>'+
     '</'+tag+'>';
 }
 function limitEditorHtml(c){
@@ -3270,6 +3359,209 @@ function openLimitEditor(c){
   limitEdit = c; renderLimits();
   const i = $('#limInput');
   if (i){ i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){} }
+}
+
+/* ============================================================
+   카드 설정 — 추가·이름·색·순서·삭제, 한도·혜택(실적) 금액과 기준 (2026-11-27)
+   · 카드 목록·색·혜택 설정은 이 브라우저에 저장하고 settings.json 으로 기기끼리 맞춥니다.
+   · 한도는 기존 LIMITS 를 그대로 써서 카드별 한도 패널·수식·동기화와 그대로 호환됩니다.
+   ============================================================ */
+const cardHas = (o, k) => !!o && Object.prototype.hasOwnProperty.call(o, k);
+function cardCfgSave(){
+  try {
+    localStorage.setItem(CARDCFG_KEY, JSON.stringify({
+      v: 1, list: CARD_PREF.slice(), colors: Object.assign({}, CARD_COLOR_OVR),
+      benefit: CARD_BEN, hidden: CARD_HIDDEN, alias: CARD_ALIAS
+    }));
+  } catch(e){}
+}
+function cardCfgSetList(list){
+  const clean = [];
+  list.forEach(n=>{ const s = String(n == null ? '' : n).trim().slice(0, 20); if (s && clean.indexOf(s) < 0) clean.push(s); });
+  CARD_PREF.splice(0, CARD_PREF.length, ...clean);
+  return clean;
+}
+function cardCfgNormBenefit(src){
+  const out = {};
+  Object.keys(src || {}).forEach(c=>{
+    const v = src[c]; if (!v || typeof v !== 'object') return;
+    const amt = Math.max(0, Math.round(+v.amt || 0));
+    if (!amt) return;                                  /* 0원 = 미설정 */
+    out[c] = {amt: amt, basis: v.basis === 'calendar' ? 'calendar' : 'billing'};
+  });
+  return out;
+}
+function cardCfgNormAlias(src){
+  const out = {};
+  Object.keys(src || {}).forEach(c=>{
+    const v = String(src[c] == null ? '' : src[c]).trim().slice(0, 10);
+    if (v) out[c] = v;
+  });
+  return out;
+}
+/* 저장된 값/서버 settings.json 값을 그대로 적용합니다 */
+function cardCfgApply(p){
+  if (!p || typeof p !== 'object') return false;
+  let did = false;
+  if (Array.isArray(p.list) && p.list.length){
+    const before = CARD_PREF.join('|');
+    const clean = p.list.map(n=> String(n == null ? '' : n).trim().slice(0,20)).filter(Boolean);
+    const uniq = []; clean.forEach(s=>{ if (uniq.indexOf(s) < 0) uniq.push(s); });
+    if (uniq.length && uniq.join('|') !== before){ cardCfgSetList(uniq); did = true; }
+  }
+  if (p.colors && typeof p.colors === 'object'){
+    const nc = {};
+    Object.keys(p.colors).forEach(c=>{ const v = String(p.colors[c] || '').trim(); if (/^#[0-9a-f]{6}$/i.test(v)) nc[c] = v; });
+    CARD_COLOR_OVR = nc; did = true;
+  }
+  if (p.benefit && typeof p.benefit === 'object'){ CARD_BEN = cardCfgNormBenefit(p.benefit); did = true; }
+  if (p.hidden && typeof p.hidden === 'object'){ CARD_HIDDEN = p.hidden; did = true; }
+  if (p.alias && typeof p.alias === 'object'){ CARD_ALIAS = cardCfgNormAlias(p.alias); did = true; }
+  if (did) cardCfgSave();
+  return did;
+}
+function cardCfgLoad(){
+  try {
+    const raw = localStorage.getItem(CARDCFG_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object') return;
+    cardCfgApply(p);
+  } catch(e){}
+}
+const cardBenefitOf = c => CARD_BEN[c] || null;
+/* 혜택 목표 금액 표기 — 40만 처럼 10,000으로 나누어떨어지면 'N만', 아니면 '38,500원' */
+function benefitTargetText(n){
+  n = Math.round(+n || 0);
+  return (n && n % 10000 === 0) ? fmt(n / 10000) + '만' : fmt(n) + '원';
+}
+/* 1일~말일 사용액 — 거래일(r.date)이 그 달 안에 있는 미제외 내역을 로드된 모든 월에서 합산 */
+function calendarMonthSpent(card, month){
+  if (!month || !/^\d{4}-\d{2}$/.test(month)) return 0;
+  const y = +month.slice(0, 4), m = +month.slice(5, 7);
+  const from = month + '-01';
+  const to = month + '-' + String(new Date(y, m, 0).getDate()).padStart(2, '0');
+  let sum = 0;
+  S.rows.forEach(r=>{
+    if (r.card !== card || isExc(r)) return;
+    const d = String(r.date || '').slice(0, 10);
+    if (d && d >= from && d <= to) sum += (+r.amount || 0);
+  });
+  return sum;
+}
+/* 1일~말일 기준 카드만 — 혜택달성 표시에 쓰는 값 */
+function benefitProgress(card, month){
+  const b = CARD_BEN[card];
+  if (!b || !(b.amt > 0) || b.basis !== 'calendar' || !month) return null;
+  const used = calendarMonthSpent(card, month);
+  return {used: used, target: b.amt, ok: used >= b.amt, pct: Math.min(100, Math.round(used / b.amt * 100))};
+}
+function cardCfgRowHtml(c, i, n){
+  const limSet = limitIsSet(c);
+  const lim = limSet ? limitOf(c) : null;
+  const b = CARD_BEN[c] || null;
+  const basis = (b && b.basis) || 'billing';
+  const col = cardColor(c);
+  return '<div class="ccfg-row" data-card="' + esc(c) + '">' +
+    '<div class="ccfg-hd">' +
+      '<span class="ccfg-ord">' +
+        '<button type="button" data-ccfg="up" title="위로" aria-label="' + esc(shortCard(c)) + ' 위로"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+        '<button type="button" data-ccfg="down" title="아래로" aria-label="' + esc(shortCard(c)) + ' 아래로"' + (i === n - 1 ? ' disabled' : '') + '>▼</button>' +
+      '</span>' +
+      '<input class="ccfg-color" type="color" data-ccfg="color" value="' + esc(col) + '" aria-label="' + esc(shortCard(c)) + ' 색">' +
+      '<input class="ccfg-name" type="text" data-ccfg="name" value="' + esc(c) + '" maxlength="20" aria-label="카드 이름" title="이름을 바꾸면 저장된 지출 내역의 카드 이름도 함께 바뀝니다">' +
+      '<button class="ccfg-del" type="button" data-ccfg="del" aria-label="' + esc(shortCard(c)) + ' 삭제" title="카드 지우기">✕</button>' +
+    '</div>' +
+    '<div class="ccfg-fields">' +
+      '<label class="ccfg-f wide"><span class="lb">별칭</span><input type="text" data-ccfg="alias" value="' + esc(CARD_ALIAS[c] || '') + '" maxlength="10" placeholder="예: 마일리지" title="카드별 한도 패널에 ‘카드명 - 별칭’으로 표시됩니다"><span class="u"></span></label>' +
+      '<label class="ccfg-f"><span class="lb">한도</span><input type="text" inputmode="numeric" data-ccfg="limit" value="' + (limSet && lim ? fmt(lim) : '') + '" placeholder="미설정" title="월 한도(월, 원) — 비우면 미설정, 0이면 0원 한도"><span class="u">원</span></label>' +
+      '<label class="ccfg-f"><span class="lb">혜택금액</span><input type="text" inputmode="numeric" data-ccfg="benefit" value="' + (b && b.amt ? fmt(b.amt) : '') + '" placeholder="미설정" title="혜택(실적) 기준 금액 — 원 단위, 비우면 미설정"><span class="u">원</span></label>' +
+      '<label class="ccfg-f sel"><span class="lb">기준</span><select data-ccfg="basis">' +
+        '<option value="billing"' + (basis !== 'calendar' ? ' selected' : '') + '>결제금액 기준</option>' +
+        '<option value="calendar"' + (basis === 'calendar' ? ' selected' : '') + '>1일~말일 사용 기준</option>' +
+      '</select></label>' +
+    '</div>' +
+    (b && b.amt && basis === 'calendar'
+      ? '<span class="ccfg-hint">매월 1일~말일 사용액이 ' + benefitTargetText(b.amt) + '을 넘으면 카드별 한도 칸에 ‘혜택달성’으로 표시됩니다</span>'
+      : (limSet && lim && lim < 1000 ? '<span class="ccfg-hint warn">한도가 너무 작습니다 — 원 단위입니다 (' + fmt(lim) + '원)</span>' : '')) +
+    '</div>';
+}
+function renderCardCfg(){
+  const body = $('#cardCfgBody'); if (!body) return;
+  const list = CARD_PREF.slice();
+  body.innerHTML = '<p class="sec-desc">카드 이름·색·순서와 월 한도, 혜택(실적) 금액을 정합니다. 바꾼 내용은 settings.json 으로 다른 기기와 자동으로 맞춰집니다.</p>' +
+    (list.length
+      ? '<div class="ccfg-list">' + list.map((c, i)=> cardCfgRowHtml(c, i, list.length)).join('') + '</div>'
+      : '<div class="ccfg-empty">카드가 없습니다 — [＋ 카드 추가]로 넣어 주세요.</div>');
+}
+function cardCfgOpen(){
+  renderCardCfg();
+  const bd = $('#cardCfgBackdrop'); if (bd) bd.classList.add('show');
+}
+function cardCfgClose(){ const bd = $('#cardCfgBackdrop'); if (bd) bd.classList.remove('show'); }
+function cardCfgTouch(label){ cardCfgSave(); markSettingsDirty(label); renderAll(); }
+function cardCfgSwap(i, j){
+  if (i < 0 || j < 0 || i >= CARD_PREF.length || j >= CARD_PREF.length) return;
+  const a = CARD_PREF.splice(i, 1)[0];
+  CARD_PREF.splice(j, 0, a);
+}
+/* 이름 바꾸기 — 지출 내역·한도·수식·혜택·색·결제일까지 같은 이름으로 옮깁니다 */
+function renameCard(oldName, newName){
+  newName = String(newName == null ? '' : newName).trim().slice(0, 20);
+  if (!newName || newName === oldName) return false;
+  if (CARD_PREF.indexOf(newName) >= 0){ toast('이미 있는 카드 이름입니다'); return false; }
+  const i = CARD_PREF.indexOf(oldName);
+  if (i < 0) return false;
+  CARD_PREF[i] = newName;
+  const months = []; let n = 0;
+  S.rows.forEach(r=>{ if (r.card === oldName){ r.card = newName; n++; if (months.indexOf(r.month) < 0) months.push(r.month); } });
+  if (cardHas(LIMITS, oldName)){ LIMITS[newName] = LIMITS[oldName]; delete LIMITS[oldName]; saveLimits(); }
+  if (cardHas(LIMIT_FORMULA, oldName)){ LIMIT_FORMULA[newName] = LIMIT_FORMULA[oldName]; delete LIMIT_FORMULA[oldName]; saveLimits(); }
+  if (CARD_BEN[oldName]){ CARD_BEN[newName] = CARD_BEN[oldName]; delete CARD_BEN[oldName]; }
+  if (CARD_COLOR_OVR[oldName]){ CARD_COLOR_OVR[newName] = CARD_COLOR_OVR[oldName]; delete CARD_COLOR_OVR[oldName]; }
+  if (CARD_ALIAS[oldName]){ CARD_ALIAS[newName] = CARD_ALIAS[oldName]; delete CARD_ALIAS[oldName]; }
+  delete CARD_HIDDEN[oldName];
+  Object.keys(S.dueDates || {}).forEach(m=>{
+    const d = S.dueDates[m];
+    if (d && cardHas(d, oldName)){ d[newName] = d[oldName]; delete d[oldName]; }
+  });
+  if (Array.isArray(F.cards)) F.cards = F.cards.map(c=> c === oldName ? newName : c);
+  cardCfgSave(); saveState();
+  months.forEach(m=> markDirtyMonth(m));
+  markSettingsDirty(shortCard(oldName) + ' → ' + shortCard(newName) + ' 이름');
+  toast('카드 이름을 바꿨습니다' + (n ? ' — 지출 ' + fmt(n) + '건도 함께 바뀌었습니다' : ''));
+  return true;
+}
+function addCardCfg(){
+  const used = new Set(CARD_PREF.map(c=> cardColor(c)));
+  const col = CARD_PALETTE.find(x=> !used.has(x)) || CARD_PALETTE[CARD_PREF.length % CARD_PALETTE.length];
+  let name = '새 카드', k = 2;
+  while (CARD_PREF.indexOf(name) >= 0) name = '새 카드 ' + (k++);
+  CARD_PREF.push(name);
+  CARD_COLOR_OVR[name] = col;
+  delete CARD_HIDDEN[name];
+  cardCfgSave(); markSettingsDirty(name + ' 카드 추가');
+  renderCardCfg(); renderAll();
+  const row = document.querySelector('#cardCfgBody [data-card="' + name.replace(/"/g, '\\"') + '"] .ccfg-name');
+  if (row){ row.focus(); try { row.setSelectionRange(0, row.value.length); } catch(e){} }
+  toast(name + ' 카드를 추가했습니다 — 이름·한도를 정해 주세요');
+}
+function deleteCardCfg(name){
+  const n = S.rows.filter(r=> r.card === name).length;
+  askConfirm('카드를 지울까요?', '"' + name + '" 카드를 카드 목록에서 지웁니다.\n' +
+    (n ? '저장된 지출 ' + fmt(n) + '건은 그대로 남고, 같은 이름으로 다시 추가하면 다시 나타납니다.\n' : '') +
+    '한도·혜택 설정은 함께 지워집니다.', '지우기', ()=>{
+    const i = CARD_PREF.indexOf(name);
+    if (i >= 0) CARD_PREF.splice(i, 1);
+    if (cardHas(LIMITS, name)){ delete LIMITS[name]; saveLimits(); }
+    if (cardHas(LIMIT_FORMULA, name)){ delete LIMIT_FORMULA[name]; saveLimits(); }
+    delete CARD_BEN[name]; delete CARD_COLOR_OVR[name]; delete CARD_ALIAS[name];
+    CARD_HIDDEN[name] = 1;                      /* 지출 내역이 남아 있어도 패널·목록·차트에 다시 나오지 않게 */
+    if (Array.isArray(F.cards)) F.cards = F.cards.filter(c=> c !== name);   /* 상세 필터에서도 즉시 빼기 */
+    cardCfgSave(); markSettingsDirty(name + ' 카드 지우기');
+    renderCardCfg(); renderAll();
+    toast(name + ' 카드를 목록에서 지웠습니다');
+  });
 }
 
 /* ============================================================
@@ -3854,7 +4146,7 @@ let annualMile = false;
 function annualCardChipsHtml(year){
   const yearRows = filteredRows({ignoreCards:true, ignoreMonth:true})
     .filter(r=> String(r.month||'').slice(0,4) === String(year));
-  const known = Array.from(new Set(yearRows.map(r=> r.card).concat(F.cards))).filter(Boolean);
+  const known = Array.from(new Set(yearRows.map(r=> r.card).concat(F.cards))).filter(c=> c && !isCardHidden(c));
   const list = sortCards(known);
   const mile = !!annualMile;
   return '<span class="lbl">카드사</span>'+
@@ -5879,6 +6171,91 @@ $('#limitGrid').addEventListener('keydown', ev=>{
     ev.preventDefault(); limitEdit = null; renderLimits();
   }
 });
+
+/* ---------- 카드 설정 창 — 추가·이름·색·순서·삭제·한도·혜택 (2026-11-27) ---------- */
+$('#btnCardCfg').addEventListener('click', cardCfgOpen);
+$('#cardCfgClose').addEventListener('click', cardCfgClose);
+$('#cardCfgDone').addEventListener('click', cardCfgClose);
+$('#cardCfgBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'cardCfgBackdrop') cardCfgClose(); });
+$('#cardCfgAdd').addEventListener('click', addCardCfg);
+$('#cardCfgBody').addEventListener('click', ev=>{
+  const btn = ev.target.closest('[data-ccfg]');
+  if (!btn) return;
+  const row = btn.closest('[data-card]'); if (!row) return;
+  const card = row.dataset.card;
+  const act = btn.dataset.ccfg;
+  if (act === 'up' || act === 'down'){
+    const i = CARD_PREF.indexOf(card); if (i < 0) return;
+    const j = act === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= CARD_PREF.length) return;
+    cardCfgSwap(i, j);
+    cardCfgTouch('카드 순서');
+    renderCardCfg();
+    toast(shortCard(card) + ' 순서를 바꿨습니다');
+  } else if (act === 'del'){
+    deleteCardCfg(card);
+  }
+});
+$('#cardCfgBody').addEventListener('change', ev=>{
+  const inp = ev.target.closest('[data-ccfg]');
+  if (!inp) return;
+  const row = inp.closest('[data-card]'); if (!row) return;
+  const card = row.dataset.card;
+  const act = inp.dataset.ccfg;
+  if (act === 'name'){
+    const ok = renameCard(card, inp.value);
+    if (!ok) inp.value = card;               /* 못 바꿨으면 원래 이름으로 */
+    renderCardCfg(); renderAll();
+    return;
+  }
+  if (act === 'color'){
+    const v = String(inp.value || '').trim();
+    if (!/^#[0-9a-f]{6}$/i.test(v)) return;
+    CARD_COLOR_OVR[card] = v;
+    cardCfgTouch(shortCard(card) + ' 색');
+    renderCardCfg();
+    return;
+  }
+  if (act === 'alias'){
+    const v = String(inp.value || '').trim().slice(0, 10);
+    if (v) CARD_ALIAS[card] = v; else delete CARD_ALIAS[card];
+    inp.value = v;
+    cardCfgTouch(shortCard(card) + ' 별칭');
+    renderCardCfg();
+    toast(v ? shortCard(card) + ' 별칭: ' + v : shortCard(card) + ' 별칭을 지웠습니다');
+    return;
+  }
+  if (act === 'limit'){
+    const raw = String(inp.value || '').replace(/[^0-9]/g, '');
+    const v = raw === '' ? null : Math.min(99999999, Math.round(+raw));
+    LIMITS[card] = v; setLimitFormula(card, ''); saveLimits(); limitEdit = null;
+    inp.value = v === null ? '' : fmt(v);
+    cardCfgTouch(shortCard(card) + ' 한도');
+    renderCardCfg();
+    toast(v === null ? shortCard(card) + ' 한도를 지웠습니다'
+      : shortCard(card) + ' 월 한도 ' + won(v) + (v ? '' : ' (0원 한도)'));
+    return;
+  }
+  if (act === 'benefit'){
+    const raw = String(inp.value || '').replace(/[^0-9]/g, '');
+    const amt = Math.min(99999999, Math.round(+raw || 0));
+    const basis = (CARD_BEN[card] && CARD_BEN[card].basis) || 'billing';
+    if (amt > 0) CARD_BEN[card] = {amt: amt, basis: basis}; else delete CARD_BEN[card];
+    inp.value = amt ? fmt(amt) : '';
+    cardCfgTouch(shortCard(card) + ' 혜택금액');
+    renderCardCfg();
+    toast(amt ? shortCard(card) + ' 혜택금액 ' + won(amt) : shortCard(card) + ' 혜택금액을 지웠습니다');
+    return;
+  }
+  if (act === 'basis'){
+    const v = inp.value === 'calendar' ? 'calendar' : 'billing';
+    if (!CARD_BEN[card]) CARD_BEN[card] = {amt: 0, basis: v};
+    CARD_BEN[card].basis = v;
+    if (!(CARD_BEN[card].amt > 0)) delete CARD_BEN[card];   /* 금액이 없으면 기준만 바꿔도 보이지 않음 */
+    cardCfgTouch(shortCard(card) + ' 혜택 기준');
+    renderCardCfg();
+  }
+});
 /* 대한항공 마일리지 — 숫자를 누르면 보유 마일 입력, 저장하면 바로 반영 */
 $('#mileCard').addEventListener('click', ev=>{
   const act = ev.target.closest('[data-mileact]');
@@ -6199,7 +6576,7 @@ function renderCatSheet(){
         (noneOn ? '<span class="chk" aria-label="지금 분류">✓</span>' : '')+
       '</button></div>';
 
-  const cardList = Array.from(new Set(CARD_ORDER.concat(S.rows.map(r=> r.card).filter(Boolean))));
+  const cardList = Array.from(new Set(cardListAll().concat(S.rows.map(r=> r.card).filter(Boolean).filter(c=> !isCardHidden(c)))));
   const cardRow = '<div class="sec-title" style="margin-top:8px">카드사</div>'+
     '<div class="chips catchips">' + cardList.map(c=>{
       const on = c === row.card;
@@ -6449,7 +6826,10 @@ function stamp(){
   const d = new Date(), p = n=>String(n).padStart(2,'0');
   return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes());
 }
-$('#btnExport').addEventListener('click', ()=>{
+/* 상단 CSV 버튼은 없앴습니다(2026-11-27) — CSV 저장은 설정 → 데이터의 [CSV 저장]에 있습니다.
+   개인용 HTML·예전 화면 호환을 위해 그 버튼이 남아 있으면 그대로 동작합니다. */
+const btnExportEl = $('#btnExport');
+if (btnExportEl) btnExportEl.addEventListener('click', ()=>{
   const rows = filteredRows();
   if (!rows.length){ toast('내보낼 내역이 없습니다'); return; }
   download('카드가계부_내보내기_'+stamp()+'.csv', rowsToCsv(rows));
@@ -6774,7 +7154,8 @@ function bindDataTab(){
     toast('전체 ' + fmt(S.rows.length) + '건 CSV 저장');
   });
   $('#btnJsonSave').addEventListener('click', ()=>{
-    const data = {v:1, savedAt:new Date().toISOString(), mode:S.mode, rows:S.rows, categories:S.categories, rules:S.rules, dueDates:S.dueDates, limits:LIMITS, mileage:MILE};
+    const data = {v:1, savedAt:new Date().toISOString(), mode:S.mode, rows:S.rows, categories:S.categories, rules:S.rules, dueDates:S.dueDates, limits:LIMITS, mileage:MILE,
+      cards:CARD_PREF.slice(), cardColors:Object.assign({}, CARD_COLOR_OVR), cardBenefit:CARD_BEN, cardHidden:CARD_HIDDEN, cardAlias:CARD_ALIAS};
     download('카드가계부_백업_'+stamp()+'.json', JSON.stringify(data, null, 1), 'application/json');
     toast('백업 파일을 저장했습니다');
   });
@@ -6802,6 +7183,10 @@ function bindDataTab(){
             });
             saveLimits();
           }
+          if (p.cards || p.cardBenefit || p.cardAlias){
+            cardCfgApply({list: Array.isArray(p.cards) ? p.cards : null, colors: p.cardColors || null,
+                          benefit: p.cardBenefit || null, hidden: p.cardHidden || null, alias: p.cardAlias || null});
+          }
           if (p.mileage && typeof p.mileage === 'object'){
             MILE = MILE_EMPTY();
             if (p.mileage.skypass != null && isFinite(+p.mileage.skypass)) MILE.skypass = Math.max(0, Math.round(+p.mileage.skypass));
@@ -6825,8 +7210,9 @@ function bindDataTab(){
   });
   $('#btnWipe').addEventListener('click', ()=>{
     askConfirm('저장된 자료를 지울까요?', '이 브라우저의 자동 저장(localStorage)과 화면 자료를 지우고 빈 가계부로 돌아갑니다. 카드별 한도도 함께 지워집니다. CSV 백업을 먼저 받아두세요.', '지우기', ()=>{
-      try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(LIMITF_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); } catch(e){}
+      try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LIMIT_KEY); localStorage.removeItem(LIMITF_KEY); localStorage.removeItem(FB_CACHE_KEY); localStorage.removeItem(MILE_KEY); localStorage.removeItem(CARDCFG_KEY); } catch(e){}
       LIMITS = {}; LIMIT_FORMULA = {}; limitEdit = null; FB_AI = null; FB_AI_OFF = null;
+      CARD_BEN = {}; CARD_COLOR_OVR = {}; CARD_HIDDEN = {}; CARD_ALIAS = {}; cardCfgSetList(['삼성카드','우리카드','KB국민카드','현대카드']);
       MILE = MILE_EMPTY(); mileEdit = false;
       mileGoalEdit = false;
       S = blankState(true); F = {month:'all', cards:[], categories:[], q:'', date:null}; $('#search').value='';
@@ -7216,6 +7602,9 @@ function fmtDateTime(iso){
 }
 function updateSyncLabel(state, msg){
   const dot = $('#syncDot'), info = $('#syncInfo');
+  /* 헤더의 새로고침 아이콘도 동기화 중이면 돌려 줍니다 (2026-11-27) */
+  const syncBtnIco = $('#btnSync');
+  if (syncBtnIco) syncBtnIco.classList.toggle('busy', !!syncing || state === 'busy');
   if (!dot || !info) return;
   if (syncing && !state) return;            /* 동기화 중 문구를 덮어쓰지 않습니다 */
   /* 올리기 실패·읽기 전용으로 남은 변경이 있으면 점을 빨강으로 — 상태줄과 색이 따로 놀지 않게 (2026-11-26) */
@@ -7707,6 +8096,9 @@ function settingsSnapshot(remoteJson){
   S.categories.forEach(c=>{ cats.push(c.name); if (c.color) colors[c.name] = c.color; });
   const snap = {v:1, limits:Object.assign({}, LIMITS), limitFormula:Object.assign({}, LIMIT_FORMULA), mileageGoal:(MILE.goal != null ? MILE.goal : MILE_GOAL_DEFAULT),
                 cats:cats, colors:colors, rules:S.rules, dueDates:S.dueDates,
+                cards:CARD_PREF.slice(), cardColors:Object.assign({}, CARD_COLOR_OVR),
+                cardBenefit:JSON.parse(JSON.stringify(CARD_BEN)), cardHidden:Object.assign({}, CARD_HIDDEN),
+                cardAlias:Object.assign({}, CARD_ALIAS),
                 hlPresets:HL.presets.map(p=> ({id:p.id, color:p.color, label:p.label})),
                 hlRetired:Object.assign({}, HL.retired),
                 updatedAt: OUTBOX.settingsAt || nowIso()};
@@ -7816,6 +8208,12 @@ function applyRemoteSettings(p){
       if (isFormulaText(v)) nf[c] = formulaText(v);
     });
     LIMIT_FORMULA = nf; saveLimits(); changed++;
+  }
+  /* 카드 설정(목록·색·혜택·지운 카드) — 더 나중에 바꿔 쓴 쪽을 따릅니다 (2026-11-27) */
+  if (remoteAt > localAt && (Array.isArray(p.cards) || p.cardColors || p.cardBenefit || p.cardHidden || p.cardAlias)){
+    if (cardCfgApply({list: Array.isArray(p.cards) ? p.cards : null, colors: p.cardColors || null,
+                      benefit: p.cardBenefit || null, hidden: p.cardHidden || null,
+                      alias: p.cardAlias || null})) changed++;
   }
   if (p.mileageGoal != null && isFinite(+p.mileageGoal)){
     const gv = Math.max(0, Math.round(+p.mileageGoal));
@@ -8763,7 +9161,7 @@ function capBodyHtml(){
   } else {
     h += '<div class="catchips" id="capCardChips"><span class="lbl">카드사</span>'+
       '<button type="button" class="chip'+(CAP.card?'':' on')+'" data-capcard="" title="이미지에서 카드사를 알아서 판별">자동</button>'+
-      CARD_ORDER.map(c=> '<button type="button" class="chip'+(CAP.card===c?' on':'')+'" data-capcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 내역으로 올리기">'+esc(shortCard(c))+'</button>').join('')+
+      cardListAll().map(c=> '<button type="button" class="chip'+(CAP.card===c?' on':'')+'" data-capcard="'+esc(c)+'" title="'+esc(shortCard(c))+' 내역으로 올리기">'+esc(shortCard(c))+'</button>').join('')+
     '</div>'+
     (CAP.card ? '<p class="capcardhint">'+esc(shortCard(CAP.card))+' 내역으로 고정해 분석합니다.</p>' : '');
   }
@@ -8845,7 +9243,7 @@ function capRowHtml(r){
   }
   const catNames = Array.from(new Set(S.categories.map(c=>c.name).concat(r.category || '기타')));
   const catOpts = catNames.map(n=>'<option value="'+esc(n)+'"'+(n===(r.category||'기타')?' selected':'')+'>'+esc(n)+'</option>').join('');
-  const cardOpts = CARD_ORDER.concat(['내 카드']).map(c=>'<option value="'+c+'"'+(c===r.card?' selected':'')+'>'+shortCard(c)+'</option>').join('');
+  const cardOpts = cardListAll().concat(['내 카드']).map(c=>'<option value="'+c+'"'+(c===r.card?' selected':'')+'>'+shortCard(c)+'</option>').join('');
   return '<div class="caprow'+(r.on?'':' off')+'" data-caprow="'+i+'">'+
     '<input type="checkbox" data-cap-on="'+i+'" '+(r.on?'checked':'')+' aria-label="이 내역 추가">'+
     '<div class="body">'+
@@ -9084,7 +9482,7 @@ function openRowAdd(){
   const months = rowAddMonthList(defMonth);
   const cats = S.categories.map(c=> c.name);
   const defCat = cats.indexOf('생활비') >= 0 ? '생활비' : (cats[0] || '기타');
-  const cards = (typeof CARD_ORDER !== 'undefined' && CARD_ORDER.length) ? CARD_ORDER.slice() : ['삼성카드','우리카드','KB국민카드','현대카드'];
+  const cards = cardListAll().length ? cardListAll().slice() : CARD_PREF.slice();
   const cardNow = (F.cards.length === 1 && cards.indexOf(F.cards[0]) >= 0) ? F.cards[0] : cards[0];
   rowAddTouched = '';
   $('#rowAddBody').innerHTML =
@@ -9193,7 +9591,9 @@ $('#rowAddBody').addEventListener('keydown', ev=>{
 });
 
 /* ---------- 캡처 모달 이벤트 ---------- */
-$('#btnCapture').addEventListener('click', ()=> openCapture(VIEW === 'card' ? 'card' : 'bank'));
+/* 상단 캡처 버튼은 없앴습니다(2026-11-27) — 카드·현금 내역 패널의 '📸 캡처로 추가'를 씁니다. */
+const btnCaptureEl = $('#btnCapture');
+if (btnCaptureEl) btnCaptureEl.addEventListener('click', ()=> openCapture(VIEW === 'card' ? 'card' : 'bank'));
 $('#btnCapture2').addEventListener('click', ()=> openCapture('card'));
 $('#capClose').addEventListener('click', closeCapture);
 $('#capBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'capBackdrop') closeCapture(); });
@@ -13333,6 +13733,7 @@ window.addEventListener('keydown', ev=>{
   hlLoad();
   loadState();
   loadLimits();
+  cardCfgLoad();   /* 카드 목록·색·혜택 설정 (2026-11-27) */
   loadLimitFormula();
   mileageLoad();
   loadAiConfig();
