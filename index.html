@@ -1958,7 +1958,14 @@ body[data-view="stock"] .cv-card,body[data-view="stock"] .cv-bank,body[data-view
 .stk-fld span{font-size:10.5px;color:var(--muted);font-weight:700}
 .stk-fld input,.stk-fld select{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font-size:12.5px;font-weight:650;min-width:0;background:#fff;width:100%}
 .stk-fld input:focus,.stk-fld select:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
-.stk-fld.num{flex:1 1 62px}
+.stk-fld.num{flex:1 1 78px}
+.stk-fld.wide{flex:2 1 150px}
+@media (max-width:600px){
+  .stk-flds{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .stk-flds .stk-fld{flex:none;min-width:0}
+  .stk-flds .stk-fld.wide{grid-column:1 / -1}
+  .stk-flds .stk-xbtn{grid-column:2;justify-self:end;align-self:end;height:31px}
+}
 .stk-xbtn{border:1px solid #f3c9cb;color:var(--danger);background:#fff;border-radius:8px;padding:4px 7px;font-size:11.5px;font-weight:700;flex:none}
 .stk-xbtn:hover{background:#fff5f5}
 .stk-sublbl{font-size:11px;font-weight:800;color:var(--ink2);margin:2px 0 -2px}
@@ -15029,7 +15036,7 @@ function stkCfgRender(){
   const accs = STK.accounts.map((a, i) => {
     const holdings = (a.holdings || []).map((h, j) =>
       '<div class="stk-flds">' +
-        '<label class="stk-fld" style="flex:1 1 118px"><span>종목명</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="name" value="' + stkEsc(h.name) + '"></label>' +
+        '<label class="stk-fld wide"><span>종목명</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="name" value="' + stkEsc(h.name) + '"></label>' +
         '<label class="stk-fld" style="flex:1 1 92px"><span>티커</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="symbol" value="' + stkEsc(h.symbol) + '"></label>' +
         '<label class="stk-fld num"><span>수량</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="qty" inputmode="numeric" value="' + stkEsc(h.qty) + '"></label>' +
         '<label class="stk-fld num"><span>평단가</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="avg" inputmode="numeric" value="' + stkEsc(h.avg) + '"></label>' +
@@ -15037,7 +15044,7 @@ function stkCfgRender(){
       '</div>').join('');
     const fixeds = (a.fixed || []).map((f, j) =>
       '<div class="stk-flds">' +
-        '<label class="stk-fld" style="flex:2 1 150px"><span>고정자산 이름</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="name" value="' + stkEsc(f.name) + '"></label>' +
+        '<label class="stk-fld wide"><span>고정자산 이름</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="name" value="' + stkEsc(f.name) + '"></label>' +
         '<label class="stk-fld num"><span>평가금액</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="value" inputmode="numeric" value="' + stkEsc(f.value) + '"></label>' +
         '<label class="stk-fld num"><span>매수원금</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="cost" inputmode="numeric" value="' + stkEsc(f.cost) + '"></label>' +
         '<button type="button" class="stk-xbtn" data-del-x="' + i + ':' + j + '">삭제</button>' +
@@ -15050,8 +15057,8 @@ function stkCfgRender(){
         '<button type="button" class="stk-xbtn" data-del-acc="' + i + '">계좌 삭제</button></div>' +
       '<div class="stk-flds">' +
         '<label class="stk-fld"><span>증권사</span><input data-acc="' + i + '" data-af="broker" value="' + stkEsc(a.broker) + '"></label>' +
-        '<label class="stk-fld"><span>계좌 이름</span><input data-acc="' + i + '" data-af="name" value="' + stkEsc(a.name) + '"></label>' +
-        '<label class="stk-fld"><span>계좌번호</span><input data-acc="' + i + '" data-af="number" value="' + stkEsc(a.number) + '"></label>' +
+        '<label class="stk-fld wide"><span>계좌 이름</span><input data-acc="' + i + '" data-af="name" value="' + stkEsc(a.name) + '"></label>' +
+        '<label class="stk-fld wide"><span>계좌번호</span><input data-acc="' + i + '" data-af="number" value="' + stkEsc(a.number) + '"></label>' +
         '<label class="stk-fld"><span>구분</span><select data-acc="' + i + '" data-af="owner">' +
           '<option value="me"' + (a.owner === 'me' ? ' selected' : '') + '>본인</option>' +
           '<option value="parent"' + (a.owner === 'parent' ? ' selected' : '') + '>부모님</option></select></label>' +
@@ -15068,7 +15075,7 @@ function stkCfgRender(){
     return '<div class="stk-edbox" data-stk-section="watch"><div class="stk-edhd"><span class="ttl">' + label + ' 관심종목</span>' +
       '<span class="stk-accno">' + list.length + '종목</span></div>' +
       list.map((w, i) => '<div class="stk-wlrow">' +
-        '<label class="stk-fld"><span>종목명</span><input data-wk="' + key + '" data-wi="' + i + '" data-wf="name" value="' + stkEsc(w.name) + '"></label>' +
+        '<label class="stk-fld wide"><span>종목명</span><input data-wk="' + key + '" data-wi="' + i + '" data-wf="name" value="' + stkEsc(w.name) + '"></label>' +
         '<label class="stk-fld" style="flex:0 1 104px"><span>티커</span><input data-wk="' + key + '" data-wi="' + i + '" data-wf="symbol" value="' + stkEsc(w.symbol) + '"></label>' +
         '<button type="button" class="stk-xbtn" data-del-w="' + key + ':' + i + '">삭제</button>' +
       '</div>').join('') +
