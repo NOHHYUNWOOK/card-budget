@@ -3523,8 +3523,12 @@ function renameCard(oldName, newName){
   if (cardHas(LIMITS, oldName)){ LIMITS[newName] = LIMITS[oldName]; delete LIMITS[oldName]; saveLimits(); }
   if (cardHas(LIMIT_FORMULA, oldName)){ LIMIT_FORMULA[newName] = LIMIT_FORMULA[oldName]; delete LIMIT_FORMULA[oldName]; saveLimits(); }
   if (CARD_BEN[oldName]){ CARD_BEN[newName] = CARD_BEN[oldName]; delete CARD_BEN[oldName]; }
-  if (CARD_COLOR_OVR[oldName]){ CARD_COLOR_OVR[newName] = CARD_COLOR_OVR[oldName]; delete CARD_COLOR_OVR[oldName]; }
+  /* 색은 그대로 이어지게 — 지정한 색이 없으면 원래 카드사 색을 새 이름에 복사 */
+  CARD_COLOR_OVR[newName] = CARD_COLOR_OVR[oldName] || CARD_COLORS[oldName] || cardColor(oldName);
+  delete CARD_COLOR_OVR[oldName];
   if (CARD_ALIAS[oldName]){ CARD_ALIAS[newName] = CARD_ALIAS[oldName]; delete CARD_ALIAS[oldName]; }
+  /* 마일리지 예상 적립 대상(삼성·우리)에 들어 있던 이름도 함께 바뀌게 */
+  for (let mi = 0; mi < MILE_CARDS.length; mi++){ if (MILE_CARDS[mi] === oldName) MILE_CARDS[mi] = newName; }
   delete CARD_HIDDEN[oldName];
   Object.keys(S.dueDates || {}).forEach(m=>{
     const d = S.dueDates[m];
