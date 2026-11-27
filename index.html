@@ -1755,6 +1755,38 @@ html.lock-pending #lockScreen{display:flex}
 .lockrow input:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft);background:#fff}
 .lockacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .locknote{font-size:11.5px;color:var(--ink2);line-height:1.5;margin:4px 0 0}
+/* ---------- GitHub PUT 용량 테스트 (2027-01 카드 탭 전용, 2026-11-27) ---------- */
+.testbar{padding-bottom:10px}
+.testbar .card-head{padding-bottom:0}
+.testbar .tb-sub{font-size:11.5px;color:var(--muted);font-weight:650}
+.testbar .tb-clear{margin-left:auto;padding:5px 10px;font-size:12.5px}
+.tb-btns{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 0}
+.tb-btn{padding:6px 10px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.tb-btn.running{border-color:#b9cdf7;background:#f4f8ff}
+.tb-badge{display:none;font-size:11.5px;line-height:1}
+.tb-badge.on{display:inline}
+.tb-badge.ok{color:var(--ok)}
+.tb-badge.fail{color:var(--danger)}
+.tb-note{padding:8px 16px 0;font-size:11.5px;color:var(--muted);font-weight:500;line-height:1.5;word-break:keep-all}
+.tb-note.warn{color:#b45309}
+.tb-list{list-style:none;margin:8px 0 0;padding:0 16px 2px;max-height:210px;overflow:auto}
+.tb-list:empty{display:none}
+.tb-list li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:5px 0;border-top:1px solid var(--line2);font-size:12px;font-variant-numeric:tabular-nums;line-height:1.4}
+.tb-list li:first-child{border-top:0}
+.tb-list .r{font-weight:800;white-space:nowrap;color:var(--ink2)}
+.tb-list .r.ok{color:var(--ok)}
+.tb-list .r.fail{color:var(--danger)}
+.tb-list .kb{font-weight:800;white-space:nowrap}
+.tb-list .m{color:var(--ink2)}
+.tb-list .m b{font-weight:750;color:var(--ink)}
+.tb-list .dim{color:var(--muted)}
+.tb-list .msg{color:var(--danger);word-break:break-word;font-weight:650}
+@media (max-width:430px){
+  .testbar .tb-sub{display:none}
+  .testbar .tb-clear{padding:4px 9px;font-size:12px}
+  .tb-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .tb-btn{justify-content:center;min-height:38px}
+}
 </style>
 <script>
 /* 화면 잠금 — 본문이 그려지기 전에 잠금 상태를 먼저 가립다 (2026-11-26, PC까지).
@@ -1833,6 +1865,18 @@ html.lock-pending #lockScreen{display:flex}
 </header>
 
 <main>
+  <!-- GitHub PUT 용량 테스트 — 카드 탭 · 2027년 1월에서만 보입니다 (2026-11-27) -->
+  <section class="card testbar cv-card hidden" id="testBar" aria-label="GitHub PUT 용량 테스트">
+    <div class="card-head">
+      <h2>PUT 용량 테스트</h2>
+      <span class="tb-sub">2027년 1월 · 카드 탭 전용</span>
+      <button type="button" class="btn tb-clear" id="testClear">결과 지우기</button>
+    </div>
+    <div class="tb-btns" id="testBtns"></div>
+    <div class="tb-note" id="testNote"></div>
+    <ol class="tb-list" id="testList"></ol>
+  </section>
+
   <section class="card filters cv-card" id="summaryCard">
     <div class="syncbar" id="syncbar">
       <span class="dot" id="syncDot"></span>
@@ -5036,6 +5080,145 @@ document.addEventListener('mouseout', ev=>{
 /* ============================================================
    RENDER ALL
    ============================================================ */
+/* ============================================================
+   GitHub PUT 용량 테스트 — 카드 탭 · 2027년 1월에서만 (2026-11-27)
+   회사 보안망이 어느 크기의 PUT까지 통과시키는지 보려고 두는 임시 도구입니다.
+   · 지금 저장소 설정(ghParse·SYNC.token) 그대로 data/2027-01.json 으로
+     ghPutFileObj 와 같은 모양의 fetch(..., {method:'PUT'}) 를 보냅니다.
+   · 본문은 JSON.stringify({message, content, sha}) 이고, content 는
+     JSON.stringify(obj) 를 base64 로 인코딩한 값 — 즉 전송량을 재는 그대로입니다.
+   · 2027-01 파일이 이미 있으면 그 내용(rows·분류·dueDates)을 그대로 실어 보내
+     가계부 숫자는 건드리지 않고 testSizeTarget·testPad·testAt 만 더합니다.
+   ============================================================ */
+const TEST_MONTH = '2027-01';
+const TEST_KBS = [5, 10, 15, 20, 25, 30];
+let TESTRES = {busy:'', items:[]};
+
+function testBarOn(){ return VIEW === 'card' && F.month === TEST_MONTH; }
+function utf8Bytes(s){ return new TextEncoder().encode(String(s)).length; }
+function testPayloadObj(base, kb, padLen){
+  const obj = (base && typeof base === 'object') ? Object.assign({}, base) : {};
+  if (!obj.v) obj.v = 1;
+  if (!obj.month) obj.month = TEST_MONTH;
+  if (!Array.isArray(obj.rows)) obj.rows = [];
+  obj.testSizeTarget = kb * 1024;
+  obj.testPad = 'A'.repeat(Math.max(0, padLen));
+  obj.testAt = nowIso();
+  return obj;
+}
+function testBodyStr(obj, sha, kb){
+  const body = {message:'용량 테스트 ' + kb + 'KB', content: b64encodeUtf8(JSON.stringify(obj))};
+  if (sha) body.sha = sha;
+  return JSON.stringify(body);
+}
+/* 목표(N×1024) 바이트를 넘지 않으면서 가장 가까운 패딩 길이를 찾습니다 */
+function testFitPad(base, kb, sha){
+  const target = kb * 1024;
+  const bodyAt = n => utf8Bytes(testBodyStr(testPayloadObj(base, kb, n), sha, kb));
+  if (bodyAt(0) > target) return 0;             /* 기존 내용만으로 이미 목표를 넘음 */
+  let lo = 0, hi = target;                      /* 패딩 1글자마다 본문이 1바이트 이상 늘어남 */
+  while (lo < hi){
+    const mid = Math.ceil((lo + hi) / 2);
+    if (bodyAt(mid) <= target) lo = mid; else hi = mid - 1;
+  }
+  return lo;
+}
+function renderTestBar(){
+  const bar = $('#testBar'); if (!bar) return;
+  const on = testBarOn();
+  bar.classList.toggle('hidden', !on);
+  if (!on) return;
+  const g = ghParse();
+  const btns = $('#testBtns');
+  if (btns){
+    btns.innerHTML = TEST_KBS.map(kb=>{
+      const r = TESTRES.items.filter(x=> x.kb === kb).slice(-1)[0];
+      const busy = TESTRES.busy === String(kb);
+      const badge = busy ? '<span class="tb-badge on">⏳</span>'
+        : (r ? '<span class="tb-badge on '+(r.ok?'ok':'fail')+'">'+(r.ok?'✅':'❌')+'</span>' : '');
+      return '<button type="button" class="btn tb-btn'+(busy?' running':'')+'" data-testkb="'+kb+'"'+
+        (TESTRES.busy ? ' disabled' : '')+' title="목표 '+fmt(kb*1024)+'바이트 PUT">'+kb+'KB'+badge+'</button>';
+    }).join('');
+  }
+  const note = $('#testNote');
+  if (note){
+    let warn = '', txt = '';
+    if (!g){ warn = 'warn'; txt = '동기화 저장소 주소가 없습니다 — ⚙ 설정 → 동기화에서 card-budget-data 주소를 먼저 넣어 주세요'; }
+    else if (!SYNC.token){ warn = 'warn'; txt = '이 기기에 저장소 토큰이 없습니다 — ⚙ 설정 → 동기화에서 토큰(Contents: Read and write)을 넣으면 실제 업로드로 시험됩니다'; }
+    else {
+      txt = esc(g.owner + '/' + g.repo + ' · ' + monthPath(g, TEST_MONTH)) +
+        ' · 지금 설정 그대로 PUT · 본문 = JSON.stringify({message, content, sha}) · 기존 rows는 그대로';
+    }
+    note.className = 'tb-note' + (warn ? ' ' + warn : '');
+    note.innerHTML = txt;
+  }
+  const list = $('#testList');
+  if (list){
+    list.innerHTML = TESTRES.items.slice(-30).reverse().map(x=>{
+      const p2 = n => String(n).padStart(2, '0');
+      const when = p2(x.at.getHours()) + ':' + p2(x.at.getMinutes()) + ':' + p2(x.at.getSeconds());
+      return '<li>' +
+        '<span class="r '+(x.ok?'ok':'fail')+'">'+(x.ok?'✅':'❌')+'</span>' +
+        '<span class="kb">'+x.kb+'KB</span>' +
+        '<span class="m">전송 <b>'+fmt(x.sent)+'</b>B / 목표 '+fmt(x.target)+'B'+(x.sent>x.target?' (초과)':'')+'</span>' +
+        '<span class="dim">JSON '+fmt(x.json)+'B · '+(x.status?('HTTP '+x.status):'응답 없음')+' · '+fmt(x.ms)+'ms · '+when+'</span>' +
+        (x.msg ? '<span class="msg">'+esc(x.msg)+'</span>' : '') +
+        (x.note ? '<span class="dim">'+esc(x.note)+'</span>' : '') +
+      '</li>';
+    }).join('');
+  }
+}
+async function runTestPut(kb){
+  if (TESTRES.busy) return;
+  const g = ghParse();
+  const push = o => { TESTRES.items.push(Object.assign({kb:kb, target:kb*1024, at:new Date(), sent:0, json:0, status:0, ms:0, msg:''}, o));
+    if (TESTRES.items.length > 60) TESTRES.items = TESTRES.items.slice(-60); };
+  if (!g){ push({msg:'저장소 주소가 없습니다'}); renderTestBar(); toast('저장소 주소가 없습니다 — ⚙ 설정 → 동기화'); return; }
+  if (!SYNC.token){ push({msg:'토큰이 없습니다 (⚙ 설정 → 동기화)'}); renderTestBar(); toast('이 기기에 저장소 토큰이 없습니다'); return; }
+  const path = monthPath(g, TEST_MONTH);
+  TESTRES.busy = String(kb); renderTestBar();
+  toast('용량 테스트 — ' + kb + 'KB PUT 보내는 중');
+  let remote = null, getErr = '';
+  try { remote = await ghGetFileObj(path); }
+  catch(e){ getErr = (e && e.message) || String(e); }
+  const base = (remote && remote.json) ? remote.json : {};
+  const sha = remote ? remote.sha : null;
+  const pad = testFitPad(base, kb, sha);
+  const obj = testPayloadObj(base, kb, pad);
+  const jsonB = utf8Bytes(JSON.stringify(obj));
+  const bodyStr = testBodyStr(obj, sha, kb);
+  const sent = utf8Bytes(bodyStr);
+  const t0 = performance.now();
+  let status = 0, ok = false, msg = '';
+  try {
+    const res = await fetch(ghFileUrl(g, path), {
+      method:'PUT', cache:'no-store',
+      headers: Object.assign(ghHeaders(), {'Content-Type':'application/json'}),
+      body: bodyStr
+    });
+    status = res.status; ok = res.ok;
+    const txt = await res.text();
+    let j = null; try { j = JSON.parse(txt); } catch(e){}
+    if (!ok) msg = (j && j.message) || ('HTTP ' + status);
+  } catch(e){
+    msg = (e && e.message) || String(e) || 'fetch 실패';
+  }
+  const ms = Math.round(performance.now() - t0);
+  push({ok:ok, status:status, msg:msg, sent:sent, json:jsonB, ms:ms, pad:pad, sha:!!sha,
+        note:(getErr && ok) ? ('기존 파일 읽기 실패: ' + getErr) : ''});
+  TESTRES.busy = '';
+  renderTestBar();
+  toast(ok ? ('✅ ' + kb + 'KB 성공 — ' + fmt(sent) + 'B · ' + fmt(ms) + 'ms')
+           : ('❌ ' + kb + 'KB 실패 — ' + msg));
+}
+document.addEventListener('click', ev=>{
+  const tb = ev.target.closest('[data-testkb]');
+  if (tb && !tb.disabled){ runTestPut(+tb.dataset.testkb); return; }
+  if (ev.target.closest('#testClear')){
+    TESTRES.items = []; renderTestBar(); toast('테스트 결과를 지웠습니다');
+  }
+});
+
 function renderAll(){
   renderFilters();
   renderLimits();
@@ -5064,6 +5247,7 @@ function renderAll(){
   renderSettle();
   renderLocks();
   renderDtlTools();
+  renderTestBar();             /* 2027-01 카드 탭에서만 보이는 PUT 용량 테스트 바 */
 }
 function updateModeUi(){
   $$('#modeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.mode === S.mode));
