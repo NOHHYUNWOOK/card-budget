@@ -15134,7 +15134,7 @@ function stkCfgBind(){
       const h = a.holdings[+t.dataset.hi]; if (!h) return;
       const f = t.dataset.hf;
       h[f] = (f === 'qty' || f === 'avg') ? stkNum(t.value) : t.value;
-      if (f === 'symbol') stkEnsureHistory(true), stkRefreshQuotes();
+      if (f === 'symbol'){ stkEnsureHistory(true); stkRefreshQuotes(true); }
       stkCfgChanged();
       return;
     }
@@ -15149,7 +15149,7 @@ function stkCfgBind(){
     if (t.dataset.wk && t.dataset.wf){
       const list = STK.watchlist[t.dataset.wk]; const w = list && list[+t.dataset.wi]; if (!w) return;
       w[t.dataset.wf] = t.value;
-      if (t.dataset.wf === 'symbol') stkRefreshQuotes();
+      if (t.dataset.wf === 'symbol') stkRefreshQuotes(true);
       stkCfgChanged();
     }
   });
