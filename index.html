@@ -10829,10 +10829,11 @@ function renderScSelSum(){
    · 줄 부호가 아니라 그 항목이 수입 항목인지 지출 항목인지로 더합니다 (bankFootTotals와 같은 규칙)
    · 이월금·계좌이동·모으기(토스 모으기 계좌 + 모으기채우기/꺼내기)는 계좌 사이 돈이라 뺩니다
    → 계좌내역 우리은행·토스 입출금 하단 수입/지출을 그대로 더한 값과 1원까지 같습니다 */
-function bankActFlow(){
-  const w = bankFootTotals(F.month, '우리은행'), t = bankFootTotals(F.month, '토스 입출금');
+function bankActFlowOf(m){
+  const w = bankFootTotals(m, '우리은행'), t = bankFootTotals(m, '토스 입출금');
   return {inc: w.inc + t.inc, exp: w.exp + t.exp, w: w, t: t};
 }
+function bankActFlow(){ return bankActFlowOf(F.month); }
 /* 예산 기준 흐름 — 우리은행은 항목 예산, 예산 열이 없는 토스 입출금은 실행값으로 셉니다 */
 function bankBudgetFlow(sel, acc){
   const ms = isMonthSel(sel) ? [sel] : monthsInSel(sel, bankMonths());
@@ -10878,18 +10879,23 @@ function renderBankSummary(){
   /* 예산·실행 두 박스의 총 잔액 (2026-11-25 요청)
      · 실행 잔액 = 계좌별 잔액 그대로(우리은행 + 토스 입출금 + 토스 모으기 3계좌 합) — 기존 '현재 총 잔액'
      · 예산 잔액 = 실행 잔액에 예산과 실행의 수입·지출 차이를 되돌린 값 (예산대로였다면 남았을 돈)
-     → 세 가지 '예산 대비 차이'(수입·지출·잔액)가 서로 맞아떨어집니다. */
+     → 수입·지출 두 칸의 '예산 대비 차이'가 서로 맞아떨어집니다. */
   const execBal = bal;                                  /* 총 계좌잔액 — 계좌별 잔액 그대로(3계좌 합) */
   const budBal = execBal + (budInc - act.inc) - (budExp - act.exp);
   const dInc = act.inc - budInc, dExp = act.exp - budExp, dBal = execBal - budBal;
-  /* 수입 − 지출 — 실행과 예산을 같은 방식으로 계산해 차이를 냅니다 (2026-11-26) */
-  const netAct = act.inc - act.exp, netBud = budInc - budExp, dNet = netAct - netBud;
+  /* 수입 − 지출 금액 — 실행과 예산을 같은 방식으로 계산합니다 (2026-11-26) */
+  const netAct = act.inc - act.exp;
   /* 총 계좌잔액의 비교는 예산이 아니라 전월 — 직전 달에 자료가 있을 때만 */
   const prevM = ymShift(month, -1);
   const prevDoc = BANK.months[prevM];
   const prevHas = !yMode && !!prevDoc && Array.isArray(prevDoc.rows) && prevDoc.rows.length > 0;
   const prevBal = prevHas ? bankTotals(prevM).bal : null;
   const dPrev = prevBal == null ? null : execBal - prevBal;
+  /* 수입 − 지출의 비교도 예산이 아니라 전월 (2026-11-27 요청) — 전월 실행 흐름으로 같은 방식 계산 */
+  const prevFlow = prevHas ? bankActFlowOf(prevM) : null;
+  const dNetPrev = prevFlow == null ? null : netAct - (prevFlow.inc - prevFlow.exp);
+  /* 전월 대비 문구 — 총 계좌잔액·수입−지출이 같은 문구·색을 씁니다 */
+  const cmpTxt = (v)=> v == null ? '전월 데이터 없음' : ('전월 대비 ' + (v === 0 ? '0원' : (v > 0 ? '+' : '−') + fmt(Math.abs(v)) + '원'));
   const won = (v, plus)=> (v < 0 ? '−' : (plus && v > 0 ? '+' : '')) + fmt(Math.abs(v)) + '<small>원</small>';
   const diffTxt = (v)=> '예산 대비 ' + (v === 0 ? '0원' : (v > 0 ? '+' : '−') + fmt(Math.abs(v)) + '원');
   /* 비교 문구 색 — +(많이) 파랑 · −(적게) 빨강 · 0·자료없음 기본색 (2026-11-26) */
@@ -10909,10 +10915,8 @@ function renderBankSummary(){
         '<div class="krows">' +
           krow('in', '총 수입', won(act.inc, true), {txt: diffTxt(dInc), cls: dCls(dInc)}, '수입: 예산보다 많이 들어온 만큼 +, 적게 들어온 만큼 −', 'vin') +
           krow('out', '총 지출', won(-act.exp), {txt: diffTxt(dExp), cls: dCls(dExp)}, '지출: 예산보다 많이 쓴 만큼 +, 덜 쓴 만큼 −', 'vout') +
-          krow('net', '수입 - 지출', won(netAct, true), {txt: diffTxt(dNet), cls: dCls(dNet)}, '(수입−지출) 실행 − (수입−지출) 예산', netCls) +
-          krow('bal', '총 계좌잔액', won(execBal),
-            {txt: dPrev == null ? '전월 데이터 없음' : ('전월 대비 ' + (dPrev === 0 ? '0원' : (dPrev > 0 ? '+' : '−') + fmt(Math.abs(dPrev)) + '원')),
-             cls: dCls(dPrev)}, '전월 총 계좌잔액 대비 증감') +
+          krow('net', '수입 - 지출', won(netAct, true), {txt: cmpTxt(dNetPrev), cls: dCls(dNetPrev)}, '전월 (수입−지출) 대비 증감', netCls) +
+          krow('bal', '총 계좌잔액', won(execBal), {txt: cmpTxt(dPrev), cls: dCls(dPrev)}, '전월 총 계좌잔액 대비 증감') +
         '</div>' +
       '</section>' +
     '</div>' +
