@@ -1853,6 +1853,123 @@ html.lock-pending #lockScreen{display:flex}
   .tb-btns{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:10px 12px 0}
   .tb-btn{justify-content:center;min-height:38px;padding:6px 2px;font-size:12px}
 }
+/* ===================== 📈 주식 탭 (2026-11-27) ===================== */
+/* 주식 탭에서는 기간 필터·패널 바로가기를 숨기고(날짜 개념이 없음) 소메뉴를 씁니다 */
+body[data-view="stock"] #monthSeg,body[data-view="stock"] #jumpNav{display:none!important}
+/* 상단 아이콘 — 📈 주식 설정은 주식 탭에서만, 💳·통장은 다른 탭에서만 */
+#btnStockCfg{display:none}
+body[data-view="stock"] #btnStockCfg{display:inline-flex!important}
+body[data-view="stock"] #btnCardCfg,body[data-view="stock"] #btnAccCfg{display:none!important}
+body[data-view="card"] .cv-stock,body[data-view="bank"] .cv-stock,body[data-view="settle"] .cv-stock{display:none!important}
+body[data-view="stock"] .cv-card,body[data-view="stock"] .cv-bank,body[data-view="stock"] .cv-settle{display:none!important}
+
+.stk-head{display:flex;flex-direction:column;gap:8px;padding:10px 0 0}
+.stk-subtabs{display:inline-flex;background:#e7eaf1;border-radius:12px;padding:3px;gap:2px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.stk-subtabs::-webkit-scrollbar{display:none}
+.stk-subtabs button{border:0;background:transparent;border-radius:9px;padding:7px 12px;font-size:13px;font-weight:750;color:#6b7280;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;flex:1;justify-content:center}
+.stk-subtabs button.on{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px rgba(16,24,40,.14)}
+.stk-livebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:0 2px}
+.stk-livebar .dot{width:7px;height:7px;border-radius:50%;background:#cbd5e1;flex:none}
+.stk-livebar .dot.on{background:var(--ok)}
+.stk-livebar .dot.err{background:var(--danger)}
+.stk-livebar .dot.busy{background:var(--accent);animation:pulse 1s infinite}
+.stk-livebar .info{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 140px}
+.stk-livebar b{color:var(--ink2);font-weight:700}
+.stk-auto{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;color:var(--ink2);white-space:nowrap;cursor:pointer}
+.stk-auto input{width:15px;height:15px;accent-color:#2f6fed}
+.stk-mini{padding:6px 10px;font-size:12.5px;border-radius:10px}
+
+.stk-pane{display:flex;flex-direction:column;gap:12px}
+.stk-pane[hidden]{display:none!important}
+.stk-sumrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:860px){.stk-sumrow{grid-template-columns:1fr}}
+.stk-asset{padding-bottom:4px}
+.stk-big{font-size:27px;font-weight:780;letter-spacing:-.035em;line-height:1.12;font-variant-numeric:tabular-nums;
+  padding:6px 16px 0;display:block}
+.stk-bigsub{padding:3px 16px 0;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;gap:8px;flex-wrap:wrap}
+.stk-bigsub .k{color:var(--muted);font-weight:600}
+.stk-kvgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:12px 16px 14px}
+@media (max-width:420px){.stk-kvgrid{grid-template-columns:1fr 1fr}}
+.stk-kv{display:flex;flex-direction:column;gap:1px;min-width:0}
+.stk-kv span{font-size:11.5px;color:var(--muted);font-weight:600}
+.stk-kv b{font-size:14.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.up{color:#d92d20}.down{color:#1d4ed8}.flat{color:var(--ink)}
+.stk-note{padding:0 16px 14px;font-size:11.5px;color:var(--muted);line-height:1.55}
+
+.stk-idx{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px 16px 16px}
+@media (max-width:900px){.stk-idx{grid-template-columns:1fr 1fr}}
+.stk-ix{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#fcfdff;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stk-ix .nm{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-ix .v{font-size:17px;font-weight:780;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-ix .d{font-size:11.5px;font-weight:750;font-variant-numeric:tabular-nums}
+
+.stk-acc{border-radius:var(--radius)}
+.stk-accno{font-size:11px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stk-acc .card-head h2{font-size:14.5px}
+.stk-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:10px 16px 8px}
+@media (max-width:1000px){.stk-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:760px){.stk-metrics{grid-template-columns:1fr 1fr}}
+.stk-m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.stk-m span{font-size:11px;color:var(--muted);font-weight:600}
+.stk-m b{font-size:14px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-holdwrap{padding:2px 0 8px}
+.stk-holdhdr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:4px 16px 6px;font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line2)}
+.stk-hold{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:9px 16px;border-bottom:1px solid var(--line2);align-items:center}
+.stk-hold:last-child{border-bottom:0}
+.stk-hold .nm{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-hold .meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-hold .r{text-align:right;min-width:0}
+.stk-hold .v{font-size:13.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stk-hold .d{font-size:11.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.stk-charthead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px 0}
+.stk-charthead .lbl{font-size:12px;color:var(--muted);font-weight:700}
+.stk-charthead select{border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:12.5px;font-weight:650;background:#fafbfd;max-width:190px}
+.stk-chartval{padding:6px 16px 0;font-size:21px;font-weight:780;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.stk-chartval .pct{font-size:13px;font-weight:750;margin-left:6px}
+.stk-plot{position:relative;height:200px;margin:8px 10px 0;border-radius:12px;overflow:hidden;background:linear-gradient(#fbfcff,#f7f9fd)}
+@media (max-width:760px){.stk-plot{height:168px;margin:6px 8px 0}}
+.stk-plot svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stk-plot .yl{position:absolute;left:8px;font-size:10.5px;font-weight:700;color:#9aa3b2;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.7);border-radius:6px;padding:0 4px;pointer-events:none}
+.stk-plot .yl.hi{top:6px}.stk-plot .yl.lo{bottom:6px}
+.stk-xrow{display:flex;justify-content:space-between;gap:8px;padding:4px 14px 12px;font-size:10.5px;color:var(--muted);font-weight:650;font-variant-numeric:tabular-nums}
+.stk-empty{padding:26px 16px;text-align:center;font-size:12.5px;color:var(--muted);line-height:1.6}
+
+.stk-wl2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:900px){.stk-wl2{grid-template-columns:1fr}}
+.stk-wlhdr{display:grid;grid-template-columns:minmax(0,1fr) 84px 78px;gap:8px;padding:6px 16px;font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line2)}
+.stk-wl{display:grid;grid-template-columns:minmax(0,1fr) 84px 78px;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line2);align-items:center}
+.stk-wl:last-child{border-bottom:0}
+.stk-wl .nm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-wl .sym{font-size:10.5px;color:var(--muted);font-weight:650;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-wl .v{text-align:right;font-size:13px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stk-wl .d{text-align:right;font-size:11.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stk-wl .nmrow{display:flex;align-items:center;gap:6px;min-width:0}
+.stk-kr-mark{font-size:9.5px;font-weight:800;color:#1d4ed8;background:#eaf1ff;border-radius:5px;padding:1px 4px;flex:none}
+.stk-us-mark{font-size:9.5px;font-weight:800;color:#0f766e;background:#e6f7f3;border-radius:5px;padding:1px 4px;flex:none}
+
+/* 주식 설정 창 */
+.stk-ed{display:flex;flex-direction:column;gap:12px}
+.stk-edbox{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fcfdff}
+.stk-edhd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stk-edhd .ttl{font-size:13px;font-weight:800;letter-spacing:-.01em}
+.stk-flds{display:flex;flex-wrap:wrap;gap:6px}
+.stk-fld{display:flex;flex-direction:column;gap:2px;flex:1 1 84px;min-width:0}
+.stk-fld span{font-size:10.5px;color:var(--muted);font-weight:700}
+.stk-fld input,.stk-fld select{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font-size:12.5px;font-weight:650;min-width:0;background:#fff;width:100%}
+.stk-fld input:focus,.stk-fld select:focus{outline:none;border-color:#b9cdf7;box-shadow:0 0 0 3px var(--accent-soft)}
+.stk-fld.num{flex:1 1 62px}
+.stk-xbtn{border:1px solid #f3c9cb;color:var(--danger);background:#fff;border-radius:8px;padding:4px 7px;font-size:11.5px;font-weight:700;flex:none}
+.stk-xbtn:hover{background:#fff5f5}
+.stk-sublbl{font-size:11px;font-weight:800;color:var(--ink2);margin:2px 0 -2px}
+.stk-wlrow{display:flex;gap:6px;align-items:flex-end}
+.stk-wlrow .stk-fld{flex:1 1 90px}
+.stk-conn{font-size:11.5px;font-weight:700}
+.stk-conn.ok{color:var(--ok)}.stk-conn.err{color:var(--danger)}
+.stk-syncnote{font-size:11.5px;color:var(--muted);font-weight:600;padding:0 2px;font-variant-numeric:tabular-nums}
+.stk-syncnote b{color:var(--ink2);font-weight:750}
+.stk-dot{position:absolute;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 3px rgba(255,255,255,.9),0 1px 4px rgba(16,24,40,.25);pointer-events:none}
+
 </style>
 <script>
 /* 화면 잠금 — 본문이 그려지기 전에 잠금 상태를 먼저 가립다 (2026-11-26, PC까지).
@@ -1903,7 +2020,7 @@ html.lock-pending #lockScreen{display:flex}
     <nav class="viewtabs" id="viewTabs" role="tablist" aria-label="보기 전환">
       <button type="button" data-view="card" role="tab" aria-selected="true"><span class="em" aria-hidden="true">💳</span>카드</button>
       <button type="button" data-view="bank" role="tab" aria-selected="false"><span class="em" aria-hidden="true">🏦</span>현금</button>
-      <button type="button" data-view="settle" role="tab" aria-selected="false"><span class="em" aria-hidden="true">📊</span>정산</button>
+      <button type="button" data-view="stock" role="tab" aria-selected="false"><span class="em" aria-hidden="true">📈</span>주식</button>
     </nav>
     <div class="topbar-tools">
       <div class="seg" id="monthSeg" role="group" aria-label="월별 보기"></div>
@@ -1936,6 +2053,14 @@ html.lock-pending #lockScreen{display:flex}
           <rect x="7.2" y="6.4" width="9.4" height="4" rx="1" fill="#ffffff"/>
           <rect x="7.2" y="12" width="6" height="1.6" rx=".8" fill="#8fdfe2"/>
           <circle cx="15.4" cy="14.6" r="1.6" fill="#f7c65a"/>
+        </svg>
+      </button>
+      <button type="button" class="btn hdr-icobtn" id="btnStockCfg" title="주식 설정 (계좌·보유·관심종목·시세 서버)" aria-label="주식 설정">
+        <svg class="stksvg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <rect x="2.6" y="3.2" width="18.8" height="17.6" rx="3.6" fill="#eef4ff"/>
+          <path d="M6 15.4l3.4-3.6 2.6 2.2 4.9-5" fill="none" stroke="#1d4ed8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.7 8.6h3.6v3.6" fill="none" stroke="#1d4ed8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 18.4h12" stroke="#94a8cc" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
       <button type="button" class="btn hdr-icobtn" id="btnSync" title="최신 자료로 새로고침 (동기화)" aria-label="최신 자료로 새로고침 (동기화)"><span class="ic" aria-hidden="true">🔄</span></button>
@@ -2226,6 +2351,101 @@ html.lock-pending #lockScreen{display:flex}
     </div>
     <div class="schart" id="settleCat"></div>
   </section>
+  <!-- ===================== 📈 주식 (2026-11-27) =====================
+       계좌·보유·관심종목은 비공개 저장소 data/stocks.json, 시세는 Cloudflare Worker. -->
+  <section class="cv-stock stk-head" aria-label="주식 소메뉴">
+    <nav class="stk-subtabs" id="stkSubTabs" role="tablist" aria-label="주식 보기 전환">
+      <button type="button" data-stk="summary" role="tab" aria-selected="true" class="on">요약</button>
+      <button type="button" data-stk="my" role="tab" aria-selected="false">내 계좌</button>
+      <button type="button" data-stk="parent" role="tab" aria-selected="false">부모님 계좌</button>
+      <button type="button" data-stk="idx" role="tab" aria-selected="false">지수·관심</button>
+    </nav>
+    <div class="stk-livebar">
+      <span class="dot" id="stkDot"></span>
+      <span class="info" id="stkLiveInfo">시세 —</span>
+      <label class="stk-auto" for="stkAuto"><input type="checkbox" id="stkAuto" checked> 10초 자동 갱신</label>
+      <button type="button" class="btn stk-mini" id="stkRefresh">지금 갱신</button>
+    </div>
+  </section>
+
+  <!-- 1) 요약 -->
+  <div class="cv-stock stk-pane" id="stkPaneSummary" data-stk-pane="summary">
+    <div class="stk-sumrow">
+      <section class="card stk-asset" id="stkMeCard" aria-label="내 계좌 합계"></section>
+      <section class="card stk-asset" id="stkParentCard" aria-label="부모님 계좌 합계"></section>
+    </div>
+    <div class="stk-syncnote" id="stkSyncNote"></div>
+    <section class="card" id="stkIdxMiniCard" aria-label="주요 지수">
+      <div class="card-head"><h2>주요 지수</h2><span class="hint" id="stkIdxMiniHint">코스피 · S&amp;P500 · 나스닥</span></div>
+      <div class="stk-idx" id="stkIdxMini"></div>
+    </section>
+  </div>
+
+  <!-- 2) 내 계좌 -->
+  <div class="cv-stock stk-pane" id="stkPaneMy" data-stk-pane="my" hidden>
+    <section class="card" id="stkMyChartCard" aria-label="내 계좌 누적 추이">
+      <div class="card-head">
+        <h2>누적 잔액 변동 추이</h2>
+        <span class="hint" id="stkMyChartHint">현재 보유 수량 × 과거 종가 역산</span>
+      </div>
+      <div class="stk-charthead">
+        <span class="lbl">대상</span>
+        <select id="stkMyScope"></select>
+        <div class="seg small" id="stkMyPeriod"></div>
+      </div>
+      <div class="stk-chartval" id="stkMyChartVal"></div>
+      <div class="stk-plot" id="stkMyPlot"></div>
+      <div class="stk-xrow" id="stkMyXRow"></div>
+    </section>
+    <div id="stkMyAccounts" class="stk-pane"></div>
+  </div>
+
+  <!-- 3) 부모님 계좌 -->
+  <div class="cv-stock stk-pane" id="stkPaneParent" data-stk-pane="parent" hidden>
+    <section class="card" id="stkParentChartCard" aria-label="부모님 계좌 누적 추이">
+      <div class="card-head">
+        <h2>누적 잔액 변동 추이</h2>
+        <span class="hint" id="stkParentChartHint">대리투자 · 별도 통계</span>
+      </div>
+      <div class="stk-charthead">
+        <span class="lbl">대상</span>
+        <select id="stkParentScope"></select>
+        <div class="seg small" id="stkParentPeriod"></div>
+      </div>
+      <div class="stk-chartval" id="stkParentChartVal"></div>
+      <div class="stk-plot" id="stkParentPlot"></div>
+      <div class="stk-xrow" id="stkParentXRow"></div>
+    </section>
+    <div id="stkParentAccounts" class="stk-pane"></div>
+  </div>
+
+  <!-- 4) 지수 · 관심종목 -->
+  <div class="cv-stock stk-pane" id="stkPaneIdx" data-stk-pane="idx" hidden>
+    <section class="card" id="stkIdxCard" aria-label="주요 지수">
+      <div class="card-head"><h2>주요 지수 · 환율</h2><span class="hint" id="stkIdxHint"></span></div>
+      <div class="stk-idx" id="stkIdxList"></div>
+    </section>
+    <div class="stk-wl2">
+      <section class="card" id="stkWlKrCard">
+        <div class="card-head">
+          <h2>국장 관심종목</h2>
+          <span class="hint" id="stkWlKrHint"></span>
+          <button type="button" class="btn stk-mini" id="stkWlKrEdit">편집</button>
+        </div>
+        <div class="stk-wlhdr"><span>종목</span><span style="text-align:right">현재가</span><span style="text-align:right">등락</span></div>
+        <div id="stkWlKr"></div>
+      </section>
+      <section class="card" id="stkWlUsCard">
+        <div class="card-head">
+          <h2>미장 관심종목</h2>
+          <span class="hint" id="stkWlUsHint"></span>
+          <button type="button" class="btn stk-mini" id="stkWlUsEdit">편집</button>
+        </div>
+        <div class="stk-wlhdr"><span>종목</span><span style="text-align:right">현재가</span><span style="text-align:right">등락</span></div>
+        <div id="stkWlUs"></div>
+      </section>
+    </div>
+  </div>
 </main>
 
 <footer class="pagefoot">
@@ -2283,6 +2503,22 @@ html.lock-pending #lockScreen{display:flex}
       <button class="btn" id="accCfgAdd">＋ 계좌 추가</button>
       <div class="spacer"></div>
       <button class="btn primary" id="accCfgDone">완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- 📈 주식 설정 — 계좌·보유·관심종목·시세 서버 (2026-11-27) -->
+<div class="modal-backdrop" id="stkCfgBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>주식 설정</h2>
+      <button class="iconbtn" id="stkCfgClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="stkCfgBody"></div>
+    <div class="modal-foot">
+      <button class="btn" id="stkCfgAddAcc">＋ 계좌 추가</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="stkCfgDone">완료</button>
     </div>
   </div>
 </div>
@@ -2631,7 +2867,7 @@ function loadState(){
     if(p.ui && Array.isArray(p.ui.annualOff)) S.ui.annualOff = p.ui.annualOff.slice();
     if(p.ui && typeof p.ui.sortKey === 'string' && p.ui.sortKey) S.ui.sortKey = p.ui.sortKey;
     if(p.ui && (p.ui.sortDir === 'asc' || p.ui.sortDir === 'desc')) S.ui.sortDir = p.ui.sortDir;
-    if(p.ui && (p.ui.view === 'bank' || p.ui.view === 'settle')) { S.ui.view = p.ui.view; VIEW = p.ui.view; }
+    if(p.ui && (p.ui.view === 'bank' || p.ui.view === 'settle' || p.ui.view === 'stock')) { S.ui.view = p.ui.view; VIEW = p.ui.view; }
   } catch(e){ /* ignore broken storage */ }
   migrateCategoryNames();
   if (idFixed) saveState();   /* 붙인 행 id 를 바로 저장 — 다시 열어도 같은 줄 */
@@ -5609,6 +5845,7 @@ function renderAll(){
   renderLocks();
   renderDtlTools();
   renderTestBar();             /* 2027-01 카드 탭에서만 보이는 PUT 용량 테스트 바 */
+  renderStock();                /* 📈 주식 탭 (2026-11-27) */
 }
 function updateModeUi(){
   $$('#modeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.mode === S.mode));
@@ -8818,6 +9055,8 @@ async function runSync(quiet){
       try { const st = await setP; if (st && st.json) setApplied = applyRemoteSettings(st.json); }
       catch(e){ /* settings.json 이 없거나 못 읽어도 동기화는 계속합니다 */ }
     }
+    /* 주식 자료(data/stocks.json)도 같은 때 받아옵니다 (2026-11-27) */
+    if (g && SYNC.token){ try { await stkRemotePull(); } catch(e){} }
     /* 3) 병합이 끝난 이 기기 상태를 올립니다 — 아직 못 올린 편집과 새로 받은 내용이 함께 저장되게 */
     let uploadErr = '';
     if (g && SYNC.token){
@@ -8825,6 +9064,8 @@ async function runSync(quiet){
       catch(e){ SYNC.upErr = '올리기 실패: ' + ((e && e.message) || String(e)); }
       uploadErr = SYNC.upErr || '';      /* 올리지 못한 변경이 있으면 '동기화 완료'로 숨기지 않습니다 (2026-11-26) */
     }
+    /* 주식 설정 변경·스냅샷을 올립니다 (2026-11-27) */
+    if (g && SYNC.token){ try { await stkRemotePush(); } catch(e){} }
     /* 4) 합친 상태를 저장소와 맞춰 둔 기준으로 기억 (다음 업로드 때 삭제 판단에 사용) */
     monthsIn(S.rows).forEach(m=> rememberMonthKeys(m));
     /* 5) 이 기기에서 캡처로 넣어 둔 내역이 저장소에 아직 없으면 함께 올립니다
@@ -8964,6 +9205,11 @@ function syncTabHtml(){
     '<p class="tiny">토큰은 이 브라우저(localStorage)에만 저장되고 다른 곳으로 전송되지 않습니다. 다른 기기와 주고받으려면 <b>Contents: Read and write</b>, 읽기만 하려면 <b>Read-only</b>를 주세요.</p>'+
   '</div>'+
   '<div class="field">'+
+    '<label>주식 시세 서버 (Cloudflare Worker)</label>'+
+    '<input class="txt" type="text" id="stockWorkerUrl" placeholder="https://fancy-lake-fe84.nohhw.workers.dev/" autocomplete="off">'+
+    '<p class="tiny">📈 주식 탭의 실시간 시세를 받아오는 주소입니다. 비워 두면 기본 주소를 씁니다. Worker 코드는 <code>work/stock-worker.js</code>.</p>'+
+  '</div>'+
+  '<div class="field">'+
     '<label>자동 갱신</label>'+
     '<label class="checkline"><input type="checkbox" id="syncAuto"> 앱을 열 때(그리고 화면으로 돌아올 때) 자동으로 동기화</label>'+
     '<select class="txt" id="syncInterval">'+
@@ -8999,8 +9245,15 @@ function bindSyncTab(){
   tokenEl.value = SYNC.token || '';
   $('#syncAuto').checked = !!SYNC.autoOn;
   $('#syncInterval').value = String(SYNC.intervalMin || 0);
+  const wkEl = $('#stockWorkerUrl');
+  if (wkEl) wkEl.value = (typeof STK !== 'undefined' && STK.workerUrl) ? STK.workerUrl : '';
 
   const readForm = ()=>{
+    const wk = $('#stockWorkerUrl');            /* 📈 주식 시세 서버 (2026-11-27) */
+    if (wk && typeof STK !== 'undefined'){
+      const v = wk.value.trim();
+      if (v !== STK.workerUrl){ STK.workerUrl = v || STK_WORKER_DEFAULT; stkSaveLocal(); stkMarkDirty(); stkRefreshQuotes(true); stkEnsureHistory(true); }
+    }
     const prevTok = SYNC.token;
     SYNC.urls = urlsEl.value.split(/[\n\s]+/).map(s=>s.trim()).filter(Boolean);
     SYNC.token = tokenEl.value.trim();
@@ -10944,7 +11197,8 @@ const JUMP_SETS = {
   card: [['summaryCard', '요약'], ['mileCard', '마일리지'], ['annualCard', '연간'], ['trendCard', '일자별'],
          ['cardChartCard', '카드사/분류'], ['detailCard', '내역']],
   bank: [['bankSummary', '전체 요약'], ['bankItemsCard', '계좌내역'], ['bankChartCard', '비율'], ['bankDetailCard', '내역']],
-  settle: [['settleSummary', '요약'], ['settleCard', '정산표'], ['settleAnnualCard', '연간'], ['settleCatCard', '분류']]
+  settle: [['settleSummary', '요약'], ['settleCard', '정산표'], ['settleAnnualCard', '연간'], ['settleCatCard', '분류']],
+  stock: [['stkPaneSummary', '요약'], ['stkPaneMy', '내 계좌'], ['stkPaneParent', '부모님'], ['stkPaneIdx', '지수/관심']]
 };
 function viewMonths(){
   if (VIEW === 'bank'){
@@ -10961,7 +11215,7 @@ function renderJumpNav(){
     '<button type="button" data-jump="' + x[0] + '">' + x[1] + '</button>').join('');
 }
 function setView(v, quiet){
-  if (v !== 'bank' && v !== 'settle') v = 'card';
+  if (v !== 'bank' && v !== 'settle' && v !== 'stock') v = 'card';
   const changed = v !== VIEW;
   VIEW = v;
   S.ui.view = v;
@@ -10973,7 +11227,7 @@ function setView(v, quiet){
   });
   if (changed) SCSEL.clear();   /* 탭을 옮기면 정산 요약 선택도 비웁니다 */
   /* 이 탭에 없는 달을 보고 있었다면 이 탭의 달로 맞춥니다 — 연도 전체('YYYY')·전체('all')는 그대로 둡니다 */
-  if (v !== 'card' && isMonthSel(F.month)){
+  if (v !== 'card' && v !== 'stock' && isMonthSel(F.month)){
     const ms = viewMonths();
     if (ms.indexOf(F.month) < 0){
       F.month = (ms.indexOf(AUTO_MONTH) >= 0) ? AUTO_MONTH : (ms.length ? ms[ms.length - 1] : AUTO_MONTH);
@@ -10989,6 +11243,8 @@ function setView(v, quiet){
   renderAll();
   syncDetailLayout();          /* 탭마다 다른 상세내역 머리 높이·헤더행 위치를 다시 잡습니다 (2026-11-26) */
   if (changed && !quiet) window.scrollTo(0, 0);
+  if (typeof stkTimerSet === 'function') stkTimerSet();
+  if (v === 'stock' && typeof stkEnterTab === 'function') stkEnterTab();
 }
 
 /* ---------------- 현금 화면 ---------------- */
@@ -14110,6 +14366,858 @@ window.addEventListener('keydown', ev=>{
 });
 
 /* ============================================================
+   📈 주식 탭 (2026-11-27)
+   · 계좌·보유·관심종목은 비공개 저장소 data/stocks.json 과 양방향 동기화
+   · 시세는 Cloudflare Worker(GET /quote)에서 10초마다, 과거 일봉은 /history(5y)
+   · 현재 보유 수량 × 과거 종가로 1개월~5년 누적 추이를 역산하고,
+     하루 한 번 스냅샷을 남겨 이후 실제 매매 변동까지 이어 붙입니다.
+   ============================================================ */
+const STK_LS = 'cardLedger.stock.v1';
+const STK_UI_LS = 'cardLedger.stock.ui.v1';
+const STK_HIST_LS = 'cardLedger.stock.hist.v1';
+const STK_WORKER_DEFAULT = 'https://fancy-lake-fe84.nohhw.workers.dev/';
+const STK_PERIODS = [['1m', '1개월'], ['6m', '6개월'], ['1y', '1년'], ['2y', '2년'], ['3y', '3년'], ['5y', '5년']];
+const STK_DAYS = {'1m': 31, '6m': 183, '1y': 365, '2y': 730, '3y': 1095, '5y': 1826};
+
+let STK = stkBlank();
+let STK_UI = {sub: 'summary', period: {my: '1y', parent: '1y'}, scope: {my: 'all', parent: 'all'}};
+let STK_Q = {};                 /* symbol → {price, prevClose, pct, at, source} 실시간 시세 */
+let STK_QAT = 0, STK_QERR = '', STK_QBUSY = false;
+let STK_HIST = {}, STK_HISTAT = 0, STK_HBUSY = false;
+let STK_SHA = null, STK_DIRTY = false, STK_PUSH_T = null, STK_SNAP_PUSHED = 0;
+let STK_AUTO = true, STK_TIMER = null;
+
+function stkBlank(){
+  return {version: '1.0', kind: 'stocks', updatedAt: '', workerUrl: STK_WORKER_DEFAULT,
+          indices: [], watchlist: {kr: [], us: []}, accounts: [], prices: {}, snapshots: []};
+}
+function stkEsc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function stkNum(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+function stkUid(){ return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+/* ---------------- 상태 ---------------- */
+function stkNorm(raw){
+  const d = stkBlank();
+  if (!raw || typeof raw !== 'object') return d;
+  d.version = raw.version || '1.0';
+  d.updatedAt = raw.updatedAt || '';
+  d.workerUrl = raw.workerUrl || STK_WORKER_DEFAULT;
+  d.indices = Array.isArray(raw.indices) && raw.indices.length ? raw.indices.map(x => ({name: x.name || x.symbol || '', symbol: x.symbol || '', fx: !!x.fx}))
+    : [{name: '코스피', symbol: '^KS11'}, {name: 'S&P500', symbol: '^GSPC'}, {name: '나스닥', symbol: '^IXIC'}, {name: '원/달러', symbol: 'KRW=X', fx: true}];
+  const wl = raw.watchlist || {};
+  d.watchlist = {kr: (wl.kr || []).map(x => ({name: x.name || x.symbol || '', symbol: x.symbol || ''})).filter(x => x.symbol),
+                 us: (wl.us || []).map(x => ({name: x.name || x.symbol || '', symbol: x.symbol || ''})).filter(x => x.symbol)};
+  d.accounts = (Array.isArray(raw.accounts) ? raw.accounts : []).map(a => ({
+    id: a.id || stkUid(), broker: a.broker || '', name: a.name || '', number: a.number || '',
+    owner: (a.owner === 'parent' ? 'parent' : 'me'), cash: stkNum(a.cash),
+    fixed: (Array.isArray(a.fixed) ? a.fixed : []).map(f => ({name: f.name || '', value: stkNum(f.value), cost: stkNum(f.cost)})),
+    holdings: (Array.isArray(a.holdings) ? a.holdings : []).map(h => ({symbol: h.symbol || '', name: h.name || h.symbol || '', qty: stkNum(h.qty), avg: stkNum(h.avg)})).filter(h => h.symbol)
+  }));
+  d.prices = (raw.prices && typeof raw.prices === 'object') ? raw.prices : {};
+  d.snapshots = Array.isArray(raw.snapshots) ? raw.snapshots.filter(s => s && s.date) : [];
+  return d;
+}
+function stkLoad(){
+  try {
+    const raw = localStorage.getItem(STK_LS);
+    if (raw) STK = stkNorm(JSON.parse(raw));
+  } catch(e){}
+  try {
+    const u = JSON.parse(localStorage.getItem(STK_UI_LS) || 'null');
+    if (u && typeof u === 'object'){
+      if (u.sub) STK_UI.sub = u.sub;
+      if (u.period) STK_UI.period = Object.assign(STK_UI.period, u.period);
+      if (u.scope) STK_UI.scope = Object.assign(STK_UI.scope, u.scope);
+      if (typeof u.auto === 'boolean') STK_AUTO = u.auto;
+    }
+  } catch(e){}
+  stkLoadHistCache();
+}
+function stkSaveLocal(){
+  try { localStorage.setItem(STK_LS, JSON.stringify(STK)); } catch(e){}
+}
+function stkSaveUi(){
+  try { localStorage.setItem(STK_UI_LS, JSON.stringify({sub: STK_UI.sub, period: STK_UI.period, scope: STK_UI.scope, auto: STK_AUTO})); } catch(e){}
+}
+function stkApplyRemote(raw){
+  STK = stkNorm(raw);
+  stkSaveLocal();
+  renderStock();
+  if (!STK_QAT) setTimeout(()=>{ stkRefreshQuotes(); }, 400);
+  if (STK_UI.sub === 'my' || STK_UI.sub === 'parent') stkEnsureHistory();
+}
+/* 주식 탭에 들어올 때 — 너무 오래된 시세면 한 번 받습니다 */
+function stkEnterTab(){
+  if (!STK.accounts.length && !((STK.watchlist || {}).kr || []).length) return;
+  if (!STK_QBUSY && (!STK_QAT || Date.now() - STK_QAT > 12000)) stkRefreshQuotes();
+  if (STK_UI.sub === 'my' || STK_UI.sub === 'parent') stkEnsureHistory();
+}
+function stkForStore(){
+  const prices = Object.assign({}, STK.prices || {});
+  Object.keys(STK_Q).forEach(sym => {
+    const q = STK_Q[sym];
+    if (!q || q.price == null) return;
+    prices[sym] = {price: q.price, prevClose: q.prevClose, pct: q.pct, at: new Date(q.at || Date.now()).toISOString(), source: q.source || 'worker'};
+  });
+  return {version: '1.0', kind: 'stocks', updatedAt: STK.updatedAt || nowIso(), workerUrl: STK.workerUrl || STK_WORKER_DEFAULT,
+          indices: STK.indices, watchlist: STK.watchlist, accounts: STK.accounts, prices: prices, snapshots: STK.snapshots || []};
+}
+
+/* ---------------- 저장소(비공개) 동기화 ---------------- */
+function stkPath(g){ return (g.dir ? g.dir + '/' : '') + 'stocks.json'; }
+function stkMarkDirty(){
+  STK_DIRTY = true;
+  if (STK_PUSH_T) clearTimeout(STK_PUSH_T);
+  STK_PUSH_T = setTimeout(()=>{ STK_PUSH_T = null; stkRemotePush(); }, 900);
+}
+async function stkRemotePull(){
+  const g = ghParse(); if (!g) return false;
+  try {
+    const f = await ghGetFileObj(stkPath(g));
+    if (!f || !f.json) return false;
+    STK_SHA = f.sha || null;
+    if (STK_DIRTY) return false;                        /* 이 기기에서 아직 못 올린 편집이 있으면 그대로 둡니다 */
+    const rT = Date.parse(f.json.updatedAt || '') || 0;
+    const lT = Date.parse(STK.updatedAt || '') || 0;
+    if (rT >= lT || !STK.accounts.length){ stkApplyRemote(f.json); return true; }
+    return false;
+  } catch(e){ return false; }
+}
+async function stkRemotePush(){
+  const g = ghParse(); if (!g) return false;
+  if (!SYNC.token || SYNC.readonly) return false;
+  if (!STK_DIRTY) return false;
+  STK.updatedAt = nowIso();
+  stkSaveLocal();
+  let res = await ghPutFileObj(stkPath(g), stkForStore(), STK_SHA, '주식 탭 자료 반영');
+  if (!res.ok && res.conflict){
+    try { const f = await ghGetFileObj(stkPath(g)); if (f) STK_SHA = f.sha; } catch(e){}
+    res = await ghPutFileObj(stkPath(g), stkForStore(), STK_SHA, '주식 탭 자료 반영');
+  }
+  if (res.ok){
+    STK_DIRTY = false;
+    if (res.json && res.json.content) STK_SHA = res.json.content.sha;
+    return true;
+  }
+  return false;
+}
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden && STK_DIRTY) stkRemotePush(); });
+window.addEventListener('pagehide', ()=>{ if (STK_DIRTY) stkRemotePush(); });
+
+/* ---------------- 시세 서버(Cloudflare Worker) ---------------- */
+function stkWorkerBase(){
+  let u = String(STK.workerUrl || STK_WORKER_DEFAULT).trim();
+  if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+  return u.replace(/\/+$/, '');
+}
+async function stkWorkerJson(path){
+  const base = stkWorkerBase();
+  if (!base) throw new Error('시세 서버 주소가 없습니다');
+  const ctl = new AbortController();
+  const timer = setTimeout(()=>ctl.abort(), 9000);
+  let r, txt;
+  try {
+    r = await fetch(base + path, {cache: 'no-store', signal: ctl.signal});
+    txt = await r.text();
+  } catch(e){
+    throw new Error('시세 서버에 닿지 못했습니다 (Worker 주소·Deploy 확인)');
+  } finally { clearTimeout(timer); }
+  let j = null;
+  try { j = JSON.parse(txt); } catch(e){
+    throw new Error('시세 서버 응답이 JSON이 아닙니다 — Worker에 코드를 붙여 넣고 Deploy 했는지 확인');
+  }
+  if (!j || (!j.ok && !j.quotes && !j.series)) throw new Error((j && j.error) || ('시세 서버 오류 HTTP ' + r.status));
+  return j;
+}
+function stkAllSymbols(){
+  const set = new Set();
+  STK.accounts.forEach(a => (a.holdings || []).forEach(h => { if (h.symbol) set.add(h.symbol); }));
+  (STK.indices || []).forEach(i => { if (i.symbol) set.add(i.symbol); });
+  ((STK.watchlist || {}).kr || []).forEach(w => { if (w.symbol) set.add(w.symbol); });
+  ((STK.watchlist || {}).us || []).forEach(w => { if (w.symbol) set.add(w.symbol); });
+  return Array.from(set);
+}
+function stkQuoteOf(sym){
+  const q = STK_Q[sym];
+  if (q && q.price != null) return {price: q.price, prevClose: q.prevClose, pct: q.pct, at: q.at, live: true, source: q.source, currency: q.currency};
+  const p = (STK.prices || {})[sym];
+  if (p && p.price != null) return {price: p.price, prevClose: p.prevClose, pct: p.pct, at: p.at ? Date.parse(p.at) : 0, live: false, source: p.source};
+  return {price: null, prevClose: null, pct: null, at: 0, live: false};
+}
+async function stkRefreshQuotes(opts){
+  if (STK_QBUSY) return;
+  const syms = stkAllSymbols();
+  if (!syms.length) return;
+  STK_QBUSY = true;
+  stkLive('busy', '시세 받는 중…');
+  try {
+    const j = await stkWorkerJson('/quote?symbols=' + encodeURIComponent(syms.join(',')));
+    (j.quotes || []).forEach(q => {
+      if (!q || q.price == null) return;
+      STK_Q[q.symbol] = {price: q.price, prevClose: q.prevClose, pct: q.changePct, at: q.marketTime || Date.now(),
+                         source: q.source, currency: q.currency, name: q.name};
+    });
+    STK_QAT = Date.now();
+    STK_QERR = '';
+    stkMaybeSnapshot();
+    if (!STK_HBUSY) stkEnsureHistory();
+  } catch(e){
+    STK_QERR = String((e && e.message) || e);
+  } finally {
+    STK_QBUSY = false;
+    renderStock();
+    stkLive();
+  }
+}
+function stkLive(state, msg){
+  const dot = $('#stkDot'), info = $('#stkLiveInfo');
+  if (!dot || !info) return;
+  const when = STK_QAT ? stkClock(STK_QAT) : '';
+  if (state === 'busy'){
+    dot.className = 'dot busy';
+    info.innerHTML = msg || '시세 받는 중…';
+    return;
+  }
+  if (STK_QERR){
+    dot.className = 'dot err';
+    info.innerHTML = '시세 서버 연결 안 됨 — <b>기준가</b>로 표시 중 · ' + stkEsc(STK_QERR);
+    return;
+  }
+  if (STK_QAT){
+    dot.className = 'dot on';
+    info.innerHTML = '<b>' + when + '</b> 시세 · ' + fmt(stkAllSymbols().length) + '종목';
+    return;
+  }
+  dot.className = 'dot';
+  info.innerHTML = STK.accounts.length ? '시세를 받아오는 중…' : '📈 주식 설정에서 계좌를 불러오세요';
+}
+function stkTimerSet(){
+  if (STK_TIMER){ clearInterval(STK_TIMER); STK_TIMER = null; }
+  if (!STK_AUTO) return;
+  STK_TIMER = setInterval(()=>{
+    if (document.hidden) return;
+    if (document.body.getAttribute('data-view') !== 'stock') return;
+    stkRefreshQuotes();
+  }, 10000);
+}
+
+/* ---------------- 과거 일봉 ---------------- */
+function stkLoadHistCache(){
+  try {
+    const p = JSON.parse(localStorage.getItem(STK_HIST_LS) || 'null');
+    if (p && p.data && typeof p.data === 'object'){ STK_HIST = p.data; STK_HISTAT = p.at || 0; }
+  } catch(e){ STK_HIST = {}; }
+}
+function stkSaveHistCache(){
+  try { localStorage.setItem(STK_HIST_LS, JSON.stringify({at: STK_HISTAT, data: STK_HIST})); }
+  catch(e){ try { localStorage.removeItem(STK_HIST_LS); } catch(_){} }
+}
+function stkHistSymbols(){
+  const set = new Set();
+  STK.accounts.forEach(a => (a.holdings || []).forEach(h => { if (h.symbol) set.add(h.symbol); }));
+  return Array.from(set);
+}
+async function stkEnsureHistory(force){
+  const syms = stkHistSymbols();
+  if (!syms.length) return;
+  const missing = syms.filter(s => !(STK_HIST[s] && STK_HIST[s].length));
+  const stale = !STK_HISTAT || (Date.now() - STK_HISTAT > 12 * 3600 * 1000);
+  if (!force && !missing.length && !stale) return;
+  if (STK_HBUSY) return;
+  STK_HBUSY = true;
+  try {
+    let got = 0;
+    for (let i = 0; i < syms.length; i += 20){
+      const part = syms.slice(i, i + 20);
+      const j = await stkWorkerJson('/history?symbols=' + encodeURIComponent(part.join(',')) + '&range=5y');
+      if (j && j.series){
+        Object.keys(j.series).forEach(k => {
+          const c = j.series[k] && j.series[k].candles;
+          if (Array.isArray(c) && c.length){ STK_HIST[k] = c; got++; }
+        });
+      }
+    }
+    if (got){ STK_HISTAT = Date.now(); stkSaveHistCache(); }
+  } catch(e){ /* 차트는 '과거 시세 없음'으로 조용히 */ }
+  finally { STK_HBUSY = false; renderStock(); }
+}
+function stkCloseAt(arr, t){
+  if (!arr || !arr.length) return null;
+  let lo = 0, hi = arr.length - 1, ans = -1;
+  while (lo <= hi){
+    const mid = (lo + hi) >> 1;
+    if (arr[mid][0] <= t){ ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans < 0 ? null : arr[ans][1];
+}
+function stkDayKey(ms){ return new Date(ms + 9 * 3600 * 1000).toISOString().slice(0, 10); }
+function stkToday(){ return stkDayKey(Date.now()); }
+function stkClock(ms){
+  const d = new Date(ms + 9 * 3600 * 1000);
+  return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0') + ':' + String(d.getUTCSeconds()).padStart(2, '0');
+}
+function stkDayLabel(ms){
+  const d = new Date(ms + 9 * 3600 * 1000);
+  return d.getUTCFullYear() + '.' + String(d.getUTCMonth() + 1).padStart(2, '0') + '.' + String(d.getUTCDate()).padStart(2, '0');
+}
+
+/* ---------------- 계산 ---------------- */
+function stkMoney(v, cur){
+  if (v == null || !isFinite(v)) return '—';
+  if (cur === 'USD') return '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return fmt(Math.round(v)) + '원';
+}
+function stkPctText(v){
+  if (v == null || !isFinite(v)) return '—';
+  return (v > 0 ? '+' : '') + (Math.round(v * 100) / 100).toFixed(2) + '%';
+}
+function stkSigned(v, cur){
+  if (v == null || !isFinite(v)) return '—';
+  const s = v > 0 ? '+' : (v < 0 ? '−' : '');
+  return s + stkMoney(Math.abs(v), cur);
+}
+function stkCls(v){ return v > 0.0001 ? 'up' : (v < -0.0001 ? 'down' : 'flat'); }
+function stkCompact(n){
+  const v = Math.abs(Number(n) || 0);
+  if (v >= 1e8) return (n / 1e8).toFixed(v >= 1e9 ? 1 : 2) + '억';
+  if (v >= 1e4) return Math.round(n / 1e4) + '만';
+  return fmt(Math.round(n));
+}
+function stkIdxText(v, fx){
+  if (v == null || !isFinite(v)) return '—';
+  return Number(v).toLocaleString('ko-KR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function stkAccCalc(acc){
+  const rows = (acc.holdings || []).map(h => {
+    const q = stkQuoteOf(h.symbol);
+    const price = (q.price == null) ? h.avg : q.price;
+    const value = price * h.qty, cost = h.avg * h.qty;
+    return {symbol: h.symbol, name: h.name || h.symbol, qty: h.qty, avg: h.avg, price: price, value: value, cost: cost,
+            pl: value - cost, pct: cost ? (value - cost) / cost * 100 : 0, live: q.live, qpct: q.pct, cur: q.currency};
+  });
+  const hVal = rows.reduce((s, r) => s + r.value, 0), hCost = rows.reduce((s, r) => s + r.cost, 0);
+  const fVal = (acc.fixed || []).reduce((s, f) => s + stkNum(f.value), 0);
+  const fCost = (acc.fixed || []).reduce((s, f) => s + stkNum(f.cost), 0);
+  const cash = stkNum(acc.cash);
+  const invested = hVal + fVal, investedCost = hCost + fCost;
+  return {rows: rows, hVal: hVal, hCost: hCost, fVal: fVal, fCost: fCost, cash: cash,
+          value: invested + cash, cost: investedCost, pl: invested - investedCost,
+          pct: investedCost ? (invested - investedCost) / investedCost * 100 : 0};
+}
+function stkOwnerCalc(owner){
+  const accs = STK.accounts.filter(a => (a.owner || 'me') === owner);
+  const sum = {value: 0, cost: 0, cash: 0, fVal: 0, hVal: 0, pl: 0, pct: 0, accounts: accs};
+  accs.forEach(a => { const c = stkAccCalc(a); sum.value += c.value; sum.cost += c.cost; sum.cash += c.cash; sum.fVal += c.fVal; sum.hVal += c.hVal; });
+  sum.pl = sum.hVal + sum.fVal - sum.cost;
+  sum.pct = sum.cost ? sum.pl / sum.cost * 100 : 0;
+  return sum;
+}
+
+/* ---------------- 스냅샷 ---------------- */
+function stkSnapshotRecord(){
+  const me = stkOwnerCalc('me'), pa = stkOwnerCalc('parent');
+  const accounts = {};
+  STK.accounts.forEach(a => { accounts[a.id] = Math.round(stkAccCalc(a).value); });
+  return {date: stkToday(), me: Math.round(me.value), parent: Math.round(pa.value), total: Math.round(me.value + pa.value), accounts: accounts};
+}
+function stkMaybeSnapshot(){
+  if (!STK.accounts.length) return;
+  const rec = stkSnapshotRecord();
+  if (!rec.total) return;
+  if (!Array.isArray(STK.snapshots)) STK.snapshots = [];
+  const cur = STK.snapshots.find(s => s.date === rec.date);
+  if (!cur){ STK.snapshots.push(rec); if (STK.snapshots.length > 400) STK.snapshots.splice(0, STK.snapshots.length - 400); }
+  else { if (cur.me === rec.me && cur.parent === rec.parent && cur.total === rec.total) return; Object.assign(cur, rec); }
+  stkSaveLocal();
+  /* 스냅샷은 10초마다 올리면 너무 잦습니다 — 20분에 한 번만 저장소로 (2026-11-27) */
+  if (Date.now() - STK_SNAP_PUSHED > 20 * 60 * 1000){
+    STK_SNAP_PUSHED = Date.now();
+    STK_DIRTY = true;
+    stkRemotePush();
+  }
+}
+
+/* ---------------- 차트 ---------------- */
+function stkScopeOptions(owner){
+  const accs = STK.accounts.filter(a => (a.owner || 'me') === owner);
+  const out = [{v: 'all', t: accs.length > 1 ? '전체 계좌 합' : (accs[0] ? accs[0].name : '전체')}];
+  accs.forEach(a => out.push({v: 'acc:' + a.id, t: (a.broker ? a.broker + ' ' : '') + a.name}));
+  const seen = {};
+  accs.forEach(a => (a.holdings || []).forEach(h => { if (!seen[h.symbol]){ seen[h.symbol] = 1; out.push({v: 'sym:' + h.symbol, t: '종목 · ' + (h.name || h.symbol)}); } }));
+  return out;
+}
+function stkSnapMap(owner, scope){
+  const map = {};
+  (STK.snapshots || []).forEach(s => {
+    let v = null;
+    if (scope === 'all') v = owner === 'me' ? s.me : s.parent;
+    else if (scope.indexOf('acc:') === 0) v = (s.accounts || {})[scope.slice(4)];
+    if (v != null && v > 0) map[s.date] = v;
+  });
+  return map;
+}
+function stkPoints(owner, scope, period){
+  const days = STK_DAYS[period] || 365;
+  const start = Date.now() - days * 86400000;
+  const accs = STK.accounts.filter(a => (a.owner || 'me') === owner);
+  let members = [], fixed = 0;
+  if (scope === 'all'){
+    accs.forEach(a => { members = members.concat((a.holdings || []).map(h => Object.assign({}, h)));
+      fixed += stkNum(a.cash) + (a.fixed || []).reduce((s, f) => s + stkNum(f.value), 0); });
+  } else if (scope.indexOf('acc:') === 0){
+    const a = accs.find(x => x.id === scope.slice(4));
+    if (a){ members = (a.holdings || []).map(h => Object.assign({}, h));
+      fixed = stkNum(a.cash) + (a.fixed || []).reduce((s, f) => s + stkNum(f.value), 0); }
+  } else if (scope.indexOf('sym:') === 0){
+    const sym = scope.slice(4);
+    accs.forEach(a => (a.holdings || []).forEach(h => { if (h.symbol === sym) members.push(Object.assign({}, h)); }));
+  }
+  const axis = new Set();
+  const ser = members.map(h => {
+    const c = (STK_HIST[h.symbol] || []).filter(p => p[0] >= start);
+    c.forEach(p => axis.add(p[0]));
+    return {h: h, c: c};
+  });
+  const dates = Array.from(axis).sort((a, b) => a - b);
+  const snaps = stkSnapMap(owner, scope);
+  const pts = [];
+  dates.forEach(t => {
+    let v = fixed, any = !!fixed;
+    ser.forEach(s => { const c = stkCloseAt(s.c, t); if (c != null){ v += c * stkNum(s.h.qty); any = true; } });
+    if (!any) return;
+    const dk = stkDayKey(t);
+    if (snaps[dk] != null) v = snaps[dk];
+    pts.push([t, Math.round(v)]);
+  });
+  return {points: pts, start: start};
+}
+function stkSvg(pts, color){
+  const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+  let lo = Infinity, hi = -Infinity;
+  pts.forEach(p => { if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; });
+  if (!isFinite(lo) || !isFinite(hi)) return {svg: '', dot: null};
+  if (hi === lo){ hi = lo + 1; }
+  const pad = (hi - lo) * 0.08;
+  lo -= pad; hi += pad;
+  const X = t => ((t - t0) / ((t1 - t0) || 1)) * 100;
+  const Y = v => 94 - ((v - lo) / ((hi - lo) || 1)) * 86;
+  let d = '';
+  pts.forEach((p, i) => { d += (i ? 'L' : 'M') + X(p[0]).toFixed(2) + ' ' + Y(p[1]).toFixed(2); });
+  const area = d + 'L' + X(t1).toFixed(2) + ' 100L' + X(t0).toFixed(2) + ' 100Z';
+  const last = pts[pts.length - 1];
+  const gid = 'stkg' + Math.random().toString(36).slice(2, 7);
+  const grid = [8, 51, 94].map(y => '<line x1="0" y1="' + y + '" x2="100" y2="' + y + '" stroke="#e9edf5" stroke-width="1" vector-effect="non-scaling-stroke"/>').join('');
+  const svg = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' +
+    '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="' + color + '" stop-opacity=".18"/><stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+    grid + '<path d="' + area + '" fill="url(#' + gid + ')"/>' +
+    '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>' +
+    '</svg>';
+  return {svg: svg, dot: {x: X(last[0]), y: Y(last[1]), color: color}, lo: lo, hi: hi};
+}
+function renderStkChart(owner){
+  const pane = owner === 'parent' ? 'parent' : 'my';
+  const period = STK_UI.period[pane] || '1y';
+  const scope = STK_UI.scope[pane] || 'all';
+  const selEl = $('#' + (pane === 'my' ? 'stkMyScope' : 'stkParentScope'));
+  const opts = stkScopeOptions(owner);
+  if (selEl){
+    const keep = selEl.value;
+    selEl.innerHTML = opts.map(o => '<option value="' + stkEsc(o.v) + '">' + stkEsc(o.t) + '</option>').join('');
+    selEl.value = opts.some(o => o.v === (keep || scope)) ? (keep || scope) : 'all';
+    if (selEl.value !== scope){ STK_UI.scope[pane] = selEl.value; }
+  }
+  const periodEl = $('#' + (pane === 'my' ? 'stkMyPeriod' : 'stkParentPeriod'));
+  if (periodEl){
+    periodEl.innerHTML = STK_PERIODS.map(p => '<button type="button" data-stk-period="' + p[0] + '" data-pane="' + pane + '" class="' + (period === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('');
+  }
+  const scopeNow = STK_UI.scope[pane] || 'all';
+  const plotEl = $('#' + (pane === 'my' ? 'stkMyPlot' : 'stkParentPlot'));
+  const valEl = $('#' + (pane === 'my' ? 'stkMyChartVal' : 'stkParentChartVal'));
+  const xEl = $('#' + (pane === 'my' ? 'stkMyXRow' : 'stkParentXRow'));
+  if (!plotEl) return;
+  const res = stkPoints(owner, scopeNow, period);
+  const pts = res.points;
+  if (pts.length < 2){
+    plotEl.innerHTML = '<div class="stk-empty">과거 시세가 아직 없습니다.<br>왼쪽 위 📈 설정에서 시세 서버(Worker)를 연결하면 1개월~5년 추이가 그려집니다.</div>';
+    if (valEl) valEl.innerHTML = '';
+    if (xEl) xEl.innerHTML = '';
+    return;
+  }
+  const first = pts[0][1], last = pts[pts.length - 1][1];
+  const chg = last - first, pct = first ? chg / first * 100 : 0;
+  const isSym = scopeNow.indexOf('sym:') === 0;
+  const color = chg > 0 ? '#d92d20' : (chg < 0 ? '#1d4ed8' : '#6b7280');
+  const svg = stkSvg(pts, color);
+  plotEl.innerHTML = svg.svg + (svg.dot
+    ? '<span class="stk-dot" style="left:' + Math.max(1.5, Math.min(98.5, svg.dot.x)) + '%;top:' + svg.dot.y + '%;background:' + svg.dot.color + '"></span>' : '') +
+    '<span class="yl hi">' + stkCompact(svg.hi) + '</span><span class="yl lo">' + stkCompact(svg.lo) + '</span>';
+  if (valEl) valEl.innerHTML = stkMoney(last, isSym ? stkQuoteOf(scopeNow.slice(4)).currency : null) +
+    '<span class="pct ' + stkCls(chg) + '">' + stkPctText(pct) + ' · ' + stkSigned(chg, isSym ? stkQuoteOf(scopeNow.slice(4)).currency : null) + '</span>';
+  if (xEl) xEl.innerHTML = '<span>' + stkDayLabel(pts[0][0]) + '</span><span>' + stkDayLabel(pts[Math.floor(pts.length / 2)][0]) + '</span><span>' + stkDayLabel(pts[pts.length - 1][0]) + '</span>';
+}
+
+/* ---------------- 렌더 ---------------- */
+function stkSumCard(owner){
+  const c = stkOwnerCalc(owner);
+  const isParent = owner === 'parent';
+  const title = isParent ? '부모님 계좌 (대리투자)' : '내 계좌';
+  const sub = isParent ? '별도 통계 · 내 자산과 분리' : (c.accounts.length + '개 계좌 합계');
+  return '<div class="card-head"><h2>' + title + '</h2><span class="hint">' + sub + '</span></div>' +
+    '<b class="stk-big">' + stkMoney(c.value) + '</b>' +
+    '<div class="stk-bigsub"><span class="' + stkCls(c.pl) + '">' + stkSigned(c.pl) + '</span>' +
+      '<span class="k">수익률</span><span class="' + stkCls(c.pct) + '">' + stkPctText(c.pct) + '</span></div>' +
+    '<div class="stk-kvgrid">' +
+      '<div class="stk-kv"><span>투자원금</span><b>' + stkMoney(c.cost) + '</b></div>' +
+      '<div class="stk-kv"><span>평가손익</span><b class="' + stkCls(c.pl) + '">' + stkSigned(c.pl) + '</b></div>' +
+      '<div class="stk-kv"><span>보유 종목</span><b>' + stkMoney(c.hVal) + '</b></div>' +
+      '<div class="stk-kv"><span>고정자산</span><b>' + stkMoney(c.fVal) + '</b></div>' +
+      '<div class="stk-kv"><span>예수금</span><b>' + stkMoney(c.cash) + '</b></div>' +
+      '<div class="stk-kv"><span>총 자산</span><b>' + stkMoney(c.value) + '</b></div>' +
+    '</div>';
+}
+function stkAccCard(acc){
+  const c = stkAccCalc(acc);
+  const live = c.rows.some(r => r.live);
+  const rows = c.rows.map(r =>
+    '<div class="stk-hold">' +
+      '<div><div class="nm">' + stkEsc(r.name) + '</div>' +
+      '<div class="meta">' + stkEsc(r.symbol) + ' · ' + fmt(r.qty) + '주 · 평단 ' + fmt(Math.round(r.avg)) + '</div></div>' +
+      '<div class="r"><div class="v">' + stkMoney(r.value) + '</div>' +
+      '<div class="d ' + stkCls(r.pl) + '">' + stkPctText(r.pct) + ' · ' + stkSigned(r.pl) + '</div></div>' +
+    '</div>').join('');
+  const fixed = (acc.fixed || []).map(f =>
+    '<div class="stk-hold">' +
+      '<div><div class="nm">' + stkEsc(f.name) + '</div><div class="meta">고정자산 · 매수원금 ' + fmt(Math.round(stkNum(f.cost))) + '</div></div>' +
+      '<div class="r"><div class="v">' + stkMoney(stkNum(f.value)) + '</div>' +
+      '<div class="d ' + stkCls(stkNum(f.value) - stkNum(f.cost)) + '">' + stkSigned(stkNum(f.value) - stkNum(f.cost)) + '</div></div>' +
+    '</div>').join('');
+  return '<section class="card stk-acc">' +
+    '<div class="card-head"><h2>' + stkEsc((acc.broker ? acc.broker + ' ' : '') + acc.name) + '</h2>' +
+      '<span class="stk-accno">' + stkEsc(acc.number || '') + '</span>' +
+      '<span class="hint">' + (live ? '실시간' : '기준가') + '</span></div>' +
+    '<div class="stk-metrics">' +
+      '<div class="stk-m"><span>투자원금</span><b>' + stkMoney(c.cost) + '</b></div>' +
+      '<div class="stk-m"><span>평가액</span><b>' + stkMoney(c.value) + '</b></div>' +
+      '<div class="stk-m"><span>투자손익</span><b class="' + stkCls(c.pl) + '">' + stkSigned(c.pl) + '</b></div>' +
+      '<div class="stk-m"><span>수익률</span><b class="' + stkCls(c.pct) + '">' + stkPctText(c.pct) + '</b></div>' +
+      '<div class="stk-m"><span>예수금</span><b>' + stkMoney(c.cash) + '</b></div>' +
+    '</div>' +
+    '<div class="stk-holdwrap">' + (rows + fixed || '') +
+      (c.rows.length + (acc.fixed || []).length ? '' : '<div class="stk-empty">보유 종목이 없습니다 · 📈 주식 설정에서 추가하세요</div>') +
+    '</div></section>';
+}
+function stkWlRows(list, market){
+  if (!list.length) return '<div class="stk-empty">관심종목이 없습니다 · <b>편집</b>에서 추가하세요</div>';
+  return list.map(w => {
+    const q = stkQuoteOf(w.symbol);
+    const cur = q.currency || (market === 'us' ? 'USD' : 'KRW');
+    const pd = market === 'us' ? stkMoney(q.price, 'USD') : (q.price == null ? '—' : fmt(Math.round(q.price)) + '원');
+    return '<div class="stk-wl">' +
+      '<div style="min-width:0"><div class="nmrow"><span class="stk-' + market + '-mark">' + (market === 'us' ? 'US' : 'KR') + '</span>' +
+      '<span class="nm">' + stkEsc(w.name) + '</span></div><div class="sym">' + stkEsc(w.symbol) + '</div></div>' +
+      '<div class="v">' + pd + '</div>' +
+      '<div class="d ' + stkCls(q.pct) + '">' + stkPctText(q.pct) + '</div>' +
+    '</div>';
+  }).join('');
+}
+function stkIdxCards(el, big){
+  if (!el) return;
+  const list = STK.indices || [];
+  if (!list.length){ el.innerHTML = '<div class="stk-empty">지수가 없습니다</div>'; return; }
+  el.innerHTML = list.map(i => {
+    const q = stkQuoteOf(i.symbol);
+    return '<div class="stk-ix"><span class="nm">' + stkEsc(i.name) + '</span>' +
+      '<span class="v">' + stkIdxText(q.price, i.fx || i.symbol === 'KRW=X') + '</span>' +
+      '<span class="d ' + stkCls(q.pct) + '">' + stkPctText(q.pct) + '</span></div>';
+  }).join('');
+}
+function renderStock(){
+  if (!document.body || document.body.getAttribute('data-view') !== 'stock') return;
+  /* 소메뉴 */
+  $$('#stkSubTabs button').forEach(b => {
+    const on = b.dataset.stk === STK_UI.sub;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  $$('.stk-pane[data-stk-pane]').forEach(p => { p.hidden = p.dataset.stkPane !== STK_UI.sub; });
+  const auto = $('#stkAuto'); if (auto) auto.checked = !!STK_AUTO;
+
+  if (!STK.accounts.length && !((STK.watchlist || {}).kr || []).length){
+    const el = $('#stkMeCard');
+    if (el) el.innerHTML = '<div class="card-head"><h2>내 계좌</h2></div><div class="stk-empty">' +
+      '주식 계좌 자료를 아직 받지 못했습니다.<br>⚙ 설정 → 동기화의 저장소 주소·토큰을 확인하거나,<br>왼쪽 위 📈 주식 설정에서 계좌를 직접 추가하세요.</div>';
+    const pa = $('#stkParentCard'); if (pa) pa.innerHTML = '<div class="card-head"><h2>부모님 계좌</h2></div><div class="stk-empty">—</div>';
+    stkIdxCards($('#stkIdxMini'));
+    stkIdxCards($('#stkIdxList'));
+    const k = $('#stkWlKr'), u = $('#stkWlUs');
+    if (k) k.innerHTML = '<div class="stk-empty">—</div>';
+    if (u) u.innerHTML = '<div class="stk-empty">—</div>';
+    return;
+  }
+  const meCard = $('#stkMeCard'); if (meCard) meCard.innerHTML = stkSumCard('me');
+  const paCard = $('#stkParentCard'); if (paCard) paCard.innerHTML = stkSumCard('parent');
+  stkIdxCards($('#stkIdxMini'));
+  stkIdxCards($('#stkIdxList'));
+
+  const myAcc = STK.accounts.filter(a => (a.owner || 'me') === 'me');
+  const paAcc = STK.accounts.filter(a => a.owner === 'parent');
+  const myEl = $('#stkMyAccounts');
+  if (myEl) myEl.innerHTML = myAcc.length ? myAcc.map(stkAccCard).join('') : '<section class="card"><div class="stk-empty">본인 계좌가 없습니다 · 📈 주식 설정에서 추가하세요</div></section>';
+  const paEl = $('#stkParentAccounts');
+  if (paEl) paEl.innerHTML = paAcc.length ? paAcc.map(stkAccCard).join('') : '<section class="card"><div class="stk-empty">부모님 계좌가 없습니다 · 📈 주식 설정에서 구분을 <b>부모님</b>으로 추가하세요</div></section>';
+
+  renderStkChart('me');
+  renderStkChart('parent');
+
+  const kEl = $('#stkWlKr'), uEl = $('#stkWlUs');
+  if (kEl) kEl.innerHTML = stkWlRows(((STK.watchlist || {}).kr || []), 'kr');
+  if (uEl) uEl.innerHTML = stkWlRows(((STK.watchlist || {}).us || []), 'us');
+  const kh = $('#stkWlKrHint'), uh = $('#stkWlUsHint');
+  if (kh) kh.textContent = ((STK.watchlist || {}).kr || []).length + '종목';
+  if (uh) uh.textContent = ((STK.watchlist || {}).us || []).length + '종목';
+  const ih = $('#stkIdxHint');
+  if (ih) ih.textContent = STK_QAT ? '마지막 시세 ' + stkClock(STK_QAT) : '기준가';
+  const sn = $('#stkSyncNote');
+  if (sn){
+    const anySync = (typeof SYNC !== 'undefined' && (SYNC.lastSync || SYNC.upErr)) || (typeof pendingCount === 'function' && pendingCount());
+    sn.style.display = anySync ? '' : 'none';
+    const pend = (typeof pendingCount === 'function') ? pendingCount() : 0;
+    const last = (typeof SYNC !== 'undefined' && SYNC.lastSync) ? fmtShortDT(SYNC.lastSync) : '';
+    const err = (typeof SYNC !== 'undefined' && SYNC.upErr) ? '올리기 실패' : '';
+    sn.innerHTML = '자료 동기화 ' + (last ? '<b>' + last + '</b>' : '<b>—</b>') +
+      (pend ? ' · 못 올린 변경 <b>' + pend + '건</b>' : (last ? ' · 서버에 저장됨' : '')) +
+      (err ? ' · <span class="up">' + err + '</span>' : '');
+  }
+  stkLive();
+}
+function stkSetSub(sub){
+  if (['summary', 'my', 'parent', 'idx'].indexOf(sub) < 0) sub = 'summary';
+  STK_UI.sub = sub;
+  stkSaveUi();
+  renderStock();
+  if (sub === 'my' || sub === 'parent'){
+    stkEnsureHistory();
+    if (STK_UI.sub === sub) renderStkChart(sub === 'parent' ? 'parent' : 'me');
+  }
+}
+
+/* ---------------- 설정 창 ---------------- */
+function stkCfgOpen(focus){
+  const back = $('#stkCfgBackdrop'); if (!back) return;
+  back.classList.add('show');
+  stkCfgRender();
+  if (focus){
+    setTimeout(()=>{
+      const box = back.querySelector('[data-stk-section="' + focus + '"]');
+      if (box) box.scrollIntoView({block: 'center'});
+    }, 60);
+  }
+}
+function stkCfgClose(){
+  const back = $('#stkCfgBackdrop'); if (!back) return;
+  back.classList.remove('show');
+  stkRemotePush();
+}
+function stkFld(label, attrs, value, type){
+  return '<label class="stk-fld"><span>' + label + '</span><input ' + attrs + ' type="' + (type || 'text') + '"' +
+    (type === 'number' ? ' inputmode="numeric"' : '') + ' value="' + stkEsc(value) + '"></label>';
+}
+function stkCfgRender(){
+  const body = $('#stkCfgBody'); if (!body) return;
+  const accs = STK.accounts.map((a, i) => {
+    const holdings = (a.holdings || []).map((h, j) =>
+      '<div class="stk-flds">' +
+        '<label class="stk-fld" style="flex:1 1 118px"><span>종목명</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="name" value="' + stkEsc(h.name) + '"></label>' +
+        '<label class="stk-fld" style="flex:1 1 92px"><span>티커</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="symbol" value="' + stkEsc(h.symbol) + '"></label>' +
+        '<label class="stk-fld num"><span>수량</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="qty" inputmode="numeric" value="' + stkEsc(h.qty) + '"></label>' +
+        '<label class="stk-fld num"><span>평단가</span><input data-hacc="' + i + '" data-hi="' + j + '" data-hf="avg" inputmode="numeric" value="' + stkEsc(h.avg) + '"></label>' +
+        '<button type="button" class="stk-xbtn" data-del-h="' + i + ':' + j + '">삭제</button>' +
+      '</div>').join('');
+    const fixeds = (a.fixed || []).map((f, j) =>
+      '<div class="stk-flds">' +
+        '<label class="stk-fld" style="flex:2 1 150px"><span>고정자산 이름</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="name" value="' + stkEsc(f.name) + '"></label>' +
+        '<label class="stk-fld num"><span>평가금액</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="value" inputmode="numeric" value="' + stkEsc(f.value) + '"></label>' +
+        '<label class="stk-fld num"><span>매수원금</span><input data-facc="' + i + '" data-fi="' + j + '" data-ff="cost" inputmode="numeric" value="' + stkEsc(f.cost) + '"></label>' +
+        '<button type="button" class="stk-xbtn" data-del-x="' + i + ':' + j + '">삭제</button>' +
+      '</div>').join('');
+    const c = stkAccCalc(a);
+    return '<div class="stk-edbox" data-stk-section="acc' + i + '">' +
+      '<div class="stk-edhd"><span class="ttl">' + stkEsc((a.broker ? a.broker + ' ' : '') + a.name) + '</span>' +
+        '<span class="stk-accno">' + stkMoney(c.value) + '</span>' +
+        '<span style="margin-left:auto"></span>' +
+        '<button type="button" class="stk-xbtn" data-del-acc="' + i + '">계좌 삭제</button></div>' +
+      '<div class="stk-flds">' +
+        '<label class="stk-fld"><span>증권사</span><input data-acc="' + i + '" data-af="broker" value="' + stkEsc(a.broker) + '"></label>' +
+        '<label class="stk-fld"><span>계좌 이름</span><input data-acc="' + i + '" data-af="name" value="' + stkEsc(a.name) + '"></label>' +
+        '<label class="stk-fld"><span>계좌번호</span><input data-acc="' + i + '" data-af="number" value="' + stkEsc(a.number) + '"></label>' +
+        '<label class="stk-fld"><span>구분</span><select data-acc="' + i + '" data-af="owner">' +
+          '<option value="me"' + (a.owner === 'me' ? ' selected' : '') + '>본인</option>' +
+          '<option value="parent"' + (a.owner === 'parent' ? ' selected' : '') + '>부모님</option></select></label>' +
+        '<label class="stk-fld num"><span>예수금(원)</span><input data-acc="' + i + '" data-af="cash" inputmode="numeric" value="' + stkEsc(a.cash) + '"></label>' +
+      '</div>' +
+      '<div class="stk-sublbl">보유 종목</div>' + holdings +
+      '<div><button type="button" class="btn stk-mini" data-add-h="' + i + '">＋ 종목 추가</button></div>' +
+      '<div class="stk-sublbl">고정자산 (펀드 · 포트폴리오)</div>' + (fixeds || '<div class="stk-accno">없음</div>') +
+      '<div><button type="button" class="btn stk-mini" data-add-x="' + i + '">＋ 고정자산 추가</button></div>' +
+    '</div>';
+  }).join('');
+  const wl = (key, label) => {
+    const list = ((STK.watchlist || {})[key] || []);
+    return '<div class="stk-edbox" data-stk-section="watch"><div class="stk-edhd"><span class="ttl">' + label + ' 관심종목</span>' +
+      '<span class="stk-accno">' + list.length + '종목</span></div>' +
+      list.map((w, i) => '<div class="stk-wlrow">' +
+        '<label class="stk-fld"><span>종목명</span><input data-wk="' + key + '" data-wi="' + i + '" data-wf="name" value="' + stkEsc(w.name) + '"></label>' +
+        '<label class="stk-fld" style="flex:0 1 104px"><span>티커</span><input data-wk="' + key + '" data-wi="' + i + '" data-wf="symbol" value="' + stkEsc(w.symbol) + '"></label>' +
+        '<button type="button" class="stk-xbtn" data-del-w="' + key + ':' + i + '">삭제</button>' +
+      '</div>').join('') +
+      '<div><button type="button" class="btn stk-mini" data-add-w="' + key + '">＋ 종목 추가</button></div></div>';
+  };
+  body.innerHTML = '<div class="stk-ed">' +
+    '<div class="stk-edbox"><div class="stk-edhd"><span class="ttl">시세 서버 (Cloudflare Worker)</span>' +
+      '<span class="stk-conn" id="stkConnMsg"></span></div>' +
+      '<div class="stk-flds"><label class="stk-fld" style="flex:1 1 220px"><span>Worker 주소</span>' +
+        '<input id="stkWorkerUrl" value="' + stkEsc(STK.workerUrl || STK_WORKER_DEFAULT) + '" placeholder="' + STK_WORKER_DEFAULT + '"></label>' +
+        '<button type="button" class="btn stk-mini" id="stkConnTest" style="align-self:flex-end">연결 테스트</button></div>' +
+      '<p class="tiny">Cloudflare → Workers &amp; Pages → <b>fancy-lake-fe84</b> → 편집에서 <code>stock-worker.js</code> 내용을 붙여 넣고 <b>Deploy</b> 하면 10초마다 실시간 시세를 받습니다. 연결 전에는 최근 기준가로 표시됩니다.</p>' +
+    '</div>' +
+    accs +
+    wl('kr', '국장') + wl('us', '미장') +
+  '</div>';
+}
+function stkCfgChanged(){
+  stkSaveLocal();
+  stkMarkDirty();
+  renderStock();
+}
+function stkCfgBind(){
+  const back = $('#stkCfgBackdrop'); if (!back) return;
+  back.addEventListener('click', ev => { if (ev.target === back) stkCfgClose(); });
+  $('#stkCfgClose').addEventListener('click', stkCfgClose);
+  $('#stkCfgDone').addEventListener('click', stkCfgClose);
+  $('#stkCfgAddAcc').addEventListener('click', () => {
+    STK.accounts.push({id: stkUid(), broker: '', name: '새 계좌', number: '', owner: STK_UI.sub === 'parent' ? 'parent' : 'me',
+      cash: 0, fixed: [], holdings: []});
+    stkCfgChanged(); stkCfgRender();
+  });
+  const body = $('#stkCfgBody');
+  body.addEventListener('change', ev => {
+    const t = ev.target;
+    if (t.id === 'stkWorkerUrl'){
+      STK.workerUrl = t.value.trim() || STK_WORKER_DEFAULT;
+      stkCfgChanged(); stkRefreshQuotes(true); stkEnsureHistory(true);
+      return;
+    }
+    if (t.dataset.acc != null && t.dataset.af){
+      const a = STK.accounts[+t.dataset.acc]; if (!a) return;
+      const f = t.dataset.af;
+      a[f] = f === 'cash' ? stkNum(t.value) : t.value;
+      stkCfgChanged();
+      return;
+    }
+    if (t.dataset.hacc != null && t.dataset.hf){
+      const a = STK.accounts[+t.dataset.hacc]; if (!a) return;
+      const h = a.holdings[+t.dataset.hi]; if (!h) return;
+      const f = t.dataset.hf;
+      h[f] = (f === 'qty' || f === 'avg') ? stkNum(t.value) : t.value;
+      if (f === 'symbol') stkEnsureHistory(true), stkRefreshQuotes();
+      stkCfgChanged();
+      return;
+    }
+    if (t.dataset.facc != null && t.dataset.ff){
+      const a = STK.accounts[+t.dataset.facc]; if (!a) return;
+      const fx = a.fixed[+t.dataset.fi]; if (!fx) return;
+      const f = t.dataset.ff;
+      fx[f] = (f === 'value' || f === 'cost') ? stkNum(t.value) : t.value;
+      stkCfgChanged();
+      return;
+    }
+    if (t.dataset.wk && t.dataset.wf){
+      const list = STK.watchlist[t.dataset.wk]; const w = list && list[+t.dataset.wi]; if (!w) return;
+      w[t.dataset.wf] = t.value;
+      if (t.dataset.wf === 'symbol') stkRefreshQuotes();
+      stkCfgChanged();
+    }
+  });
+  body.addEventListener('click', ev => {
+    const t = ev.target.closest('button'); if (!t) return;
+    if (t.id === 'stkConnTest'){
+      const msg = $('#stkConnMsg');
+      if (msg){ msg.className = 'stk-conn'; msg.textContent = '확인 중…'; }
+      stkWorkerJson('/?test=005930.KS').then(j => {
+        if (msg){ msg.className = 'stk-conn ok'; msg.textContent = '✓ 연결됨'; }
+        stkRefreshQuotes(true); stkEnsureHistory(true);
+      }).catch(e => {
+        if (msg){ msg.className = 'stk-conn err'; msg.textContent = '✗ ' + String((e && e.message) || e).slice(0, 60); }
+      });
+      return;
+    }
+    if (t.dataset.delAcc != null){
+      const i = +t.dataset.delAcc, a = STK.accounts[i]; if (!a) return;
+      if (!confirm((a.name || '계좌') + '를 지울까요?')) return;
+      STK.accounts.splice(i, 1); stkCfgChanged(); stkCfgRender(); return;
+    }
+    if (t.dataset.addH != null){
+      const a = STK.accounts[+t.dataset.addH]; if (!a) return;
+      a.holdings.push({symbol: '', name: '', qty: 0, avg: 0}); stkCfgChanged(); stkCfgRender(); return;
+    }
+    if (t.dataset.delH){
+      const [i, j] = t.dataset.delH.split(':').map(Number);
+      const a = STK.accounts[i]; if (!a) return;
+      a.holdings.splice(j, 1); stkCfgChanged(); stkCfgRender(); return;
+    }
+    if (t.dataset.addX != null){
+      const a = STK.accounts[+t.dataset.addX]; if (!a) return;
+      a.fixed = a.fixed || []; a.fixed.push({name: '', value: 0, cost: 0}); stkCfgChanged(); stkCfgRender(); return;
+    }
+    if (t.dataset.delX){
+      const [i, j] = t.dataset.delX.split(':').map(Number);
+      const a = STK.accounts[i]; if (!a) return;
+      a.fixed.splice(j, 1); stkCfgChanged(); stkCfgRender(); return;
+    }
+    if (t.dataset.addW){
+      const k = t.dataset.addW;
+      STK.watchlist[k] = STK.watchlist[k] || [];
+      STK.watchlist[k].push({name: '', symbol: ''}); stkCfgChanged(); stkCfgRender(); return;
+    }
+    if (t.dataset.delW){
+      const [k, i] = t.dataset.delW.split(':');
+      if (STK.watchlist[k]) STK.watchlist[k].splice(+i, 1);
+      stkCfgChanged(); stkCfgRender(); return;
+    }
+  });
+}
+
+/* ---------------- 바인딩 ---------------- */
+function stkBind(){
+  const tabs = $('#stkSubTabs');
+  if (tabs) tabs.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-stk]'); if (!b) return;
+    stkSetSub(b.dataset.stk);
+  });
+  const rf = $('#stkRefresh');
+  if (rf) rf.addEventListener('click', () => { stkRefreshQuotes(); stkEnsureHistory(true); });
+  const au = $('#stkAuto');
+  if (au) au.addEventListener('change', () => { STK_AUTO = !!au.checked; stkSaveUi(); stkTimerSet(); if (STK_AUTO) stkRefreshQuotes(); stkLive(); });
+  const myScope = $('#stkMyScope');
+  if (myScope) myScope.addEventListener('change', () => { STK_UI.scope.my = myScope.value; stkSaveUi(); renderStkChart('me'); });
+  const paScope = $('#stkParentScope');
+  if (paScope) paScope.addEventListener('change', () => { STK_UI.scope.parent = paScope.value; stkSaveUi(); renderStkChart('parent'); });
+  document.addEventListener('click', ev => {
+    const p = ev.target.closest('button[data-stk-period]');
+    if (!p) return;
+    const pane = p.dataset.pane === 'parent' ? 'parent' : 'my';
+    STK_UI.period[pane] = p.dataset.stkPeriod;
+    stkSaveUi();
+    renderStkChart(pane === 'parent' ? 'parent' : 'me');
+  });
+  const bc = $('#btnStockCfg'); if (bc) bc.addEventListener('click', () => stkCfgOpen());
+  const ke = $('#stkWlKrEdit'); if (ke) ke.addEventListener('click', () => stkCfgOpen('watch'));
+  const ue = $('#stkWlUsEdit'); if (ue) ue.addEventListener('click', () => stkCfgOpen('watch'));
+  stkCfgBind();
+}
+
+/* ============================================================
    BOOT
    ============================================================ */
 (function boot(){
@@ -14123,6 +15231,7 @@ window.addEventListener('keydown', ev=>{
   mileageLoad();
   loadAiConfig();
   loadSyncConfig();
+  stkLoad();       /* 📈 주식 자료·과거 일봉 캐시 (2026-11-27) */
   loadOutbox();
   dtlLoad();   /* 상세내역 📌 틀고정·필터 접힘 기본값 (2026-11-26) */
   lockLoad();  /* 화면 잠금 설정 (2026-11-26) */
@@ -14140,9 +15249,16 @@ window.addEventListener('keydown', ev=>{
   updateSyncLabel();
   scheduleSyncTimer();
   if (SYNC.urls.length && SYNC.autoOn) runSync(true);
+  stkBind();                       /* 📈 주식 탭 — 소메뉴·설정 창·기간 버튼 (2026-11-27) */
+  stkTimerSet();
+  if (STK.accounts.length || ((STK.watchlist || {}).kr || []).length){
+    setTimeout(()=>{ stkRefreshQuotes(); }, 900);
+    if (STK_UI.sub === 'my' || STK_UI.sub === 'parent') stkEnsureHistory();
+  }
   document.addEventListener('visibilitychange', ()=>{
     if (document.hidden){ flushNowIfPending(); return; }   /* 수정 뒤 탭을 닫거나 앱을 옮겨도 놓치지 않게 (2026-11-26) */
     if (SYNC.urls.length && SYNC.autoOn) runSync(true);
+    if (!document.hidden && document.body.getAttribute('data-view') === 'stock') stkRefreshQuotes();
   });
   window.addEventListener('pagehide', flushNowIfPending);   /* 창을 닫는 순간에도 바로 올립니다 */
   if (!LS_OK) { /* storage blocked: still works in-memory */ }
