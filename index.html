@@ -1578,9 +1578,14 @@ th.sortable .sarr{font-size:11px;font-weight:800;color:#1d4ed8;margin-left:1px}
   .sc-edit{padding:8px 8px 9px}
 }
 
-/* --- 은행 상세: 수정·추가 폼을 표 밖 패널로 (표 칸 폭에 갇히지 않게) --- */
-.bedit-panel{padding:4px 16px 12px}
-.bedit-panel.hidden{display:none}
+/* --- 은행 상세: 수정·추가 폼 (2026-11-28 카드 탭처럼 가운데 모달로) --- */
+.bankadd .modal-body{padding:14px 18px 16px}
+.bankadd .bedit-grid{border:0;background:transparent;box-shadow:none;padding:0;gap:9px}
+.bankadd .bedit-grid .fld > span{font-size:11px}
+.bankadd .bedit-grid input,.bankadd .bedit-grid select{padding:9px 10px;font-size:13.5px;background:#fafbfd}
+.bankadd .bedit-grid .fld[hidden]{display:none}
+.bankadd .na-hint{font-size:11.5px;color:var(--muted);margin:0 0 2px;line-height:1.5}
+@media (max-width:420px){.bankadd .modal-body{padding:12px 14px 14px}.bankadd .bedit-grid{gap:8px}}
 .bedit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;background:#f7f9fd;border:1px solid #dbe2ee;
   border-radius:12px;padding:11px;box-shadow:inset 3px 0 0 #b9cdf7}
 .bedit-grid .calc-hint{grid-column:1/-1;font-size:11.5px;color:var(--muted);font-weight:650;min-height:0;margin-top:-4px}
@@ -2308,7 +2313,6 @@ body[data-view="stock"] .cv-card,body[data-view="stock"] .cv-bank,body[data-view
       <button type="button" class="btn ghost" id="btnBankSelCancel">취소</button>
     </div>
     </div>
-    <div class="bedit-panel hidden" id="bankEditPanel"></div>
     <div class="table-scroll">
       <table id="bankTable">
         <thead>
@@ -2590,6 +2594,21 @@ body[data-view="stock"] .cv-card,body[data-view="stock"] .cv-bank,body[data-view
       <button class="btn ghost" id="rowAddCancel">취소</button>
       <div class="spacer"></div>
       <button class="btn primary" id="rowAddSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop bankadd" id="bankAddBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bankAddTitle" style="max-width:470px">
+    <div class="modal-head">
+      <h2 id="bankAddTitle">현금 내역 직접 추가</h2>
+      <button class="iconbtn" id="bankAddClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="bankAddBody"></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="bankAddCancel">취소</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="bankAddSave">저장</button>
     </div>
   </div>
 </div>
@@ -3613,7 +3632,7 @@ function limitEditorHtml(c){
   return '<div class="lim-item editing">'+
     '<span class="top"><span class="dot" style="background:'+cardColor(c)+'"></span>'+esc(shortCard(c))+'</span>'+
     '<div class="lim-form">'+
-      '<input id="limInput" type="text" inputmode="text" autocomplete="off" value="'+esc(shown)+'" placeholder="예: 200 (=100+70)" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원, =100+70 도 계산, 0 = 0원 한도)">'+
+      '<input id="limInput" type="text" inputmode="text" autocomplete="off" value="'+esc(amtPrefillText(shown))+'" placeholder="예: 200 (=100+70)" aria-label="'+esc(shortCard(c))+' 월 한도 (만원)" title="만원 단위로 입력합니다 (200 = 200만원, =100+70 도 계산, 0 = 0원 한도)">'+
       '<span class="won">만원</span>'+
       '<button class="btn primary sm" data-limact="save">저장</button>'+
       '<button class="btn ghost sm" data-limact="cancel">취소</button>'+
@@ -5340,7 +5359,7 @@ function renderTableNow(){
 function openRowEdit(id){
   const r = S.rows.find(x=> x.id === id);
   if (!r) return;
-  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: r.formula || fmt(r.amount), memo: r.memo || ''};
+  rowEdit = {id: r.id, date: toDateStr(r.date) || '', merchant: r.merchant || '', amount: amtPrefillText(r.formula || fmt(r.amount)), memo: r.memo || ''};
   renderTableNow();
   const inp = document.querySelector('tr[data-editrow] [data-refield="merchant"]');
   if (inp){ inp.focus(); try { inp.setSelectionRange(0, inp.value.length); } catch(e){} }
@@ -10303,6 +10322,9 @@ function calcAmount(raw){
   if (!s) return {ok: false, error: '금액을 입력하세요'};
   s = s.replace(/[−–—]/g, '-').replace(/[×✕✖]/g, '*').replace(/÷/g, '/')
        .replace(/[（]/g, '(').replace(/[）]/g, ')').replace(/＋/g, '+').replace(/\s+/g, '');
+  /* 끝에 남은 연산자는 무시 — 금액 칸이 '=52951+' 로 채워져 있어도 52951 로 계산 (2026-11-28) */
+  s = s.replace(/[+\-*/]+$/, '');
+  if (!s) return {ok: false, error: '금액을 입력하세요'};
   if (/[^0-9+\-*/().,]/.test(s)) return {ok: false, error: '숫자와 + − × ÷ ( ) 만 쓸 수 있습니다'};
   s = s.replace(/,/g, '');
   const toks = [];
@@ -10355,6 +10377,57 @@ function calcAmount(raw){
    나중에 그 칸을 다시 열었을 때 결과값(200)이 아니라 적은 수식 그대로 보여 줍니다 (2026-11-25). */
 function isFormulaText(raw){ return /^\s*=/.test(String(raw == null ? '' : raw)); }
 function formulaText(raw){ return String(raw == null ? '' : raw).trim().slice(0, 80); }
+/* ---------- 금액 수정창 '=값+' 자동 채움 (2026-11-28) ----------
+   모바일 키보드에는 '=' 가 없어 수식을 적기 어렵다는 요청으로, 금액 수정창을 열 때
+   기존 값을 '=52951+' 처럼 '=' 와 끝 '+' 로 감싸 둡니다 — 숫자만 바로 이어 적으면 됩니다.
+   새로 넣는 칸(직접 추가)은 비워 둡니다. */
+function amtPrefillText(v){
+  let s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  if (isFormulaText(s)){
+    let t = s.replace(/^\s*=\s*/, '').replace(/\s+$/, '').replace(/[+\-*/(]+$/, '');
+    return t ? '=' + t + '+' : '=';
+  }
+  const num = Number(s.replace(/,/g, ''));
+  if (!isFinite(num)) return s;                 /* 숫자가 아니면 그대로 */
+  if (!num) return '=';                         /* 0원은 값 없이 '=' 만 */
+  return '=' + Math.abs(num) + '+';
+}
+function amtCaretEnd(el){
+  if (!el || !el.setSelectionRange) return;
+  try { const n = String(el.value || '').length; el.setSelectionRange(n, n); } catch(e){}
+}
+/* 금액 칸을 누를 때 커서를 맨 끝(+) 뒤로 — '=값+' 로 채워진 칸과 주식 탭 숫자 칸에 */
+function amtInputOnFocus(el){
+  if (!el || el.tagName !== 'INPUT') return false;
+  const raw = String(el.value || '').trim();
+  const isStk = el.dataset && (el.dataset.hf === 'qty' || el.dataset.hf === 'avg' ||
+                 el.dataset.ff === 'value' || el.dataset.ff === 'cost' || el.dataset.af === 'cash');
+  if (isStk){
+    if (raw && !isFormulaText(raw)){ el.value = amtPrefillText(raw); }
+    else if (!raw) return false;
+    return true;
+  }
+  return /^=.*\+$/.test(raw);
+}
+document.addEventListener('focusin', ev=>{
+  const el = ev.target;
+  if (!amtInputOnFocus(el)) return;
+  el.dataset.amtFresh = '1';            /* 이번에 눌러서 연 칸 — 첫 탬에서 커서를 끝으로 */
+  /* 모바일에서 포커스 직후에는 커서 지정이 무시되므로 한 박자 뒤에 다시 놓습니다 */
+  amtCaretEnd(el);
+  setTimeout(()=>{ if (document.activeElement === el) amtCaretEnd(el); }, 30);
+});
+/* 칸을 누를 때 생기는 커서를 다시 끝으로 — 누른 자리가 글자 앞이면 '=3000+' 앞에 숫자가 끼어듭니다 */
+document.addEventListener('pointerup', ev=>{
+  const el = ev.target;
+  if (!el || el.tagName !== 'INPUT' || el.dataset.amtFresh !== '1') return;
+  amtCaretEnd(el);
+}, true);
+document.addEventListener('input', ev=>{
+  const el = ev.target;
+  if (el && el.dataset) delete el.dataset.amtFresh;
+}, true);
 /* 수식 미리보기 — 입력란과 같은 폼 안의 .calc-hint 에 = 결과를 보여줍니다 */
 function refreshCalcHint(inp){
   if (!inp) return;
@@ -11761,7 +11834,7 @@ function scEditHtml(month, acc){
   const trInfo = bankTransferInfo(month, acc, item);
   return '<div class="sc-edit" ' + st + '>' +
     '<span class="who">' + esc(bankAccShort(acc)) + ' · ' + (isAct ? '실행 합계' : '예산') + (linked ? ' ⇄' : '') + (trInfo ? ' · 계좌이동 ' + (trInfo.dir === 'in' ? '+' : '−') : '') + '</span>' +
-    '<input id="scAmt" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (val || valSet ? fmt(val) : '')) + '" placeholder="=100+100" aria-label="' + (isAct ? '실행 합계' : '예산') + '">' +
+    '<input id="scAmt" type="text" inputmode="decimal" data-calc="1" value="' + esc(amtPrefillText(fm || (val || valSet ? fmt(val) : ''))) + '" placeholder="=100+100" aria-label="' + (isAct ? '실행 합계' : '예산') + '">' +
     '<button type="button" class="btn primary" data-scsave="1">저장</button>' +
     '<button type="button" class="btn ghost" data-sccancel="1">취소</button>' +
     '<span class="calc-hint" id="calcHint"></span>' +
@@ -12481,6 +12554,11 @@ function bankCatBtnHtml(r){
 function renderBankDetail(){
   const month = bankCurrentMonth();
   const yMode = bankYearMode();
+  /* 폼 상태가 지워졌으면(달·탭 이동, 동기화 다시 받기) 열려 있던 추가 모달도 함께 닫습니다 (2026-11-28) */
+  if (!bRowEdit){
+    const bd0 = $('#bankAddBackdrop');
+    if (bd0 && bd0.classList.contains('show')) closeBankAdd();
+  }
   /* 연도 전체에서는 여러 달 거래를 모아 보여 주므로 수정 모드를 끝냅니다 — 달을 골라 수정 */
   if (yMode && BEDITMODE){ BEDITMODE = false; BSEL.clear(); bRowEdit = null; document.body.classList.toggle('editmode', EDITMODE || BEDITMODE); }
   const c2 = $('#bankAccChips2'), c3 = $('#bankDirChips'), c5 = $('#bankCatChips');
@@ -12511,13 +12589,6 @@ function renderBankDetail(){
     Array.from(BSEL).forEach(id=>{ if (!live.has(id)) BSEL.delete(id); });
   }
   renderBankEditBar(rows.length);
-  /* 수정·추가 폼은 표 안이 아니라 표 위 패널에 그립니다 — 표 칸 폭에 갇혀 세로로 길어지던 문제 수정 */
-  const panel = $('#bankEditPanel');
-  if (panel){
-    const show = !!bRowEdit;
-    panel.classList.toggle('hidden', !show);
-    panel.innerHTML = show ? bankRowEditHtml(bRowEdit, bRowEdit.isNew ? {id: '__new__', account: bRowEdit.account} : {}) : '';
-  }
   if (!rows.length){
     tbody.innerHTML = '<tr class="emptyrow"><td colspan="' + (BEDITMODE ? 6 : 5) + '"><div class="empty">' +
       esc(yMode ? multiSelLabel() : monthLabel(month)) + '에 현금 내역이 없습니다 · 📸 캡처 또는 + 직접 추가</div></td></tr>';
@@ -12570,25 +12641,29 @@ function bankRowEditHtml(d0, r){
     [m.item, bankMoveLabel(m.item, acc)].forEach(x=>{ if (x && items.indexOf(x) < 0) items.push(x); });
   });
   const accOpts = BANK_ACCOUNTS.map(a=> '<option value="' + esc(a) + '"' + (a === acc ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
-  const itemOpts = items.map(it=> '<option value="' + esc(it) + '"></option>').join('');
+  /* 항목은 datalist 대신 <select> 로 — 모바일 키보드와 겹치지 않고 한 번에 고릅니다 (2026-11-28)
+     목록에 없는 새 이름은 맨 아래 '＋ 직접 입력…' 을 고를 때만 글자 칸이 열립니다. */
+  const itemNew = !!d.itemNew;
+  const curItem = itemNew ? '' : String(d.item || '');
+  const itemOpts = '<option value=""' + (!curItem && !itemNew ? ' selected' : '') + '>— 항목 선택 —</option>' +
+    items.map(it=> '<option value="' + esc(it) + '"' + (it === curItem ? ' selected' : '') + '>' + esc(it) + '</option>').join('') +
+    '<option value="__new__"' + (itemNew ? ' selected' : '') + '>＋ 직접 입력…</option>';
   const isNew = r.id === '__new__' || d.isNew;
   /* 구분: 지출/수입 + 계좌이동(방향 포함) — 계좌이동은 총 수입·지출에서 빠집니다 (2026-11-25) */
   const dirVal = /^move-/.test(String(d.dir || '')) ? d.dir : (d.dir === 'in' ? 'in' : 'out');
   const dirOpt = (v, label)=> '<option value="' + v + '"' + (dirVal === v ? ' selected' : '') + '>' + label + '</option>';
-  return '<datalist id="bankItemNames">' + itemOpts + '</datalist>' +
-    '<div class="bedit-grid">' +
-      (isNew ? '<div class="btop">＋ 새 내역 — 항목에 새 이름을 써도 계좌내역에 그 이름으로 바로 줄이 생깁니다</div>' : '') +
+  return '<div class="bedit-grid">' +
       '<label class="fld"><span>날짜</span><input type="date" data-bf="date" value="' + esc(d.date || '') + '"></label>' +
       '<label class="fld"><span>계좌</span><select data-bf="account">' + accOpts + '</select></label>' +
       '<label class="fld"><span>수입/지출</span><select data-bf="dir">' + dirOpt('out', '지출 (출금)') + dirOpt('in', '수입 (입금)') +
         dirOpt('move-out', '계좌이동 · − 출금') + dirOpt('move-in', '계좌이동 · + 입금') + '</select></label>' +
-      '<label class="fld"><span>항목</span><input type="text" data-bf="item" list="bankItemNames" maxlength="24" value="' + esc(d.item || '') + '" placeholder="항목 (새 이름도 입력 가능)" autocomplete="off"></label>' +
-      '<label class="fld"><span>금액(원)</span><input type="text" data-bf="amount" inputmode="decimal" data-calc="1" value="' + esc(d.amount || '') + '" placeholder="예: 50000+30000"></label>' +
+      '<label class="fld"><span>항목</span><select data-bf="item" aria-label="항목 고르기 (맨 아래 직접 입력에서 새 이름)">' + itemOpts + '</select></label>' +
+      '<label class="fld wide" data-bfnew' + (itemNew ? '' : ' hidden') + '><span>새 항목 이름</span>' +
+        '<input type="text" data-bf="itemNew" maxlength="24" value="' + esc(itemNew ? (d.item || '') : '') + '" placeholder="예: 교육비" autocomplete="off" enterkeyhint="done"></label>' +
+      '<label class="fld wide"><span>금액(원)</span><input type="text" data-bf="amount" inputmode="decimal" data-calc="1" value="' + esc(d.amount || '') + '" placeholder="예: 50000+30000"></label>' +
       '<span class="calc-hint" id="calcHint"></span>' +
       '<label class="fld wide"><span>내용</span><input type="text" data-bf="name" maxlength="60" value="' + esc(d.name || '') + '" placeholder="적요·거래 내용 (비우면 항목 이름)"></label>' +
       '<label class="fld wide"><span>메모(비고)</span><input type="text" data-bf="memo" maxlength="80" value="' + esc(d.memo || '') + '" placeholder="거래할 때 남긴 메모"></label>' +
-      '<div class="acts"><button type="button" class="btn primary" data-bsave="1">저장</button>' +
-        '<button type="button" class="btn ghost" data-bcancel="1">취소</button></div>' +
     '</div>';
 }
 function renderBankEditBar(totalVisible){
@@ -12721,7 +12796,7 @@ function settleRowHtml(kind, key, label, bud, act, opts){
   const budCell = ro
     ? (bud ? '<b>' + fmt(bud) + '</b>' : (budZero ? '<b>0</b>' : '—'))
     : (editing
-      ? '<span class="bedit"><input id="setBudInput" type="text" inputmode="decimal" data-calc="1" value="' + esc(fm || (bud || budZero ? fmt(bud) : '')) + '" placeholder="=100+100" aria-label="' + esc(label) + ' 예산">' +
+      ? '<span class="bedit"><input id="setBudInput" type="text" inputmode="decimal" data-calc="1" value="' + esc(amtPrefillText(fm || (bud || budZero ? fmt(bud) : ''))) + '" placeholder="=100+100" aria-label="' + esc(label) + ' 예산">' +
         '<button type="button" class="btn primary" data-setsave="yes">확인</button><button type="button" class="btn ghost" data-setcancel="1">✕</button>' +
         '<span class="calc-hint" id="calcHint"></span></span>'
       : '<button type="button" class="budbtn" data-setbud="' + esc(id) + '" title="' + esc('예산 고치기' + (fm ? ' · ' + fm : '')) + '"' + (settleLocked ? ' disabled aria-disabled="true"' : '') + '>' + (bud ? fmt(bud) : (budZero ? '0' : '—')) + '</button>');
@@ -13753,23 +13828,42 @@ function openBankRowEdit(id){
   const r = d && d.rows.find(x=> x.id === id);
   if (!r) return;
   bRowEdit = {id: r.id, month: month, account: r.account, date: toDateStr(r.date) || '', item: r.item,
-    name: r.name || '', amount: r.formula || fmt(Math.abs(r.amount)), memo: r.memo || '', isNew: false,
+    name: r.name || '', amount: amtPrefillText(r.formula || fmt(Math.abs(r.amount))), memo: r.memo || '', isNew: false,
     dir: r.kind === TRANSFER_KIND ? ('move-' + (r.amount > 0 ? 'in' : 'out')) : (r.amount < 0 ? 'out' : 'in')};
-  renderBank();
-  const panel = $('#bankEditPanel');
-  if (panel){ try { panel.scrollIntoView({behavior: 'smooth', block: 'center'}); } catch(e){} }
-  const inp = document.querySelector('#bankEditPanel [data-bf="name"]');
-  if (inp) inp.focus();
+  openBankAdd();
 }
 function openBankNew(){
-  bRowEdit = {id: null, month: bankCurrentMonth(), account: BANK.ui.account || (BANK_ACCOUNTS[0] || MAIN_ACC), date: todayStr(),
-    item: '', name: '', amount: '', memo: '', isNew: true, dir: 'out'};
-  renderBank();
-  const el = $('#bankDetailCard');
-  if (el){ try { el.scrollIntoView({behavior: 'smooth', block: 'start'}); } catch(e){} }
-  const inp = document.querySelector('#bankEditPanel [data-bf="item"]');
-  if (inp) inp.focus();
-  toast('새 내역 — 항목·금액을 넣고 저장하세요 (금액은 50000+30000 수식도 됩니다)', 3200);
+  const acc0 = BANK.ui.account || (BANK_ACCOUNTS[0] || MAIN_ACC);
+  /* 지금 걸러 보고 있는 항목이 있으면 그 항목을 미리 골라 둡니다 — 저장한 뒤 목록에서 사라지지 않게 */
+  const filt = String(BANK.ui.item || '');
+  const preset = filt && bankItemList(bankCurrentMonth(), acc0).out.concat(bankItemList(bankCurrentMonth(), acc0).in).indexOf(filt) >= 0 ? filt : '';
+  bRowEdit = {id: null, month: bankCurrentMonth(), account: acc0, date: todayStr(),
+    item: preset, itemNew: false, name: '', amount: '', memo: '', isNew: true, dir: 'out'};
+  openBankAdd();
+}
+/* 현금 내역 직접 추가·수정 모달 (2026-11-28) — 카드 탭 '＋ 직접 추가'와 같은 가운데 팝업 */
+function renderBankAddBody(){
+  const body = $('#bankAddBody');
+  if (!body) return;
+  body.innerHTML = bRowEdit
+    ? bankRowEditHtml(bRowEdit, bRowEdit.isNew ? {id: '__new__', account: bRowEdit.account} : {})
+    : '';
+  refreshCalcHint(body.querySelector('[data-bf="amount"]'));
+}
+function openBankAdd(){
+  if (!bRowEdit) return;
+  const t = $('#bankAddTitle');
+  if (t) t.textContent = bRowEdit.isNew ? '현금 내역 직접 추가' : '현금 내역 수정';
+  renderBankAddBody();
+  const bd = $('#bankAddBackdrop');
+  if (bd) bd.classList.add('show');
+}
+function closeBankAdd(){
+  bRowEdit = null;
+  const bd = $('#bankAddBackdrop');
+  if (bd) bd.classList.remove('show');
+  const body = $('#bankAddBody');
+  if (body) body.innerHTML = '';
 }
 function bankDateForMonth(month){
   return String(month || '') === todayStr().slice(0, 7) ? todayStr() : '';
@@ -13788,7 +13882,7 @@ function saveBankRow(){
   const name = String(d.name || '').trim() || (moveHit ? bankMoveLabel(moveHit.item, account0) : itemRaw);
   const calc = calcAmount(d.amount);
   if (!name){ toast('항목이나 내용을 넣어주세요'); return; }
-  if (!calc.ok){ toast('금액: ' + calc.error); const i = document.querySelector('#bankEditPanel [data-bf="amount"]'); if (i) i.focus(); return; }
+  if (!calc.ok){ toast('금액: ' + calc.error); const i = document.querySelector('#bankAddBody [data-bf="amount"]'); if (i) i.focus(); return; }
   const month = d.month || bankCurrentMonth();
   const account = account0;
   const item = moveHit ? moveHit.item : (itemRaw || '기타');
@@ -13834,7 +13928,7 @@ function saveBankRow(){
   if (isTr) bankSetTransfer(month, account, item, mdir);
   else if (regTr) bankSetTransfer(month, account, item, regTr.dir);
   doc.updatedAt = nowIso();
-  bRowEdit = null;
+  closeBankAdd();                      /* 저장하면 모달을 닫습니다 (2026-11-28) */
   bankSave(); renderAll();
   markBankDirty(month, {label: (date ? dMD(date) + ' ' : '') + name + ' · ' + fmt(Math.abs(amount)) + '원', action: d.isNew ? '추가' : '수정'});
   const shownDir = moveHit ? (moveSignedAmount(moveHit.item, calc.value) < 0 ? 'out' : 'in') : mdir;
@@ -13878,11 +13972,8 @@ function deleteBankRows(ids){
   return n;
 }
 $('#bankDetailCard').addEventListener('click', ev=>{
-  if (ev.target.closest('[data-bsave]')){ saveBankRow(); return; }
-  if (ev.target.closest('[data-bcancel]')){ bRowEdit = null; renderBank(); return; }
   const bcat = ev.target.closest('[data-bcat]');
   if (bcat){ openBankCatSheet(bcat.dataset.bcat); return; }
-  if (ev.target.closest('#bankEditPanel')) return;
   if (!BEDITMODE){
     const tr = ev.target.closest('tbody tr[data-id]');
     if (tr && tr.dataset.id) openBankRowEdit(tr.dataset.id);
@@ -13908,24 +13999,10 @@ $('#bankDetailCard').addEventListener('input', ev=>{
     refreshCalcHint(t);
     return;
   }
+  if (f === 'itemNew'){ bRowEdit.item = t.value; bankItemDir(t.value); return; }
   bRowEdit[f] = t.value;
   /* 항목에 모으기채우기·모으기꺼내기를 넣으면 구분을 부호에 맞게 바꿔 줍니다 (2026-11-25) */
-  if (f === 'item'){
-    const m = moveAnyInfo(bRowEdit.account, t.value);
-    if (m){
-      bRowEdit.dir = m.sign < 0 ? 'out' : 'in';
-      const sel = document.querySelector('#bankEditPanel [data-bf="dir"]');
-      if (sel) sel.value = bRowEdit.dir;
-    } else {
-      /* 정산 요약에서 계좌이동으로 정한 항목이면 구분을 계좌이동으로 */
-      const tr = bankTransferInfo(bRowEdit.month || bankCurrentMonth(), bRowEdit.account, t.value);
-      if (tr){
-        bRowEdit.dir = 'move-' + tr.dir;
-        const sel = document.querySelector('#bankEditPanel [data-bf="dir"]');
-        if (sel) sel.value = bRowEdit.dir;
-      }
-    }
-  }
+  if (f === 'item') bankItemDir(t.value);
 });
 $('#bankDetailCard').addEventListener('change', ev=>{
   const t = ev.target;
@@ -13933,12 +14010,61 @@ $('#bankDetailCard').addEventListener('change', ev=>{
   if (t.dataset.bf === 'account'){ bRowEdit.account = t.value; bRowEdit.item = ''; renderBank(); }
   else if (t.dataset.bf === 'dir'){ bRowEdit.dir = String(t.value || 'out'); }
 });
-$('#bankDetailCard').addEventListener('keydown', ev=>{
-  if (!bRowEdit || !ev.target.closest('#bankEditPanel')) return;
+/* 항목을 고르면 모으기 이체·계좌이동은 구분(수입/지출)까지 맞춰 줍니다 */
+function bankItemDir(v){
+  if (!bRowEdit) return;
+  const val = String(v || '');
+  const m = moveAnyInfo(bRowEdit.account, val);
+  if (m){ bRowEdit.dir = m.sign < 0 ? 'out' : 'in'; }
+  else {
+    const tr = bankTransferInfo(bRowEdit.month || bankCurrentMonth(), bRowEdit.account, val);
+    if (tr) bRowEdit.dir = 'move-' + tr.dir;
+  }
+  const sel = document.querySelector('#bankAddBody [data-bf="dir"]');
+  if (sel) sel.value = bRowEdit.dir;
+}
+/* 현금 내역 직접 추가·수정 모달 이벤트 (2026-11-28) */
+$('#bankAddSave').addEventListener('click', ()=> saveBankRow());
+$('#bankAddClose').addEventListener('click', ()=> closeBankAdd());
+$('#bankAddCancel').addEventListener('click', ()=> closeBankAdd());
+$('#bankAddBackdrop').addEventListener('click', ev=>{ if (ev.target.id === 'bankAddBackdrop') closeBankAdd(); });
+$('#bankAddBody').addEventListener('input', ev=>{
   const t = ev.target;
-  if (!t || !t.dataset || !t.dataset.bf) return;
-  if (ev.key === 'Enter'){ ev.preventDefault(); ev.stopPropagation(); saveBankRow(); }
-  else if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); bRowEdit = null; renderBank(); }
+  if (!bRowEdit || !t || !t.dataset || !t.dataset.bf) return;
+  const f = t.dataset.bf;
+  if (f === 'amount'){ bRowEdit.amount = t.value; refreshCalcHint(t); return; }
+  if (f === 'itemNew'){ bRowEdit.item = t.value; bankItemDir(t.value); return; }
+  bRowEdit[f] = t.value;
+});
+$('#bankAddBody').addEventListener('change', ev=>{
+  const t = ev.target;
+  if (!bRowEdit || !t || !t.dataset || !t.dataset.bf) return;
+  const f = t.dataset.bf;
+  if (f === 'account'){
+    bRowEdit.account = t.value; bRowEdit.item = ''; bRowEdit.itemNew = false;
+    renderBankAddBody();
+    return;
+  }
+  if (f === 'dir'){ bRowEdit.dir = String(t.value || 'out'); return; }
+  if (f === 'item'){
+    const wrap = $('#bankAddBody [data-bfnew]');
+    if (t.value === '__new__'){
+      bRowEdit.itemNew = true; bRowEdit.item = '';
+      if (wrap) wrap.hidden = false;
+      const ni = $('#bankAddBody [data-bf="itemNew"]');
+      if (ni){ ni.value = ''; try { ni.focus(); } catch(e){} }
+      return;
+    }
+    bRowEdit.itemNew = false;
+    if (wrap) wrap.hidden = true;
+    bRowEdit.item = String(t.value || '');
+    if (bRowEdit.item) bankItemDir(bRowEdit.item);
+  }
+});
+$('#bankAddBody').addEventListener('keydown', ev=>{
+  if (!bRowEdit) return;
+  if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT'){ ev.preventDefault(); saveBankRow(); }
+  else if (ev.key === 'Escape'){ ev.preventDefault(); closeBankAdd(); }
 });
 /* ⠿ 로 은행 내역 순서 바꾸기 */
 function bankTableIds(){ return $$('#btbody tr[data-id]').map(tr=> tr.dataset.id); }
@@ -14399,7 +14525,12 @@ function stkBlank(){
           indices: [], watchlist: {kr: [], us: []}, accounts: [], prices: {}, snapshots: []};
 }
 function stkEsc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function stkNum(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+function stkNum(v){
+  const s = String(v == null ? '' : v).trim();
+  if (isFormulaText(s)){ const c = calcAmount(s); return c.ok ? c.value : 0; }
+  const n = Number(s.replace(/,/g, ''));
+  return isFinite(n) ? n : 0;
+}
 function stkUid(){ return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
 
 /* ---------------- 상태 ---------------- */
