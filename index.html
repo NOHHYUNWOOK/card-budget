@@ -10390,7 +10390,7 @@ function amtPrefillText(v){
   }
   const num = Number(s.replace(/,/g, ''));
   if (!isFinite(num)) return s;                 /* 숫자가 아니면 그대로 */
-  if (!num) return '=';                         /* 0원은 값 없이 '=' 만 */
+  if (!num) return '=0+';                       /* 0원도 그대로 저장되도록 — 숫자를 이어 적으면 바로 더해집니다 */
   return '=' + Math.abs(num) + '+';
 }
 function amtCaretEnd(el){
