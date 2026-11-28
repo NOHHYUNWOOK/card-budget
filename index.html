@@ -1919,13 +1919,18 @@ body[data-view="stock"] .cv-card,body[data-view="stock"] .cv-bank,body[data-view
 .stk-m b{font-size:14px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stk-holdwrap{padding:2px 0 8px}
 .stk-holdhdr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:4px 16px 6px;font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line2)}
-.stk-hold{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:9px 16px;border-bottom:1px solid var(--line2);align-items:center}
+/* 종목 행 — 모바일에서 평단·매수원금이 …로 잘리지 않게 (2026-11-29)
+   1줄: 종목명·티커 | 평가액 / 2줄: (오른쪽) 수익률·손익
+   3줄(전체 폭): 수량 · 평단 · 매수원금 — 긴 숫자도 줄바꿈으로 다 보이게 */
+.stk-hold{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 8px;padding:10px 16px;border-bottom:1px solid var(--line2);align-items:start}
 .stk-hold:last-child{border-bottom:0}
-.stk-hold .nm{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stk-hold .meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-hold .hd{grid-column:1;grid-row:1 / span 2;align-self:center;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;min-width:0}
+.stk-hold .nm{font-size:13.5px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.stk-hold .sym{font-size:10.5px;color:var(--muted);font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stk-hold .meta{grid-column:1 / -1;grid-row:3;margin-top:3px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.45;overflow-wrap:anywhere;word-break:keep-all}
 .stk-hold .r{text-align:right;min-width:0}
-.stk-hold .v{font-size:13.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
-.stk-hold .d{font-size:11.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stk-hold .v{grid-column:2;grid-row:1;font-size:13.5px;font-weight:750;font-variant-numeric:tabular-nums;text-align:right;line-height:1.35;overflow-wrap:anywhere}
+.stk-hold .d{grid-column:2;grid-row:2;font-size:11.5px;font-weight:750;font-variant-numeric:tabular-nums;text-align:right;line-height:1.4;overflow-wrap:anywhere}
 
 .stk-charthead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px 0}
 .stk-charthead .lbl{font-size:12px;color:var(--muted);font-weight:700}
@@ -1942,14 +1947,14 @@ body[data-view="stock"] .cv-card,body[data-view="stock"] .cv-bank,body[data-view
 
 .stk-wl2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:900px){.stk-wl2{grid-template-columns:1fr}}
-.stk-wlhdr{display:grid;grid-template-columns:minmax(0,1fr) 84px 78px;gap:8px;padding:6px 16px;font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line2)}
-.stk-wl{display:grid;grid-template-columns:minmax(0,1fr) 84px 78px;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line2);align-items:center}
+.stk-wlhdr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;padding:6px 16px;font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line2)}
+.stk-wl{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line2);align-items:center}
 .stk-wl:last-child{border-bottom:0}
-.stk-wl .nm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stk-wl .sym{font-size:10.5px;color:var(--muted);font-weight:650;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-wl .nm{font-size:13px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.stk-wl .sym{font-size:10.5px;color:var(--muted);font-weight:650;margin-top:1px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .stk-wl .v{text-align:right;font-size:13px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stk-wl .d{text-align:right;font-size:11.5px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
-.stk-wl .nmrow{display:flex;align-items:center;gap:6px;min-width:0}
+.stk-wl .nmrow{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0}
 .stk-kr-mark{font-size:9.5px;font-weight:800;color:#1d4ed8;background:#eaf1ff;border-radius:5px;padding:1px 4px;flex:none}
 .stk-us-mark{font-size:9.5px;font-weight:800;color:#0f766e;background:#e6f7f3;border-radius:5px;padding:1px 4px;flex:none}
 
@@ -14532,6 +14537,10 @@ function stkNum(v){
   return isFinite(n) ? n : 0;
 }
 function stkUid(){ return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+/* 연금저축·퇴직연금(IRP) 계좌인지 — 이런 계좌는 표시 순서에서 항상 맨 아래로 (2026-11-29) */
+function stkPensionAcc(a){
+  return /연금|퇴직|IRP/i.test((a.broker || '') + ' ' + (a.name || '')) ? 1 : 0;
+}
 
 /* ---------------- 상태 ---------------- */
 function stkNorm(raw){
@@ -14551,6 +14560,11 @@ function stkNorm(raw){
     fixed: (Array.isArray(a.fixed) ? a.fixed : []).map(f => ({name: f.name || '', value: stkNum(f.value), cost: stkNum(f.cost)})),
     holdings: (Array.isArray(a.holdings) ? a.holdings : []).map(h => ({symbol: h.symbol || '', name: h.name || h.symbol || '', qty: stkNum(h.qty), avg: stkNum(h.avg)})).filter(h => h.symbol)
   }));
+  /* 표시 순서 — 연금저축·퇴직연금은 맨 아래, 나머지는 저장된 순서 그대로.
+     기기가 저장소에 올려 둔 배열 순서가 조금 달라도 화면 순서는 같게 나옵니다 (2026-11-29) */
+  d.accounts = d.accounts.map((a, i) => ({a: a, i: i}))
+    .sort((x, y) => (stkPensionAcc(x.a) - stkPensionAcc(y.a)) || (x.i - y.i))
+    .map(o => o.a);
   d.prices = (raw.prices && typeof raw.prices === 'object') ? raw.prices : {};
   d.snapshots = Array.isArray(raw.snapshots) ? raw.snapshots.filter(s => s && s.date) : [];
   return d;
@@ -15026,17 +15040,21 @@ function stkAccCard(acc){
   const live = c.rows.some(r => r.live);
   const rows = c.rows.map(r =>
     '<div class="stk-hold">' +
-      '<div><div class="nm">' + stkEsc(r.name) + '</div>' +
-      '<div class="meta">' + stkEsc(r.symbol) + ' · ' + fmt(r.qty) + '주 · 평단 ' + fmt(Math.round(r.avg)) + '</div></div>' +
-      '<div class="r"><div class="v">' + stkMoney(r.value) + '</div>' +
-      '<div class="d ' + stkCls(r.pl) + '">' + stkPctText(r.pct) + ' · ' + stkSigned(r.pl) + '</div></div>' +
+      '<div class="hd"><span class="nm">' + stkEsc(r.name) + '</span><span class="sym">' + stkEsc(r.symbol) + '</span></div>' +
+      '<div class="v">' + stkMoney(r.value, r.cur) + '</div>' +
+      '<div class="d ' + stkCls(r.pl) + '">' + stkPctText(r.pct) + ' · ' + stkSigned(r.pl, r.cur) + '</div>' +
+      '<div class="meta">' + fmt(r.qty) + '주 · 평단 ' + stkMoney(r.avg, r.cur) + ' · 매수원금 ' + stkMoney(r.cost, r.cur) + '</div>' +
     '</div>').join('');
-  const fixed = (acc.fixed || []).map(f =>
-    '<div class="stk-hold">' +
-      '<div><div class="nm">' + stkEsc(f.name) + '</div><div class="meta">고정자산 · 매수원금 ' + fmt(Math.round(stkNum(f.cost))) + '</div></div>' +
-      '<div class="r"><div class="v">' + stkMoney(stkNum(f.value)) + '</div>' +
-      '<div class="d ' + stkCls(stkNum(f.value) - stkNum(f.cost)) + '">' + stkSigned(stkNum(f.value) - stkNum(f.cost)) + '</div></div>' +
-    '</div>').join('');
+  const fixed = (acc.fixed || []).map(f => {
+    const fv = stkNum(f.value), fc = stkNum(f.cost), fpl = fv - fc;
+    const fpct = fc ? fpl / fc * 100 : 0;
+    return '<div class="stk-hold">' +
+      '<div class="hd"><span class="nm">' + stkEsc(f.name) + '</span><span class="sym">고정자산</span></div>' +
+      '<div class="v">' + stkMoney(fv) + '</div>' +
+      '<div class="d ' + stkCls(fpl) + '">' + stkPctText(fpct) + ' · ' + stkSigned(fpl) + '</div>' +
+      '<div class="meta">평가금액 ' + stkMoney(fv) + ' · 매수원금 ' + stkMoney(fc) + '</div>' +
+    '</div>';
+  }).join('');
   return '<section class="card stk-acc">' +
     '<div class="card-head"><h2>' + stkEsc((acc.broker ? acc.broker + ' ' : '') + acc.name) + '</h2>' +
       '<span class="stk-accno">' + stkEsc(acc.number || '') + '</span>' +
